@@ -1391,8 +1391,17 @@ function Panel.BuildBlocklist()
 		f.rows[i] = row
 	end
 	f.empty = newText(f, "GameFontDisable", 22, -80, 296, 14)
-	f.prev = newButton(f, "EqVoiceBlocklistPrev", "<", 30, 22, -282, function() Panel.blPage = math.max(1, Panel.blPage - 1); Panel.dirty = true end)
-	f.next = newButton(f, "EqVoiceBlocklistNext", ">", 30, 58, -282, function() Panel.blPage = Panel.blPage + 1; Panel.dirty = true end)
+	f.prev = newButton(f, "EqVoiceBlocklistPrev", "", 30, 22, -282, function() Panel.blPage = math.max(1, Panel.blPage - 1); Panel.dirty = true end)
+	f.next = newButton(f, "EqVoiceBlocklistNext", "", 30, 58, -282, function() Panel.blPage = Panel.blPage + 1; Panel.dirty = true end)
+	for _, side in ipairs({ { f.prev, "IconLeft.tga" }, { f.next, "IconRight.tga" } }) do        -- a solid triangle each way
+		local g = side[1]:CreateTexture(nil, "OVERLAY")
+		g:SetTexture(Panel.ART .. side[2])
+		g:SetWidth(12)
+		g:SetHeight(12)
+		g:SetPoint("CENTER", side[1], "CENTER", 0, 0)
+		g:SetVertexColor(THEME.text[1], THEME.text[2], THEME.text[3], 1)
+		side[1].icon = g
+	end
 	f.page = newText(f, "GameFontHighlightSmall", 96, -287, 200, 12)
 	local lab = newText(f, "GameFontNormalSmall", 22, -318, 280, 12)
 	lab:SetText("Block a player")
@@ -1469,8 +1478,8 @@ local function applyBlocklist(f, now)
 	end
 	f.empty:SetText(n == 0 and "Nobody is blocked." or "")
 	f.page:SetText(string.format("%d player%s   page %d of %d", n, n == 1 and "" or "s", Panel.blPage, pages))
-	if Panel.blPage > 1 then f.prev:Enable() else f.prev:Disable() end
-	if Panel.blPage < pages then f.next:Enable() else f.next:Disable() end
+	setEnabled(f.prev, Panel.blPage > 1)
+	setEnabled(f.next, Panel.blPage < pages)
 	if OV.Status.Alive(now) then f.bAdd:Enable(); f.bTarget:Enable() else f.bAdd:Disable(); f.bTarget:Disable() end
 end
 

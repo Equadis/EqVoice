@@ -11,7 +11,7 @@ ROOT = Path(__file__).resolve().parents[2]
 ADDON = ROOT / "eqvoice-addon" / "EqVoice"
 sys.path.insert(0, str(ROOT / "tools"))
 
-SIZES = {"MicroUp.tga": (32, 64), "MicroDown.tga": (32, 64), "MicGlyph.tga": (32, 32), "MicSlash.tga": (32, 32), "Logo.tga": (64, 64), "RoundFill.tga": (16, 16), "IconClose.tga": (16, 16), "IconDown.tga": (16, 16),
+SIZES = {"MicroUp.tga": (32, 64), "MicroDown.tga": (32, 64), "MicGlyph.tga": (32, 32), "MicSlash.tga": (32, 32), "Logo.tga": (64, 64), "RoundFill.tga": (16, 16), "IconClose.tga": (16, 16), "IconDown.tga": (16, 16), "IconLeft.tga": (16, 16), "IconRight.tga": (16, 16),
          "VoiceSpeaking.tga": (16, 16), "VoiceOpen.tga": (16, 16), "VoiceKnown.tga": (16, 16), "VoiceMuted.tga": (16, 16), "VoiceDeafened.tga": (16, 16)}
 
 

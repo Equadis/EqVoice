@@ -27,7 +27,7 @@ SS = 8                                                   # supersampling: drawn 
 ICONS = ROOT / "tools" / "art" / "voice-icons"
 VOICE = {"VoiceSpeaking.tga": "speaking", "VoiceOpen.tga": "open", "VoiceKnown.tga": "known", "VoiceMuted.tga": "muted", "VoiceDeafened.tga": "deafened"}
 # vol_high = speaking.png, vol_mid = open.png, vol_low = known.png (see addon Icons.lua)
-NAMES = ("MicroUp.tga", "MicroDown.tga", "MicGlyph.tga", "MicSlash.tga", "Logo.tga", "RoundFill.tga", "IconClose.tga", "IconDown.tga") + tuple(sorted(VOICE))
+NAMES = ("MicroUp.tga", "MicroDown.tga", "MicGlyph.tga", "MicSlash.tga", "Logo.tga", "RoundFill.tga", "IconClose.tga", "IconDown.tga", "IconLeft.tga", "IconRight.tga") + tuple(sorted(VOICE))
 
 
 def write_tga(img: Image.Image, path: Path) -> None:
@@ -159,6 +159,16 @@ def icon_close() -> Image.Image:
     return img
 
 
+def icon_side(right: bool) -> Image.Image:
+    """A solid triangle pointing left or right (the blocklist's page buttons), white, 16 x 16."""
+    big = Image.new("L", (16 * SS, 16 * SS), 0)
+    pts = [(5 * SS, 3 * SS), (5 * SS, 13 * SS), (12 * SS, 8 * SS)] if right else [(11 * SS, 3 * SS), (11 * SS, 13 * SS), (4 * SS, 8 * SS)]
+    ImageDraw.Draw(big).polygon(pts, fill=255)
+    img = Image.new("RGBA", (16, 16), (255, 255, 255, 0))
+    img.putalpha(big.resize((16, 16), Image.LANCZOS))
+    return img
+
+
 def icon_down() -> Image.Image:
     """A solid triangle pointing down (the arrow of a choice box), white, 16 x 16."""
     big = Image.new("L", (16 * SS, 16 * SS), 0)
@@ -185,6 +195,7 @@ def make(out: Path = OUT) -> list:
     arts.update({tga: voice_icon(png) for tga, png in VOICE.items()})
     arts["RoundFill.tga"] = round_fill()
     arts["IconClose.tga"], arts["IconDown.tga"] = icon_close(), icon_down()
+    arts["IconLeft.tga"], arts["IconRight.tga"] = icon_side(False), icon_side(True)
     arts["Logo.tga"] = Image.open(ICONS.parent / "eqvoice-logo.png").convert("RGBA").resize((64, 64), Image.LANCZOS)      # the panel's header: EqUpdater's icon
     for name, img in arts.items():
         write_tga(img, out / name)
