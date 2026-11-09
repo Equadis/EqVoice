@@ -71,8 +71,16 @@ export function eventLogFromEnv(env) {
 
 export function iceFromEnv(env) {
   const list = (env.STUN || "").split(",").map((s) => s.trim()).filter(Boolean);
-  return list.length ? [{ urls: list }] : DEFAULT_ICE;
+  const out = list.length ? [{ urls: list }] : [...DEFAULT_ICE];
+  // A TURN relay with fixed credentials (TURN_URLS comma separated, TURN_USERNAME, TURN_CREDENTIAL): for the players whose network allows no
+  // direct path (two strict NATs). Voice stays end to end encrypted; the relay only carries it.
+  const turn = (env.TURN_URLS || "").split(",").map((s) => s.trim()).filter(Boolean);
+  if (turn.length && env.TURN_USERNAME && env.TURN_CREDENTIAL) out.push({ urls: turn, username: String(env.TURN_USERNAME), credential: String(env.TURN_CREDENTIAL) });
+  return out;
 }
+
+const TURN_TTL_S = 86400;                  // Cloudflare TURN credentials last a day ...
+const TURN_REFRESH_MS = 6 * 3600 * 1000;   // ... and are renewed every six hours, so a player always gets at least eighteen hours
 
 /** Close codes a Worker may send: 1000 or 3000-4999. The hub's other codes are mapped into 4xxx. */
 export function closeCode(code) {
@@ -164,11 +172,34 @@ export class HubDO extends DurableObject {
 
   // ----------------------------------------------------------------- events
 
+  /** Cloudflare's TURN service: short-lived credentials made from a TURN key (TURN_KEY_ID, secret TURN_KEY_API_TOKEN), added to the STUN list. */
+  async _refreshIce() {
+    const id = this.env.TURN_KEY_ID, token = this.env.TURN_KEY_API_TOKEN;
+    if (!id || !token) return;
+    const now = Date.now();
+    if (this.turnAt && now - this.turnAt < TURN_REFRESH_MS) return;
+    try {
+      const r = await fetch(`https://rtc.live.cloudflare.com/v1/turn/keys/${id}/credentials/generate`, {
+        method: "POST", headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" }, body: JSON.stringify({ ttl: TURN_TTL_S }),
+      });
+      if (!r.ok) throw new Error("HTTP " + r.status);
+      const j = await r.json();
+      const t = j && j.iceServers;
+      if (!t || !t.urls || !t.username || !t.credential) throw new Error("no credentials in the answer");
+      this.hub.iceServers = [...iceFromEnv(this.env), { urls: t.urls, username: t.username, credential: t.credential }];
+      this.turnAt = now;
+      console.log("hub: TURN credentials renewed");
+    } catch (e) {
+      console.log("hub: TURN credentials could not be made: " + (e && e.message));
+    }
+  }
+
   async fetch(request) {
     const url = new URL(request.url);
     if (url.pathname === "/stats") {
       return new Response(JSON.stringify(this.hub.stats()), { headers: { "content-type": "application/json" } });
     }
+    await this._refreshIce();
     const pair = new WebSocketPair();
     const [client, server] = Object.values(pair);
     this.ctx.acceptWebSocket(server);

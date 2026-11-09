@@ -80,6 +80,7 @@ try {
           lines[4] === '{"ev":"left","realm":"Testrealm","clean":true}', text);
   }
   check("ice servers default and override", iceFromEnv({}).length === 1 && same(iceFromEnv({ STUN: "stun:a, stun:b" }), [{ urls: ["stun:a", "stun:b"] }]));
+  check("a TURN relay with fixed credentials is added to the list", same(iceFromEnv({ STUN: "stun:a", TURN_URLS: "turn:t:3478, turns:t:443", TURN_USERNAME: "u", TURN_CREDENTIAL: "p" }), [{ urls: ["stun:a"] }, { urls: ["turn:t:3478", "turns:t:443"], username: "u", credential: "p" }]) && iceFromEnv({ TURN_URLS: "turn:t" }).length === 1);
 
   // ---- the router in front of the object
   const ctx = new MockCtx();

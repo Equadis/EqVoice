@@ -44,6 +44,9 @@ new_sqlite_classes = ["HubDO"]
 # NAT traversal servers handed to clients. Add a TURN server here only if direct connections prove not to be enough
 # (urls and credentials are plain text to every client by design; use short-lived TURN credentials, never your account key):
 #   STUN = "stun:stun.cloudflare.com:3478,stun:stun.l.google.com:19302"
+# TURN (for two strict NATs, where no direct path forms): either Cloudflare's own service, a TURN key made in the dashboard or API, as the
+# variable TURN_KEY_ID and the SECRET TURN_KEY_API_TOKEN (the Worker makes day-long credentials from them), or a fixed relay as the variables
+# TURN_URLS ("turn:host:3478,turns:host:443?transport=tcp"), TURN_USERNAME and TURN_CREDENTIAL.
 STUN = "stun:stun.cloudflare.com:3478,stun:stun.l.google.com:19302"
 
 # Production logging: one short JSON line per registration, departure, link and refusal, and a stats line every five minutes.
