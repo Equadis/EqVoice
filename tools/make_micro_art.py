@@ -124,14 +124,15 @@ def glyph() -> Image.Image:
 
 
 def voice_icon(name: str) -> Image.Image:
-    """One of the five pictures, 24 x 24 grey on clear, as a 16 x 16 texture. Only the alpha is resized, so the grey stays one clean colour
+    """One of the five pictures, 24 x 24 grey on clear, as a 32 x 32 texture (big over a nameplate, scaled down by the client in the small places).
+    Only the alpha is resized, so the grey stays one clean colour
     (resizing the colours of the clear pixels too would put a dark fringe round the edge)."""
     src = Image.open(ICONS / (name + ".png")).convert("RGBA")
     px = src.load()
     solid = [px[x, y][:3] for x in range(src.size[0]) for y in range(src.size[1]) if px[x, y][3] > 200]
     colour = tuple(sum(c[i] for c in solid) // max(1, len(solid)) for i in range(3)) if solid else (227, 227, 227)
-    out = Image.new("RGBA", (16, 16), colour + (0,))
-    out.putalpha(src.getchannel("A").resize((16, 16), Image.LANCZOS))
+    out = Image.new("RGBA", (32, 32), colour + (0,))
+    out.putalpha(src.getchannel("A").resize((32, 32), Image.LANCZOS))
     return out
 
 

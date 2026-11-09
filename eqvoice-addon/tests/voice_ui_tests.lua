@@ -591,7 +591,8 @@ do
 	local pw = Stub.AddPlate("Wolf")
 	Stub.Advance(0.5)
 	check(I.plates[1] ~= nil and I.plates[1].frame == pa, "the plates were found"); eq(table.getn(I.plates), 2, "both of them")
-	eq(I.plates[1].icon.state, "s", "Alice's plate has an icon"); eq(I.plates[1].icon.tex.pt[2], pa.nameText, "beside the name on the plate")
+	eq(I.plates[1].icon.state, "s", "Alice's plate has an icon"); eq(I.plates[1].icon.tex.pt[2], pa.nameText, "on the plate, anchored to the name"); eq(I.plates[1].icon.tex.pt[1], "BOTTOM", "its bottom edge ..."); eq(I.plates[1].icon.tex.pt[3], "TOP", "... on the top of the name: above it"); eq(I.plates[1].icon.tex.pt[4], 0, "centred over it")
+	eq(I.plates[1].icon.tex.w, 32, "and big: 32 pixels, twice the size of the icons beside names on the unit frames")
 	eq(I.plates[2].icon, nil, "Wolf's plate has none (and none was even made)")
 	pa.shown = false
 	Stub.Advance(0.5)

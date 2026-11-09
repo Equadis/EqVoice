@@ -1,6 +1,6 @@
 -- EqVoice / Icons.lua
--- The little voice icon to the right of a player's name, for every player who has EqVoice: on their nameplate, on the target, player and
--- party frames, and in the panel's list. It shows what that player's EqVoice is doing right now:
+-- The voice icon for every player who has EqVoice: big, centred ABOVE the name on their nameplate; small, beside the name on the target, player
+-- and party frames and in the panel's list. It shows what that player's EqVoice is doing right now:
 --
 --   o  idle                  vol_low   a plain speaker: they are on the voice channel and could talk, but no voice is coming from them   VoiceKnown.tga
 --   s  speaking              vol_mid   a speaker with one wave: ordinary conversational speech                                       VoiceOpen.tga
@@ -16,7 +16,7 @@
 --   x  not connected         your EqVoice program is not running, or it cannot reach the voice server (after a few seconds of trying)
 --   e  microphone problem    your microphone cannot be used (Windows says no, or there is none)
 --
--- The pictures are the ones Ollie chose (tools/art/voice-icons/*.png), made into 16 x 16 textures by tools/make_micro_art.py.
+-- The pictures are the ones Ollie chose (tools/art/voice-icons/*.png), made into 32 x 32 textures by tools/make_micro_art.py.
 --
 -- Where the state comes from, best first:
 --   - the app's status file (Status.byName): the other player's own EqVoice told ours, over their voice connection, so it is
@@ -42,6 +42,8 @@ OV.Icons = Icons
 
 Icons.ART    = "Interface\\AddOns\\EqVoice\\"
 Icons.SIZE   = 16
+Icons.PLATE_SIZE = 32          -- over a nameplate: big enough to read at a glance from across the screen
+Icons.PLATE_GAP  = 2           -- pixels between the icon and the top of the name
 Icons.GAP    = 3               -- pixels between the end of a name and its icon
 Icons.EVERY  = 0.25            -- seconds between looks at the screen
 Icons.MAXERR = 3               -- a surface that fails this many times is switched off
@@ -228,6 +230,12 @@ function Icons.PlaceBeside(ic, fs, maxWidth)
 		anchor(ic, "LEFT", fs, "CENTER", (w / 2) + Icons.GAP, 0)
 	end
 end
+-- Centred over the name, its bottom edge just above the top of the words (the nameplates).
+function Icons.PlaceAbove(ic, fs)
+	if ic.placedFor == fs and ic.placedJ == "ABOVE" then return end
+	ic.placedFor, ic.placedW, ic.placedJ = fs, nil, "ABOVE"
+	anchor(ic, "BOTTOM", fs, "TOP", 0, Icons.PLATE_GAP)
+end
 Icons.PlaceRightOf = Icons.PlaceBeside
 Icons.PlaceAfter   = Icons.PlaceBeside
 
@@ -332,10 +340,10 @@ local function plates(now, on)
 		local fs = plateText(p)
 		local state = nil
 		if on and visible then state = Icons.Resolve(fs:GetText(), now) end
-		if state and not p.icon then p.icon = Icons.New(p.frame) end
+		if state and not p.icon then p.icon = Icons.New(p.frame, Icons.PLATE_SIZE) end
 		if p.icon then
 			Icons.Set(p.icon, state)
-			if state then Icons.PlaceBeside(p.icon, fs) end
+			if state then Icons.PlaceAbove(p.icon, fs) end
 		end
 	end
 end
