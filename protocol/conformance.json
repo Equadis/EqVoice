@@ -1,0 +1,8152 @@
+{
+ "version": 1,
+ "about": "recorded hub conversations; see tools/gen_conformance.py",
+ "scenarios": [
+  {
+   "name": "hello and registration",
+   "setup": {
+    "limits": {},
+    "join_code": null,
+    "ice": [
+     {
+      "urls": [
+       "stun:x.example"
+      ]
+     }
+    ]
+   },
+   "steps": [
+    {
+     "op": "connect",
+     "conn": "a",
+     "ip": "10.0.0.1"
+    },
+    {
+     "op": "send",
+     "conn": "a",
+     "text": "{\"t\":\"register\",\"v\":2,\"sid\":\"wDJGr9J9JzYTi2J9YVxa9Q\",\"realm\":\"Testrealm\",\"character\":\"Alice\",\"pub\":\"fopaGShm3jUsv7zDw5omF7VlKcLenEhzHNqzpTMdXAg\",\"sig\":\"ujFTuC6hUzR6_bxwVrzK-D6tdNU7FQW-hoWSsRUXmfkCCouprGa12z22Gd622gcG-2zkzLeIqWkjVeaIV9zVAg\"}"
+    },
+    {
+     "op": "connect",
+     "conn": "b",
+     "ip": "10.0.0.1"
+    },
+    {
+     "op": "send",
+     "conn": "b",
+     "text": "{\"t\":\"register\",\"v\":2,\"sid\":\"tzZ25VVl9jn0Qz3idjyR-Q\",\"realm\":\"Testrealm\",\"character\":\"Bobby\",\"pub\":\"m3YBXt3J-TR-wwgvSZINGIbkkWfQHrPYAHNbwSz7BeA\",\"sig\":\"yZafPeA9VtP-BCIP9odE_0zNF9Ks6VuR7kq5RxGSSBX6C_HOkJDFXlkmDFBEI41PWXo_PqXZsXiEbdbZhngGBQ\"}"
+    },
+    {
+     "op": "connect",
+     "conn": "c",
+     "ip": "10.0.0.1"
+    },
+    {
+     "op": "send",
+     "conn": "c",
+     "text": "{\"t\":\"register\",\"v\":2,\"sid\":\"g7cK8wRUBADFB5-uHrRX4Q\",\"realm\":\"Testrealm\",\"character\":\"Carol\",\"pub\":\"3SdpmjWiJbnnGH7lNnkMaz28XzPokAHtzGTpH9Qa7hE\",\"sig\":\"ylxKSedvZ6CoUXoLRiDu66NiB_ZE78d5ii2LqDDIUN6HeRaEvhf0BU7vPL4g-Owl90-7Iv5_k5LvNblBnPTqAw\"}"
+    },
+    {
+     "op": "send",
+     "conn": "a",
+     "text": "{\"t\":\"ping\",\"ts\":123.5}"
+    }
+   ],
+   "transcript": [
+    [
+     [
+      "a",
+      {
+       "t": "hello",
+       "v": 2,
+       "nonce": "UeB7Aeb5uvyotRr5bUcMQw",
+       "now": 1700000000.0,
+       "join_code": false,
+       "ice": [
+        {
+         "urls": [
+          "stun:x.example"
+         ]
+        }
+       ],
+       "limits": {
+        "idle": 30.0,
+        "report_ttl": 6.0,
+        "link_radius": 90.0,
+        "max_report": 64
+       }
+      }
+     ]
+    ],
+    [
+     [
+      "a",
+      {
+       "t": "registered",
+       "sid": "wDJGr9J9JzYTi2J9YVxa9Q",
+       "token": "DnYO9YSleQKzMdFQ-fusg73o",
+       "lease": 30.0,
+       "now": 1700000000.0,
+       "roster": [],
+       "more": 0
+      }
+     ]
+    ],
+    [
+     [
+      "b",
+      {
+       "t": "hello",
+       "v": 2,
+       "nonce": "_UgcVbSTG2Yee8bl6_590w",
+       "now": 1700000000.0,
+       "join_code": false,
+       "ice": [
+        {
+         "urls": [
+          "stun:x.example"
+         ]
+        }
+       ],
+       "limits": {
+        "idle": 30.0,
+        "report_ttl": 6.0,
+        "link_radius": 90.0,
+        "max_report": 64
+       }
+      }
+     ]
+    ],
+    [
+     [
+      "b",
+      {
+       "t": "registered",
+       "sid": "tzZ25VVl9jn0Qz3idjyR-Q",
+       "token": "nl0UScF78GoUl2qfk7o3uYmy",
+       "lease": 30.0,
+       "now": 1700000000.0,
+       "roster": [
+        [
+         "Alice",
+         "wDJGr9J9JzYTi2J9YVxa9Q"
+        ]
+       ],
+       "more": 0
+      }
+     ],
+     [
+      "a",
+      {
+       "t": "roster_update",
+       "add": [
+        [
+         "Bobby",
+         "tzZ25VVl9jn0Qz3idjyR-Q"
+        ]
+       ]
+      }
+     ]
+    ],
+    [
+     [
+      "c",
+      {
+       "t": "hello",
+       "v": 2,
+       "nonce": "Tbiz8IVo7ymqqn6ziExzXg",
+       "now": 1700000000.0,
+       "join_code": false,
+       "ice": [
+        {
+         "urls": [
+          "stun:x.example"
+         ]
+        }
+       ],
+       "limits": {
+        "idle": 30.0,
+        "report_ttl": 6.0,
+        "link_radius": 90.0,
+        "max_report": 64
+       }
+      }
+     ]
+    ],
+    [
+     [
+      "c",
+      {
+       "t": "registered",
+       "sid": "g7cK8wRUBADFB5-uHrRX4Q",
+       "token": "svM_WTeUmKE-Z3QIAc6YXxNe",
+       "lease": 30.0,
+       "now": 1700000000.0,
+       "roster": [
+        [
+         "Alice",
+         "wDJGr9J9JzYTi2J9YVxa9Q"
+        ],
+        [
+         "Bobby",
+         "tzZ25VVl9jn0Qz3idjyR-Q"
+        ]
+       ],
+       "more": 0
+      }
+     ],
+     [
+      "a",
+      {
+       "t": "roster_update",
+       "add": [
+        [
+         "Carol",
+         "g7cK8wRUBADFB5-uHrRX4Q"
+        ]
+       ]
+      }
+     ],
+     [
+      "b",
+      {
+       "t": "roster_update",
+       "add": [
+        [
+         "Carol",
+         "g7cK8wRUBADFB5-uHrRX4Q"
+        ]
+       ]
+      }
+     ]
+    ],
+    [
+     [
+      "a",
+      {
+       "t": "pong",
+       "now": 1700000000.0,
+       "ts": 123.5
+      }
+     ]
+    ]
+   ],
+   "stats": {
+    "connections": 3,
+    "sessions": 3,
+    "realms": 1,
+    "largest_realm": 3,
+    "links": 0,
+    "reserved": 0,
+    "totals": {
+     "connections": 3,
+     "registered": 3,
+     "rejected": 0,
+     "signals": 0,
+     "rate_limited": 0,
+     "errors": 0,
+     "links_up": 0,
+     "proximity": 0,
+     "roster_msgs": 3,
+     "takeovers": 0
+    }
+   }
+  },
+  {
+   "name": "unicode names",
+   "setup": {
+    "limits": {},
+    "join_code": null,
+    "ice": []
+   },
+   "steps": [
+    {
+     "op": "connect",
+     "conn": "u0",
+     "ip": "10.0.1.0"
+    },
+    {
+     "op": "send",
+     "conn": "u0",
+     "text": "{\"t\":\"register\",\"v\":2,\"sid\":\"T35wEwLAHqg2-E2s2ybVRQ\",\"realm\":\"Testrealm\",\"character\":\"Zo\\u00eb\",\"pub\":\"n8_SxTP4zvlb5deJ_hJXMjrGdZ9KLRRM17TfQZUUv3o\",\"sig\":\"566bnkb4slZjGITFaLmJ9unxk8e5TgKRQ9CS-rJLu9ZDEmJ26JKHIhm3basqe1I4ZtG6vLSKyFVBUwtmv2csBw\"}"
+    },
+    {
+     "op": "connect",
+     "conn": "u1",
+     "ip": "10.0.1.1"
+    },
+    {
+     "op": "send",
+     "conn": "u1",
+     "text": "{\"t\":\"register\",\"v\":2,\"sid\":\"Neaq5u_smWaXaLRE_-Fd0Q\",\"realm\":\"Testrealm\",\"character\":\"\\u00c9mile\",\"pub\":\"d2TeTTXFz7RwTs6EhQ4se9_u0LCdlcW4ww-blQP2cSE\",\"sig\":\"iQb9Xt_SYbFO1gSRCVsiSJrYWj-If5LALXWfNOG2g3GDh8QyF_orSNRXs1-Um0lc8jlgsvT-uvwGfBB1xBFyCA\"}"
+    },
+    {
+     "op": "connect",
+     "conn": "u2",
+     "ip": "10.0.1.2"
+    },
+    {
+     "op": "send",
+     "conn": "u2",
+     "text": "{\"t\":\"register\",\"v\":2,\"sid\":\"t4f0v3UQLniADaB4abg8xQ\",\"realm\":\"Testrealm\",\"character\":\"\\u0416\\u0430\\u043d\\u043d\\u0430\",\"pub\":\"Hv8HOIKHTnwrF97_DmeoHHhzZldLIvCcCHSq87zkpfg\",\"sig\":\"9BEl_G5ZykgyyEavRpd926oI0b503xc7FRwu5eormn30XKk62zn7fYMg3muYQ82C_z5zplkzVmAbHAIbBUcLBw\"}"
+    },
+    {
+     "op": "connect",
+     "conn": "u3",
+     "ip": "10.0.1.3"
+    },
+    {
+     "op": "send",
+     "conn": "u3",
+     "text": "{\"t\":\"register\",\"v\":2,\"sid\":\"_ObgtNfPITZ-Z_2F179YyA\",\"realm\":\"Testrealm\",\"character\":\"Al1ce\",\"pub\":\"9wO-9rpLbB1_7fGTtUuArO1Jki5WAS0gkt_8wvxUSUA\",\"sig\":\"HXuT6ALLdxxUTcG1Mc3K8ligIHrv1DLTzyqFvjnonbpTiF6Chtz9gs1MTioicux_LQdA38Mffy4V38XYAmh-Cw\"}"
+    },
+    {
+     "op": "connect",
+     "conn": "u4",
+     "ip": "10.0.1.4"
+    },
+    {
+     "op": "send",
+     "conn": "u4",
+     "text": "{\"t\":\"register\",\"v\":2,\"sid\":\"ziMwYP03fOBlgzK-kv1pGw\",\"realm\":\"Testrealm\",\"character\":\"Alice_\",\"pub\":\"D4Xoeo7aLO9IJpaA0EW1m-m-OdeckEtRcpuMe_4flUw\",\"sig\":\"gvY3bx-Os_O7dwoU5C-9pFStjnCLARDY7c05MxYUqBsNlTvrgXBq18ZghjzkrKFHgeSowD_20lg5hJItvN-MDA\"}"
+    },
+    {
+     "op": "connect",
+     "conn": "u5",
+     "ip": "10.0.1.5"
+    },
+    {
+     "op": "send",
+     "conn": "u5",
+     "text": "{\"t\":\"register\",\"v\":2,\"sid\":\"rJbiJGm8q3lCviqafRMI7g\",\"realm\":\"Testrealm\",\"character\":\"A\",\"pub\":\"Ik7qsgrsFbb8HGtjzr2cTmoVirlJwIsPQF_d9aZpqsA\",\"sig\":\"pvwcSSIvhZ8X4QEtNWoe2-k7Txtm5N2GBhai-WGZRdK8tvIE2a8m3GnAvj-8r-BvHfCudXSOA8Rsl6EmJ3DECA\"}"
+    },
+    {
+     "op": "connect",
+     "conn": "u6",
+     "ip": "10.0.1.6"
+    },
+    {
+     "op": "send",
+     "conn": "u6",
+     "text": "{\"t\":\"register\",\"v\":2,\"sid\":\"As4Xnzh9Hj2wEnfmpOY6aQ\",\"realm\":\"Testrealm\",\"character\":\"Thirteenchars\",\"pub\":\"BISWMpxCUDOVquvPwdgVbyqClZrYJXz-clLsRnzLuwI\",\"sig\":\"xvUVaRS75gliOTVVZJ6PrdNFhQAzA3ui40u63-CrpWaxHRV9RUBTC68RWOdBqHZREUiZZ3W4rqEln3TvZ1fRAQ\"}"
+    },
+    {
+     "op": "connect",
+     "conn": "u7",
+     "ip": "10.0.1.7"
+    },
+    {
+     "op": "send",
+     "conn": "u7",
+     "text": "{\"t\":\"register\",\"v\":2,\"sid\":\"tUqM_w-wwP5IcCd4j2FCgA\",\"realm\":\"Testrealm\",\"character\":\"Bob Smith\",\"pub\":\"uRvNr1lU6B_3t7RmEmXwnNANT_22uXtounUFoEQhWz0\",\"sig\":\"IUVKQWicriHO31eXpUMYzg_tw7U65X2oDGp2O8mFUwuSqo36K_IlQjPZhLl61-Gvi9hM-65sCSLx-Rz6QoEbCw\"}"
+    },
+    {
+     "op": "connect",
+     "conn": "u8",
+     "ip": "10.0.1.8"
+    },
+    {
+     "op": "send",
+     "conn": "u8",
+     "text": "{\"t\":\"register\",\"v\":2,\"sid\":\"OXw2rItte9-o1dB38tHJmQ\",\"realm\":\"Testrealm\",\"character\":\"x;DROP\",\"pub\":\"pHpb1Adjh093_GOfa2m4FjYHS1JTmlovXyQtpvZKEYE\",\"sig\":\"DpTM_IJVh1JFsB0UeqtqpJuF31P12t9j7b1WG95lKgMspqcnuDL2A9nPvp7tNvFS0jf5XKoxjiGSXlgmjl6dBQ\"}"
+    },
+    {
+     "op": "connect",
+     "conn": "u9",
+     "ip": "10.0.1.9"
+    },
+    {
+     "op": "send",
+     "conn": "u9",
+     "text": "{\"t\":\"register\",\"v\":2,\"sid\":\"rStZznYVFnBU28O-O9nrCg\",\"realm\":\"Testrealm\",\"character\":\"ab\",\"pub\":\"Kb4yBnrf3LZpOFHPWJj5-CoiFPFA94czGuoxVkdoP0A\",\"sig\":\"deJTSqwPIRdsC6T0yIU0zRQh5hNiFMSVnjVKli5E-uwcYBOEbLAxJZImnsXnomV3XEIXcuJQMIC55kex4Ys9Dw\"}"
+    }
+   ],
+   "transcript": [
+    [
+     [
+      "u0",
+      {
+       "t": "hello",
+       "v": 2,
+       "nonce": "UeB7Aeb5uvyotRr5bUcMQw",
+       "now": 1700000000.0,
+       "join_code": false,
+       "ice": [],
+       "limits": {
+        "idle": 30.0,
+        "report_ttl": 6.0,
+        "link_radius": 90.0,
+        "max_report": 64
+       }
+      }
+     ]
+    ],
+    [
+     [
+      "u0",
+      {
+       "t": "registered",
+       "sid": "T35wEwLAHqg2-E2s2ybVRQ",
+       "token": "DnYO9YSleQKzMdFQ-fusg73o",
+       "lease": 30.0,
+       "now": 1700000000.0,
+       "roster": [],
+       "more": 0
+      }
+     ]
+    ],
+    [
+     [
+      "u1",
+      {
+       "t": "hello",
+       "v": 2,
+       "nonce": "_UgcVbSTG2Yee8bl6_590w",
+       "now": 1700000000.0,
+       "join_code": false,
+       "ice": [],
+       "limits": {
+        "idle": 30.0,
+        "report_ttl": 6.0,
+        "link_radius": 90.0,
+        "max_report": 64
+       }
+      }
+     ]
+    ],
+    [
+     [
+      "u1",
+      {
+       "t": "registered",
+       "sid": "Neaq5u_smWaXaLRE_-Fd0Q",
+       "token": "nl0UScF78GoUl2qfk7o3uYmy",
+       "lease": 30.0,
+       "now": 1700000000.0,
+       "roster": [
+        [
+         "Zoë",
+         "T35wEwLAHqg2-E2s2ybVRQ"
+        ]
+       ],
+       "more": 0
+      }
+     ],
+     [
+      "u0",
+      {
+       "t": "roster_update",
+       "add": [
+        [
+         "Émile",
+         "Neaq5u_smWaXaLRE_-Fd0Q"
+        ]
+       ]
+      }
+     ]
+    ],
+    [
+     [
+      "u2",
+      {
+       "t": "hello",
+       "v": 2,
+       "nonce": "Tbiz8IVo7ymqqn6ziExzXg",
+       "now": 1700000000.0,
+       "join_code": false,
+       "ice": [],
+       "limits": {
+        "idle": 30.0,
+        "report_ttl": 6.0,
+        "link_radius": 90.0,
+        "max_report": 64
+       }
+      }
+     ]
+    ],
+    [
+     [
+      "u2",
+      {
+       "t": "registered",
+       "sid": "t4f0v3UQLniADaB4abg8xQ",
+       "token": "svM_WTeUmKE-Z3QIAc6YXxNe",
+       "lease": 30.0,
+       "now": 1700000000.0,
+       "roster": [
+        [
+         "Zoë",
+         "T35wEwLAHqg2-E2s2ybVRQ"
+        ],
+        [
+         "Émile",
+         "Neaq5u_smWaXaLRE_-Fd0Q"
+        ]
+       ],
+       "more": 0
+      }
+     ],
+     [
+      "u0",
+      {
+       "t": "roster_update",
+       "add": [
+        [
+         "Жанна",
+         "t4f0v3UQLniADaB4abg8xQ"
+        ]
+       ]
+      }
+     ],
+     [
+      "u1",
+      {
+       "t": "roster_update",
+       "add": [
+        [
+         "Жанна",
+         "t4f0v3UQLniADaB4abg8xQ"
+        ]
+       ]
+      }
+     ]
+    ],
+    [
+     [
+      "u3",
+      {
+       "t": "hello",
+       "v": 2,
+       "nonce": "KLol0h7_x3_MfxsmqlixEQ",
+       "now": 1700000000.0,
+       "join_code": false,
+       "ice": [],
+       "limits": {
+        "idle": 30.0,
+        "report_ttl": 6.0,
+        "link_radius": 90.0,
+        "max_report": 64
+       }
+      }
+     ]
+    ],
+    [
+     [
+      "u3",
+      {
+       "t": "error",
+       "code": "bad_name",
+       "msg": "malformed character name"
+      }
+     ]
+    ],
+    [
+     [
+      "u4",
+      {
+       "t": "hello",
+       "v": 2,
+       "nonce": "6JiUDsWg6AzVvjy094J7qw",
+       "now": 1700000000.0,
+       "join_code": false,
+       "ice": [],
+       "limits": {
+        "idle": 30.0,
+        "report_ttl": 6.0,
+        "link_radius": 90.0,
+        "max_report": 64
+       }
+      }
+     ]
+    ],
+    [
+     [
+      "u4",
+      {
+       "t": "error",
+       "code": "bad_name",
+       "msg": "malformed character name"
+      }
+     ]
+    ],
+    [
+     [
+      "u5",
+      {
+       "t": "hello",
+       "v": 2,
+       "nonce": "VzAwX-gQ9pNCpYcLI3qufQ",
+       "now": 1700000000.0,
+       "join_code": false,
+       "ice": [],
+       "limits": {
+        "idle": 30.0,
+        "report_ttl": 6.0,
+        "link_radius": 90.0,
+        "max_report": 64
+       }
+      }
+     ]
+    ],
+    [
+     [
+      "u5",
+      {
+       "t": "error",
+       "code": "bad_name",
+       "msg": "malformed character name"
+      }
+     ]
+    ],
+    [
+     [
+      "u6",
+      {
+       "t": "hello",
+       "v": 2,
+       "nonce": "yTVQmIbdtHeLj1INDnwQnw",
+       "now": 1700000000.0,
+       "join_code": false,
+       "ice": [],
+       "limits": {
+        "idle": 30.0,
+        "report_ttl": 6.0,
+        "link_radius": 90.0,
+        "max_report": 64
+       }
+      }
+     ]
+    ],
+    [
+     [
+      "u6",
+      {
+       "t": "error",
+       "code": "bad_name",
+       "msg": "malformed character name"
+      }
+     ]
+    ],
+    [
+     [
+      "u7",
+      {
+       "t": "hello",
+       "v": 2,
+       "nonce": "cbeFr8c-3xy4SSLpxJlebA",
+       "now": 1700000000.0,
+       "join_code": false,
+       "ice": [],
+       "limits": {
+        "idle": 30.0,
+        "report_ttl": 6.0,
+        "link_radius": 90.0,
+        "max_report": 64
+       }
+      }
+     ]
+    ],
+    [
+     [
+      "u7",
+      {
+       "t": "error",
+       "code": "bad_name",
+       "msg": "malformed character name"
+      }
+     ]
+    ],
+    [
+     [
+      "u8",
+      {
+       "t": "hello",
+       "v": 2,
+       "nonce": "GfKFqY64-mUw-ftgPn09lw",
+       "now": 1700000000.0,
+       "join_code": false,
+       "ice": [],
+       "limits": {
+        "idle": 30.0,
+        "report_ttl": 6.0,
+        "link_radius": 90.0,
+        "max_report": 64
+       }
+      }
+     ]
+    ],
+    [
+     [
+      "u8",
+      {
+       "t": "error",
+       "code": "bad_name",
+       "msg": "malformed character name"
+      }
+     ]
+    ],
+    [
+     [
+      "u9",
+      {
+       "t": "hello",
+       "v": 2,
+       "nonce": "PRw_zL4DdrKqENJDlCCzyA",
+       "now": 1700000000.0,
+       "join_code": false,
+       "ice": [],
+       "limits": {
+        "idle": 30.0,
+        "report_ttl": 6.0,
+        "link_radius": 90.0,
+        "max_report": 64
+       }
+      }
+     ]
+    ],
+    [
+     [
+      "u9",
+      {
+       "t": "registered",
+       "sid": "rStZznYVFnBU28O-O9nrCg",
+       "token": "4v5BnoY7d-_g3zwt1DaO6LxD",
+       "lease": 30.0,
+       "now": 1700000000.0,
+       "roster": [
+        [
+         "Zoë",
+         "T35wEwLAHqg2-E2s2ybVRQ"
+        ],
+        [
+         "Émile",
+         "Neaq5u_smWaXaLRE_-Fd0Q"
+        ],
+        [
+         "Жанна",
+         "t4f0v3UQLniADaB4abg8xQ"
+        ]
+       ],
+       "more": 0
+      }
+     ],
+     [
+      "u0",
+      {
+       "t": "roster_update",
+       "add": [
+        [
+         "ab",
+         "rStZznYVFnBU28O-O9nrCg"
+        ]
+       ]
+      }
+     ],
+     [
+      "u1",
+      {
+       "t": "roster_update",
+       "add": [
+        [
+         "ab",
+         "rStZznYVFnBU28O-O9nrCg"
+        ]
+       ]
+      }
+     ],
+     [
+      "u2",
+      {
+       "t": "roster_update",
+       "add": [
+        [
+         "ab",
+         "rStZznYVFnBU28O-O9nrCg"
+        ]
+       ]
+      }
+     ]
+    ]
+   ],
+   "stats": {
+    "connections": 10,
+    "sessions": 4,
+    "realms": 1,
+    "largest_realm": 4,
+    "links": 0,
+    "reserved": 0,
+    "totals": {
+     "connections": 10,
+     "registered": 4,
+     "rejected": 0,
+     "signals": 0,
+     "rate_limited": 0,
+     "errors": 6,
+     "links_up": 0,
+     "proximity": 0,
+     "roster_msgs": 6,
+     "takeovers": 0
+    }
+   }
+  },
+  {
+   "name": "malformed registrations",
+   "setup": {
+    "limits": {},
+    "join_code": null,
+    "ice": []
+   },
+   "steps": [
+    {
+     "op": "connect",
+     "conn": "m0",
+     "ip": "10.0.2.0"
+    },
+    {
+     "op": "send",
+     "conn": "m0",
+     "text": "{\"t\":\"register\",\"v\":2,\"sid\":\"short\",\"realm\":\"Testrealm\",\"character\":\"Alice\",\"pub\":\"fopaGShm3jUsv7zDw5omF7VlKcLenEhzHNqzpTMdXAg\",\"sig\":\"Maz2KJJbc23t6R29mxbt1S9h0tRFOIpZQvtSqE_g6zpBWmNLrvw_xd2tojHV5OxfCAcI0fAKuy708MwUJdhrAQ\"}"
+    },
+    {
+     "op": "connect",
+     "conn": "m1",
+     "ip": "10.0.2.1"
+    },
+    {
+     "op": "send",
+     "conn": "m1",
+     "text": "{\"t\":\"register\",\"v\":2,\"sid\":\"AAAAAAAAAAAAAAAAAAAAA!\",\"realm\":\"Testrealm\",\"character\":\"Alice\",\"pub\":\"fopaGShm3jUsv7zDw5omF7VlKcLenEhzHNqzpTMdXAg\",\"sig\":\"jC7YqA4QwaMag0Pv74MXACPrjmnQL_PwH0j0POSGbQQd02xpyas5VPjuVEhHm2BZ4i8EKYmvtOlSKpblv5EXBw\"}"
+    },
+    {
+     "op": "connect",
+     "conn": "m2",
+     "ip": "10.0.2.2"
+    },
+    {
+     "op": "send",
+     "conn": "m2",
+     "text": "{\"t\":\"register\",\"v\":2,\"sid\":12345,\"realm\":\"Testrealm\",\"character\":\"Alice\",\"pub\":\"fopaGShm3jUsv7zDw5omF7VlKcLenEhzHNqzpTMdXAg\",\"sig\":\"5L61wfjlu5WaQS1Omvs_IO91pMY6uCrICuW28R7PmnuxW_bMePudHwWoCoontq1aKbsziG6FPhl7gGV3GfqVBA\"}"
+    },
+    {
+     "op": "connect",
+     "conn": "m3",
+     "ip": "10.0.2.3"
+    },
+    {
+     "op": "send",
+     "conn": "m3",
+     "text": "{\"t\":\"register\",\"v\":2,\"sid\":null,\"realm\":\"Testrealm\",\"character\":\"Alice\",\"pub\":\"fopaGShm3jUsv7zDw5omF7VlKcLenEhzHNqzpTMdXAg\",\"sig\":\"J7M-zAs_W1qUJSWeOv4UNzSB105ntfcAf5oKNlnxTF2tbU9KLNPIGuJDlFjYSD7QENIS_slVZjDtqRfnnr4CDA\"}"
+    },
+    {
+     "op": "connect",
+     "conn": "m4",
+     "ip": "10.0.2.4"
+    },
+    {
+     "op": "send",
+     "conn": "m4",
+     "text": "{\"t\":\"register\",\"v\":2,\"sid\":\"zwuCMJ7Br_K0FIHxeGSlcA\",\"realm\":\"\",\"character\":\"Alice\",\"pub\":\"fopaGShm3jUsv7zDw5omF7VlKcLenEhzHNqzpTMdXAg\",\"sig\":\"EUdXdMUPCAFk30dOwEk6OtlcCKq6pY3vNnsCuFKvw_T5IXZJWTXokYvfbqNdACtCiy3brM6MgN_JE_2NTvUyDQ\"}"
+    },
+    {
+     "op": "connect",
+     "conn": "m5",
+     "ip": "10.0.2.5"
+    },
+    {
+     "op": "send",
+     "conn": "m5",
+     "text": "{\"t\":\"register\",\"v\":2,\"sid\":\"pFEv2-vot0nS_VYZ-2Tn3w\",\"realm\":\"xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\",\"character\":\"Alice\",\"pub\":\"fopaGShm3jUsv7zDw5omF7VlKcLenEhzHNqzpTMdXAg\",\"sig\":\"wz71_hiHVvedruwinuV3vgKHNs62nfWbempLZ8qqbfOWUyaj4xsk6PXRX_Ag1i6zGBDcVbwBKc8tJZGDXEGeBQ\"}"
+    },
+    {
+     "op": "connect",
+     "conn": "m6",
+     "ip": "10.0.2.6"
+    },
+    {
+     "op": "send",
+     "conn": "m6",
+     "text": "{\"t\":\"register\",\"v\":2,\"sid\":\"2T3sTpSla8cMk8AaTsACEw\",\"realm\":\"bad/realm\",\"character\":\"Alice\",\"pub\":\"fopaGShm3jUsv7zDw5omF7VlKcLenEhzHNqzpTMdXAg\",\"sig\":\"tafOkp6Lp93VDeTsvis0_muOxwb8eS6UaVk4R2KqHgX30ZoN3e7ZEn64HIfegj1WNgbx2SyKHoFw0uEgHAITDg\"}"
+    },
+    {
+     "op": "connect",
+     "conn": "m7",
+     "ip": "10.0.2.7"
+    },
+    {
+     "op": "send",
+     "conn": "m7",
+     "text": "{\"t\":\"register\",\"v\":2,\"sid\":\"xKMtiSyMayzJYiQYVdnHZA\",\"realm\":5,\"character\":\"Alice\",\"pub\":\"fopaGShm3jUsv7zDw5omF7VlKcLenEhzHNqzpTMdXAg\",\"sig\":\"n7WHvD8V9Mad8CCZekn3BE-hJh93Mw7JDbm4bEdal6Y1WIKQ8Aa8py3GXg7-nX8wek0797RipeMRoMwUs3aXDw\"}"
+    },
+    {
+     "op": "connect",
+     "conn": "m8",
+     "ip": "10.0.2.8"
+    },
+    {
+     "op": "send",
+     "conn": "m8",
+     "text": "{\"t\":\"register\",\"v\":2,\"sid\":\"rRHnrtRwXdbcEbD9W0J0ZA\",\"realm\":\"Testrealm\",\"character\":\"\",\"pub\":\"fopaGShm3jUsv7zDw5omF7VlKcLenEhzHNqzpTMdXAg\",\"sig\":\"Viuyk4Aov_y-6dGdt8w_l19Rj59uLpnnQ4G7ez8fNuM5aQ3zTCIikSr_6Q-CHPKpOAwu520m979n2PO554WODg\"}"
+    },
+    {
+     "op": "connect",
+     "conn": "m9",
+     "ip": "10.0.2.9"
+    },
+    {
+     "op": "send",
+     "conn": "m9",
+     "text": "{\"t\":\"register\",\"v\":2,\"sid\":\"GXIjghjHh_9htuB5wc3CIg\",\"realm\":\"Testrealm\",\"character\":7,\"pub\":\"fopaGShm3jUsv7zDw5omF7VlKcLenEhzHNqzpTMdXAg\",\"sig\":\"sVAqeLH6sXDa9de-L8yxwzz_t_lOXVstbTbBnZxevXMYNzWtDlWlB0XP4Y8UTXhL7KcKWlGdIN4KA8CAQFA3Dg\"}"
+    },
+    {
+     "op": "connect",
+     "conn": "m10",
+     "ip": "10.0.2.10"
+    },
+    {
+     "op": "send",
+     "conn": "m10",
+     "text": "{\"t\":\"register\",\"v\":1,\"sid\":\"OUsJcKMFUf1gzdmfladUjQ\",\"realm\":\"Testrealm\",\"character\":\"Alice\",\"pub\":\"fopaGShm3jUsv7zDw5omF7VlKcLenEhzHNqzpTMdXAg\",\"sig\":\"i_i3kNV2qbOIYSNjV9Na1a3q3qaOFHH8fKpJIejejocMKj4UDi9OKmdRlnVuVw4xda3AGiXoGK3GP2AG_ilPDQ\"}"
+    },
+    {
+     "op": "connect",
+     "conn": "m11",
+     "ip": "10.0.2.11"
+    },
+    {
+     "op": "send",
+     "conn": "m11",
+     "text": "{\"t\":\"register\",\"v\":null,\"sid\":\"8PUUYZwaWbF3n-61y2U26w\",\"realm\":\"Testrealm\",\"character\":\"Alice\",\"pub\":\"fopaGShm3jUsv7zDw5omF7VlKcLenEhzHNqzpTMdXAg\",\"sig\":\"r6U2ev7nqTvYFWjrH5_0zVUt6gbLXPlL88sI5BtC893qILpJiuKj5hNEeXl-LB2m51mwHDv7L5zy1Je82RNmCQ\"}"
+    },
+    {
+     "op": "connect",
+     "conn": "m12",
+     "ip": "10.0.2.12"
+    },
+    {
+     "op": "send",
+     "conn": "m12",
+     "text": "{\"t\":\"register\",\"v\":2,\"sid\":\"fjiQ3zY_PDdXSpCnagvQkQ\",\"realm\":\"Testrealm\",\"character\":\"Alice\",\"pub\":\"!!\",\"sig\":\"MaJU7vxWaTv4uwRjxwSoI2rM7FvVHAPNflhhqA2If96qH9BZ0cCgPVwTjLj1yCqmLjZlnqiKEcdENAtnDar1DA\"}"
+    },
+    {
+     "op": "connect",
+     "conn": "m13",
+     "ip": "10.0.2.13"
+    },
+    {
+     "op": "send",
+     "conn": "m13",
+     "text": "{\"t\":\"register\",\"v\":2,\"sid\":\"JI3T0IIXWYyN40r6_bUw7A\",\"realm\":\"Testrealm\",\"character\":\"Alice\",\"pub\":\"AAAA\",\"sig\":\"A5w0fXPqNvKNoE4mYXq29rk6egVcwxKkFrFJ4nPH8CXY0QeTUpcbz4s57Guzl_10MCnqxOCXJRwjwgSo5rNDBw\"}"
+    },
+    {
+     "op": "connect",
+     "conn": "m14",
+     "ip": "10.0.2.14"
+    },
+    {
+     "op": "send",
+     "conn": "m14",
+     "text": "{\"t\":\"register\",\"v\":2,\"sid\":\"mnOSZkTMlLaVGYWfsn49fA\",\"realm\":\"Testrealm\",\"character\":\"Alice\",\"pub\":\"fopaGShm3jUsv7zDw5omF7VlKcLenEhzHNqzpTMdXAg\",\"sig\":\"AAAA\"}"
+    },
+    {
+     "op": "connect",
+     "conn": "m15",
+     "ip": "10.0.2.15"
+    },
+    {
+     "op": "send",
+     "conn": "m15",
+     "text": "{\"t\":\"register\",\"v\":2,\"sid\":\"qR2vtus1tk8D7dhkeo6R7w\",\"realm\":\"Testrealm\",\"character\":\"Alice\",\"pub\":\"fopaGShm3jUsv7zDw5omF7VlKcLenEhzHNqzpTMdXAg\",\"sig\":5}"
+    }
+   ],
+   "transcript": [
+    [
+     [
+      "m0",
+      {
+       "t": "hello",
+       "v": 2,
+       "nonce": "UeB7Aeb5uvyotRr5bUcMQw",
+       "now": 1700000000.0,
+       "join_code": false,
+       "ice": [],
+       "limits": {
+        "idle": 30.0,
+        "report_ttl": 6.0,
+        "link_radius": 90.0,
+        "max_report": 64
+       }
+      }
+     ]
+    ],
+    [
+     [
+      "m0",
+      {
+       "t": "error",
+       "code": "bad_sid",
+       "msg": "session id must be 22 url-safe base64 characters"
+      }
+     ]
+    ],
+    [
+     [
+      "m1",
+      {
+       "t": "hello",
+       "v": 2,
+       "nonce": "DnYO9YSleQKzMdFQ-fusgw",
+       "now": 1700000000.0,
+       "join_code": false,
+       "ice": [],
+       "limits": {
+        "idle": 30.0,
+        "report_ttl": 6.0,
+        "link_radius": 90.0,
+        "max_report": 64
+       }
+      }
+     ]
+    ],
+    [
+     [
+      "m1",
+      {
+       "t": "error",
+       "code": "bad_sid",
+       "msg": "session id must be 22 url-safe base64 characters"
+      }
+     ]
+    ],
+    [
+     [
+      "m2",
+      {
+       "t": "hello",
+       "v": 2,
+       "nonce": "vej9SBxVtJMbZh57xuXr_g",
+       "now": 1700000000.0,
+       "join_code": false,
+       "ice": [],
+       "limits": {
+        "idle": 30.0,
+        "report_ttl": 6.0,
+        "link_radius": 90.0,
+        "max_report": 64
+       }
+      }
+     ]
+    ],
+    [
+     [
+      "m2",
+      {
+       "t": "error",
+       "code": "bad_sid",
+       "msg": "session id must be 22 url-safe base64 characters"
+      }
+     ]
+    ],
+    [
+     [
+      "m3",
+      {
+       "t": "hello",
+       "v": 2,
+       "nonce": "fdOeXRRJwXvwahSXap-Tug",
+       "now": 1700000000.0,
+       "join_code": false,
+       "ice": [],
+       "limits": {
+        "idle": 30.0,
+        "report_ttl": 6.0,
+        "link_radius": 90.0,
+        "max_report": 64
+       }
+      }
+     ]
+    ],
+    [
+     [
+      "m3",
+      {
+       "t": "error",
+       "code": "bad_sid",
+       "msg": "session id must be 22 url-safe base64 characters"
+      }
+     ]
+    ],
+    [
+     [
+      "m4",
+      {
+       "t": "hello",
+       "v": 2,
+       "nonce": "N7mJsk24s_CFaO8pqqp-sw",
+       "now": 1700000000.0,
+       "join_code": false,
+       "ice": [],
+       "limits": {
+        "idle": 30.0,
+        "report_ttl": 6.0,
+        "link_radius": 90.0,
+        "max_report": 64
+       }
+      }
+     ]
+    ],
+    [
+     [
+      "m4",
+      {
+       "t": "error",
+       "code": "bad_realm",
+       "msg": "malformed realm name"
+      }
+     ]
+    ],
+    [
+     [
+      "m5",
+      {
+       "t": "hello",
+       "v": 2,
+       "nonce": "iExzXrLzP1k3lJihPmd0CA",
+       "now": 1700000000.0,
+       "join_code": false,
+       "ice": [],
+       "limits": {
+        "idle": 30.0,
+        "report_ttl": 6.0,
+        "link_radius": 90.0,
+        "max_report": 64
+       }
+      }
+     ]
+    ],
+    [
+     [
+      "m5",
+      {
+       "t": "error",
+       "code": "bad_realm",
+       "msg": "malformed realm name"
+      }
+     ]
+    ],
+    [
+     [
+      "m6",
+      {
+       "t": "hello",
+       "v": 2,
+       "nonce": "Ac6YXxNeKLol0h7_x3_Mfw",
+       "now": 1700000000.0,
+       "join_code": false,
+       "ice": [],
+       "limits": {
+        "idle": 30.0,
+        "report_ttl": 6.0,
+        "link_radius": 90.0,
+        "max_report": 64
+       }
+      }
+     ]
+    ],
+    [
+     [
+      "m6",
+      {
+       "t": "error",
+       "code": "bad_realm",
+       "msg": "malformed realm name"
+      }
+     ]
+    ],
+    [
+     [
+      "m7",
+      {
+       "t": "hello",
+       "v": 2,
+       "nonce": "GyaqWLER6JiUDsWg6AzVvg",
+       "now": 1700000000.0,
+       "join_code": false,
+       "ice": [],
+       "limits": {
+        "idle": 30.0,
+        "report_ttl": 6.0,
+        "link_radius": 90.0,
+        "max_report": 64
+       }
+      }
+     ]
+    ],
+    [
+     [
+      "m7",
+      {
+       "t": "error",
+       "code": "bad_realm",
+       "msg": "malformed realm name"
+      }
+     ]
+    ],
+    [
+     [
+      "m8",
+      {
+       "t": "hello",
+       "v": 2,
+       "nonce": "PLT3gnurVzAwX-gQ9pNCpQ",
+       "now": 1700000000.0,
+       "join_code": false,
+       "ice": [],
+       "limits": {
+        "idle": 30.0,
+        "report_ttl": 6.0,
+        "link_radius": 90.0,
+        "max_report": 64
+       }
+      }
+     ]
+    ],
+    [
+     [
+      "m8",
+      {
+       "t": "error",
+       "code": "bad_name",
+       "msg": "malformed character name"
+      }
+     ]
+    ],
+    [
+     [
+      "m9",
+      {
+       "t": "hello",
+       "v": 2,
+       "nonce": "hwsjeq59yTVQmIbdtHeLjw",
+       "now": 1700000000.0,
+       "join_code": false,
+       "ice": [],
+       "limits": {
+        "idle": 30.0,
+        "report_ttl": 6.0,
+        "link_radius": 90.0,
+        "max_report": 64
+       }
+      }
+     ]
+    ],
+    [
+     [
+      "m9",
+      {
+       "t": "error",
+       "code": "bad_name",
+       "msg": "malformed character name"
+      }
+     ]
+    ],
+    [
+     [
+      "m10",
+      {
+       "t": "hello",
+       "v": 2,
+       "nonce": "Ug0OfBCfcbeFr8c-3xy4SQ",
+       "now": 1700000000.0,
+       "join_code": false,
+       "ice": [],
+       "limits": {
+        "idle": 30.0,
+        "report_ttl": 6.0,
+        "link_radius": 90.0,
+        "max_report": 64
+       }
+      }
+     ]
+    ],
+    [
+     [
+      "m10",
+      {
+       "t": "error",
+       "code": "unsupported_version",
+       "msg": "speak v2"
+      }
+     ]
+    ],
+    [
+     [
+      "m11",
+      {
+       "t": "hello",
+       "v": 2,
+       "nonce": "IunEmV5sGfKFqY64-mUw-Q",
+       "now": 1700000000.0,
+       "join_code": false,
+       "ice": [],
+       "limits": {
+        "idle": 30.0,
+        "report_ttl": 6.0,
+        "link_radius": 90.0,
+        "max_report": 64
+       }
+      }
+     ]
+    ],
+    [
+     [
+      "m11",
+      {
+       "t": "error",
+       "code": "unsupported_version",
+       "msg": "speak v2"
+      }
+     ]
+    ],
+    [
+     [
+      "m12",
+      {
+       "t": "hello",
+       "v": 2,
+       "nonce": "-2A-fT2XPRw_zL4DdrKqEA",
+       "now": 1700000000.0,
+       "join_code": false,
+       "ice": [],
+       "limits": {
+        "idle": 30.0,
+        "report_ttl": 6.0,
+        "link_radius": 90.0,
+        "max_report": 64
+       }
+      }
+     ]
+    ],
+    [
+     [
+      "m12",
+      {
+       "t": "error",
+       "code": "bad_sig",
+       "msg": "registration signature did not verify"
+      }
+     ]
+    ],
+    [
+     [
+      "m13",
+      {
+       "t": "hello",
+       "v": 2,
+       "nonce": "0kOUILPI4v5BnoY7d-_g3w",
+       "now": 1700000000.0,
+       "join_code": false,
+       "ice": [],
+       "limits": {
+        "idle": 30.0,
+        "report_ttl": 6.0,
+        "link_radius": 90.0,
+        "max_report": 64
+       }
+      }
+     ]
+    ],
+    [
+     [
+      "m13",
+      {
+       "t": "error",
+       "code": "bad_sig",
+       "msg": "registration signature did not verify"
+      }
+     ]
+    ],
+    [
+     [
+      "m14",
+      {
+       "t": "hello",
+       "v": 2,
+       "nonce": "PC3UNo7ovENxMg9wVsZT6w",
+       "now": 1700000000.0,
+       "join_code": false,
+       "ice": [],
+       "limits": {
+        "idle": 30.0,
+        "report_ttl": 6.0,
+        "link_radius": 90.0,
+        "max_report": 64
+       }
+      }
+     ]
+    ],
+    [
+     [
+      "m14",
+      {
+       "t": "error",
+       "code": "bad_sig",
+       "msg": "registration signature did not verify"
+      }
+     ]
+    ],
+    [
+     [
+      "m15",
+      {
+       "t": "hello",
+       "v": 2,
+       "nonce": "OOBQ2GwYUxOuG5e1knMG7w",
+       "now": 1700000000.0,
+       "join_code": false,
+       "ice": [],
+       "limits": {
+        "idle": 30.0,
+        "report_ttl": 6.0,
+        "link_radius": 90.0,
+        "max_report": 64
+       }
+      }
+     ]
+    ],
+    [
+     [
+      "m15",
+      {
+       "t": "error",
+       "code": "bad_sig",
+       "msg": "registration signature did not verify"
+      }
+     ]
+    ]
+   ],
+   "stats": {
+    "connections": 16,
+    "sessions": 0,
+    "realms": 0,
+    "largest_realm": 0,
+    "links": 0,
+    "reserved": 0,
+    "totals": {
+     "connections": 16,
+     "registered": 0,
+     "rejected": 0,
+     "signals": 0,
+     "rate_limited": 0,
+     "errors": 16,
+     "links_up": 0,
+     "proximity": 0,
+     "roster_msgs": 0,
+     "takeovers": 0
+    }
+   }
+  },
+  {
+   "name": "signature must match the nonce, names and realm",
+   "setup": {
+    "limits": {},
+    "join_code": null,
+    "ice": []
+   },
+   "steps": [
+    {
+     "op": "connect",
+     "conn": "a",
+     "ip": "10.0.0.1"
+    },
+    {
+     "op": "connect",
+     "conn": "b",
+     "ip": "10.0.0.1"
+    },
+    {
+     "op": "send",
+     "conn": "a",
+     "text": "{\"t\":\"register\",\"v\":2,\"sid\":\"wDJGr9J9JzYTi2J9YVxa9Q\",\"realm\":\"Testrealm\",\"character\":\"Alice\",\"pub\":\"fopaGShm3jUsv7zDw5omF7VlKcLenEhzHNqzpTMdXAg\",\"sig\":\"MIRiEeavFiGfPGWUb5mxLFdLwtf7lHyaVrD_AK6gMtcHiD0wAmGmtYJQUqUJEWAA-ilpkGAV5uiA70NaDznXCA\"}"
+    },
+    {
+     "op": "send",
+     "conn": "a",
+     "text": "{\"t\":\"register\",\"v\":2,\"sid\":\"wDJGr9J9JzYTi2J9YVxa9Q\",\"realm\":\"Testrealm\",\"character\":\"Alice\",\"pub\":\"fopaGShm3jUsv7zDw5omF7VlKcLenEhzHNqzpTMdXAg\",\"sig\":\"MtBdbVQBQfXj5PLFtAETb4gHmIji_KeLx6MP-UOQUBsyqk243zrO5SvgNUlPjtS45rkiLc7CI57ZyTSldJNICA\"}"
+    },
+    {
+     "op": "send",
+     "conn": "a",
+     "text": "{\"t\":\"register\",\"v\":2,\"sid\":\"wDJGr9J9JzYTi2J9YVxa9Q\",\"realm\":\"Testrealm\",\"character\":\"Alice\",\"pub\":\"fopaGShm3jUsv7zDw5omF7VlKcLenEhzHNqzpTMdXAg\",\"sig\":\"ZSnuTVmg5HkdEYKgT2JyzsmdgptpqBonbx6p5KlsW_IW3WBR6EsC0wZN5cq1fr_Elpb0Xit-qF552xGYCLkpCA\"}"
+    },
+    {
+     "op": "send",
+     "conn": "a",
+     "text": "{\"t\":\"register\",\"v\":2,\"sid\":\"wDJGr9J9JzYTi2J9YVxa9Q\",\"realm\":\"Testrealm\",\"character\":\"Alice\",\"pub\":\"fopaGShm3jUsv7zDw5omF7VlKcLenEhzHNqzpTMdXAg\",\"sig\":\"Q0VeKevuEvCr78LDEN-Fut1CHgVMywHM6YSoGw9NhvG6grbSg3Wv-Xb_GkJMvUQaBvGIKT4uXXvWjKDf9atgAQ\"}"
+    },
+    {
+     "op": "send",
+     "conn": "a",
+     "text": "{\"t\":\"register\",\"v\":2,\"sid\":\"wDJGr9J9JzYTi2J9YVxa9Q\",\"realm\":\"Testrealm\",\"character\":\"Alice\",\"pub\":\"AAAA\",\"sig\":\"nwBButD6urrO4-VXvMzZmc_2MGotD98hJcsOc_n2hzwLbpBPbobnQBxJIX6v78D0uyoNlU0rEDz42AkU4BbLDw\"}"
+    },
+    {
+     "op": "send",
+     "conn": "a",
+     "text": "{\"t\":\"register\",\"v\":2,\"sid\":\"wDJGr9J9JzYTi2J9YVxa9Q\",\"realm\":\"Testrealm\",\"character\":\"Alice\",\"pub\":\"fopaGShm3jUsv7zDw5omF7VlKcLenEhzHNqzpTMdXAg\",\"sig\":\"ujFTuC6hUzR6_bxwVrzK-D6tdNU7FQW-hoWSsRUXmfkCCouprGa12z22Gd622gcG-2zkzLeIqWkjVeaIV9zVAg\"}"
+    }
+   ],
+   "transcript": [
+    [
+     [
+      "a",
+      {
+       "t": "hello",
+       "v": 2,
+       "nonce": "UeB7Aeb5uvyotRr5bUcMQw",
+       "now": 1700000000.0,
+       "join_code": false,
+       "ice": [],
+       "limits": {
+        "idle": 30.0,
+        "report_ttl": 6.0,
+        "link_radius": 90.0,
+        "max_report": 64
+       }
+      }
+     ]
+    ],
+    [
+     [
+      "b",
+      {
+       "t": "hello",
+       "v": 2,
+       "nonce": "DnYO9YSleQKzMdFQ-fusgw",
+       "now": 1700000000.0,
+       "join_code": false,
+       "ice": [],
+       "limits": {
+        "idle": 30.0,
+        "report_ttl": 6.0,
+        "link_radius": 90.0,
+        "max_report": 64
+       }
+      }
+     ]
+    ],
+    [
+     [
+      "a",
+      {
+       "t": "error",
+       "code": "bad_sig",
+       "msg": "registration signature did not verify"
+      }
+     ]
+    ],
+    [
+     [
+      "a",
+      {
+       "t": "error",
+       "code": "bad_sig",
+       "msg": "registration signature did not verify"
+      }
+     ]
+    ],
+    [
+     [
+      "a",
+      {
+       "t": "error",
+       "code": "bad_sig",
+       "msg": "registration signature did not verify"
+      }
+     ]
+    ],
+    [
+     [
+      "a",
+      {
+       "t": "error",
+       "code": "bad_sig",
+       "msg": "registration signature did not verify"
+      }
+     ]
+    ],
+    [
+     [
+      "a",
+      {
+       "t": "error",
+       "code": "bad_sig",
+       "msg": "registration signature did not verify"
+      }
+     ]
+    ],
+    [
+     [
+      "a",
+      {
+       "t": "registered",
+       "sid": "wDJGr9J9JzYTi2J9YVxa9Q",
+       "token": "vej9SBxVtJMbZh57xuXr_n3T",
+       "lease": 30.0,
+       "now": 1700000000.0,
+       "roster": [],
+       "more": 0
+      }
+     ]
+    ]
+   ],
+   "stats": {
+    "connections": 2,
+    "sessions": 1,
+    "realms": 1,
+    "largest_realm": 1,
+    "links": 0,
+    "reserved": 0,
+    "totals": {
+     "connections": 2,
+     "registered": 1,
+     "rejected": 0,
+     "signals": 0,
+     "rate_limited": 0,
+     "errors": 5,
+     "links_up": 0,
+     "proximity": 0,
+     "roster_msgs": 0,
+     "takeovers": 0
+    }
+   }
+  },
+  {
+   "name": "join code",
+   "setup": {
+    "limits": {},
+    "join_code": "s3cret",
+    "ice": []
+   },
+   "steps": [
+    {
+     "op": "connect",
+     "conn": "a",
+     "ip": "10.0.0.1"
+    },
+    {
+     "op": "send",
+     "conn": "a",
+     "text": "{\"t\":\"register\",\"v\":2,\"sid\":\"wDJGr9J9JzYTi2J9YVxa9Q\",\"realm\":\"Testrealm\",\"character\":\"Alice\",\"pub\":\"fopaGShm3jUsv7zDw5omF7VlKcLenEhzHNqzpTMdXAg\",\"sig\":\"ujFTuC6hUzR6_bxwVrzK-D6tdNU7FQW-hoWSsRUXmfkCCouprGa12z22Gd622gcG-2zkzLeIqWkjVeaIV9zVAg\"}"
+    },
+    {
+     "op": "connect",
+     "conn": "b",
+     "ip": "10.0.0.1"
+    },
+    {
+     "op": "send",
+     "conn": "b",
+     "text": "{\"t\":\"register\",\"v\":2,\"sid\":\"tzZ25VVl9jn0Qz3idjyR-Q\",\"realm\":\"Testrealm\",\"character\":\"Bobby\",\"pub\":\"m3YBXt3J-TR-wwgvSZINGIbkkWfQHrPYAHNbwSz7BeA\",\"sig\":\"foYyo7_mPOmsXZH9lsWyKwrflbdXGlHBw9SvcrJhFbgOxONVxUN8C26tMZFjzNRKDPiu2z6oTLUAwuTFMAKHDg\",\"code\":\"nope\"}"
+    },
+    {
+     "op": "connect",
+     "conn": "c",
+     "ip": "10.0.0.1"
+    },
+    {
+     "op": "send",
+     "conn": "c",
+     "text": "{\"t\":\"register\",\"v\":2,\"sid\":\"g7cK8wRUBADFB5-uHrRX4Q\",\"realm\":\"Testrealm\",\"character\":\"Carol\",\"pub\":\"3SdpmjWiJbnnGH7lNnkMaz28XzPokAHtzGTpH9Qa7hE\",\"sig\":\"p4YtW8QbwHFdBLK_1NrVGDjGTmCqC--EaCWTW5X0IgL_YRNk0JMxLd0cKXp-6Ugp6GIn2paNksMn26cjmTK7Bg\",\"code\":5}"
+    },
+    {
+     "op": "connect",
+     "conn": "d",
+     "ip": "10.0.0.1"
+    },
+    {
+     "op": "send",
+     "conn": "d",
+     "text": "{\"t\":\"register\",\"v\":2,\"sid\":\"M_kBeEFI9oyqS0o33W80rg\",\"realm\":\"Testrealm\",\"character\":\"Dina\",\"pub\":\"Y9OW5FYiqgPQlxEdgCfmP1T6Cfam84woWPIKpDzais8\",\"sig\":\"t9DpcRYRwTMu5l8Rlh2JEJ4ErsbB-jgd4yAORG-rUu3brptZipLvOBs9h6Zduj9wejfeZOq37-CbAPQGpM00CA\",\"code\":\"s3cret\"}"
+    }
+   ],
+   "transcript": [
+    [
+     [
+      "a",
+      {
+       "t": "hello",
+       "v": 2,
+       "nonce": "UeB7Aeb5uvyotRr5bUcMQw",
+       "now": 1700000000.0,
+       "join_code": true,
+       "ice": [],
+       "limits": {
+        "idle": 30.0,
+        "report_ttl": 6.0,
+        "link_radius": 90.0,
+        "max_report": 64
+       }
+      }
+     ]
+    ],
+    [
+     [
+      "a",
+      {
+       "t": "error",
+       "code": "bad_code",
+       "msg": "wrong join code"
+      }
+     ]
+    ],
+    [
+     [
+      "b",
+      {
+       "t": "hello",
+       "v": 2,
+       "nonce": "DnYO9YSleQKzMdFQ-fusgw",
+       "now": 1700000000.0,
+       "join_code": true,
+       "ice": [],
+       "limits": {
+        "idle": 30.0,
+        "report_ttl": 6.0,
+        "link_radius": 90.0,
+        "max_report": 64
+       }
+      }
+     ]
+    ],
+    [
+     [
+      "b",
+      {
+       "t": "error",
+       "code": "bad_code",
+       "msg": "wrong join code"
+      }
+     ]
+    ],
+    [
+     [
+      "c",
+      {
+       "t": "hello",
+       "v": 2,
+       "nonce": "vej9SBxVtJMbZh57xuXr_g",
+       "now": 1700000000.0,
+       "join_code": true,
+       "ice": [],
+       "limits": {
+        "idle": 30.0,
+        "report_ttl": 6.0,
+        "link_radius": 90.0,
+        "max_report": 64
+       }
+      }
+     ]
+    ],
+    [
+     [
+      "c",
+      {
+       "t": "error",
+       "code": "bad_code",
+       "msg": "wrong join code"
+      }
+     ]
+    ],
+    [
+     [
+      "d",
+      {
+       "t": "hello",
+       "v": 2,
+       "nonce": "fdOeXRRJwXvwahSXap-Tug",
+       "now": 1700000000.0,
+       "join_code": true,
+       "ice": [],
+       "limits": {
+        "idle": 30.0,
+        "report_ttl": 6.0,
+        "link_radius": 90.0,
+        "max_report": 64
+       }
+      }
+     ]
+    ],
+    [
+     [
+      "d",
+      {
+       "t": "registered",
+       "sid": "M_kBeEFI9oyqS0o33W80rg",
+       "token": "N7mJsk24s_CFaO8pqqp-s4hM",
+       "lease": 30.0,
+       "now": 1700000000.0,
+       "roster": [],
+       "more": 0
+      }
+     ]
+    ]
+   ],
+   "stats": {
+    "connections": 4,
+    "sessions": 1,
+    "realms": 1,
+    "largest_realm": 1,
+    "links": 0,
+    "reserved": 0,
+    "totals": {
+     "connections": 4,
+     "registered": 1,
+     "rejected": 0,
+     "signals": 0,
+     "rate_limited": 0,
+     "errors": 3,
+     "links_up": 0,
+     "proximity": 0,
+     "roster_msgs": 0,
+     "takeovers": 0
+    }
+   }
+  },
+  {
+   "name": "order of messages: not registered, double register, unknown",
+   "setup": {
+    "limits": {},
+    "join_code": null,
+    "ice": []
+   },
+   "steps": [
+    {
+     "op": "connect",
+     "conn": "a",
+     "ip": "10.0.0.1"
+    },
+    {
+     "op": "send",
+     "conn": "a",
+     "text": "{\"t\":\"proximity\",\"peers\":[]}"
+    },
+    {
+     "op": "send",
+     "conn": "a",
+     "text": "{\"t\":\"offer\",\"to\":\"x\",\"ep\":1,\"data\":{}}"
+    },
+    {
+     "op": "send",
+     "conn": "a",
+     "text": "{\"t\":\"unregister\"}"
+    },
+    {
+     "op": "send",
+     "conn": "a",
+     "text": "{\"t\":\"register\",\"v\":2,\"sid\":\"wDJGr9J9JzYTi2J9YVxa9Q\",\"realm\":\"Testrealm\",\"character\":\"Alice\",\"pub\":\"fopaGShm3jUsv7zDw5omF7VlKcLenEhzHNqzpTMdXAg\",\"sig\":\"ujFTuC6hUzR6_bxwVrzK-D6tdNU7FQW-hoWSsRUXmfkCCouprGa12z22Gd622gcG-2zkzLeIqWkjVeaIV9zVAg\",\"id\":7}"
+    },
+    {
+     "op": "send",
+     "conn": "a",
+     "text": "{\"t\":\"register\",\"v\":2,\"sid\":\"wDJGr9J9JzYTi2J9YVxa9Q\",\"realm\":\"Testrealm\",\"character\":\"Alice\",\"pub\":\"fopaGShm3jUsv7zDw5omF7VlKcLenEhzHNqzpTMdXAg\",\"sig\":\"ujFTuC6hUzR6_bxwVrzK-D6tdNU7FQW-hoWSsRUXmfkCCouprGa12z22Gd622gcG-2zkzLeIqWkjVeaIV9zVAg\"}"
+    },
+    {
+     "op": "send",
+     "conn": "a",
+     "text": "{\"t\":\"zzz\",\"id\":\"q1\"}"
+    },
+    {
+     "op": "send",
+     "conn": "a",
+     "text": "{\"t\":\"ping\"}"
+    },
+    {
+     "op": "send",
+     "conn": "a",
+     "text": "{\"t\":\"ping\",\"ts\":true}"
+    },
+    {
+     "op": "send",
+     "conn": "a",
+     "text": "{\"t\":\"ping\",\"ts\":\"x\"}"
+    }
+   ],
+   "transcript": [
+    [
+     [
+      "a",
+      {
+       "t": "hello",
+       "v": 2,
+       "nonce": "UeB7Aeb5uvyotRr5bUcMQw",
+       "now": 1700000000.0,
+       "join_code": false,
+       "ice": [],
+       "limits": {
+        "idle": 30.0,
+        "report_ttl": 6.0,
+        "link_radius": 90.0,
+        "max_report": 64
+       }
+      }
+     ]
+    ],
+    [
+     [
+      "a",
+      {
+       "t": "error",
+       "code": "not_registered",
+       "msg": "register first"
+      }
+     ]
+    ],
+    [
+     [
+      "a",
+      {
+       "t": "error",
+       "code": "not_registered",
+       "msg": "register first"
+      }
+     ]
+    ],
+    [
+     [
+      "a",
+      {
+       "t": "error",
+       "code": "not_registered",
+       "msg": "register first"
+      }
+     ]
+    ],
+    [
+     [
+      "a",
+      {
+       "t": "registered",
+       "sid": "wDJGr9J9JzYTi2J9YVxa9Q",
+       "token": "DnYO9YSleQKzMdFQ-fusg73o",
+       "lease": 30.0,
+       "now": 1700000000.0,
+       "roster": [],
+       "more": 0,
+       "id": 7
+      }
+     ]
+    ],
+    [
+     [
+      "a",
+      {
+       "t": "error",
+       "code": "already_registered",
+       "msg": "reconnect to change identity"
+      }
+     ]
+    ],
+    [
+     [
+      "a",
+      {
+       "t": "error",
+       "code": "bad_msg",
+       "msg": "unknown type",
+       "ref": "q1"
+      }
+     ]
+    ],
+    [
+     [
+      "a",
+      {
+       "t": "pong",
+       "now": 1700000000.0
+      }
+     ]
+    ],
+    [
+     [
+      "a",
+      {
+       "t": "pong",
+       "now": 1700000000.0
+      }
+     ]
+    ],
+    [
+     [
+      "a",
+      {
+       "t": "pong",
+       "now": 1700000000.0
+      }
+     ]
+    ]
+   ],
+   "stats": {
+    "connections": 1,
+    "sessions": 1,
+    "realms": 1,
+    "largest_realm": 1,
+    "links": 0,
+    "reserved": 0,
+    "totals": {
+     "connections": 1,
+     "registered": 1,
+     "rejected": 0,
+     "signals": 0,
+     "rate_limited": 0,
+     "errors": 5,
+     "links_up": 0,
+     "proximity": 0,
+     "roster_msgs": 0,
+     "takeovers": 0
+    }
+   }
+  },
+  {
+   "name": "realm isolation",
+   "setup": {
+    "limits": {},
+    "join_code": null,
+    "ice": []
+   },
+   "steps": [
+    {
+     "op": "connect",
+     "conn": "a",
+     "ip": "10.0.0.1"
+    },
+    {
+     "op": "send",
+     "conn": "a",
+     "text": "{\"t\":\"register\",\"v\":2,\"sid\":\"wDJGr9J9JzYTi2J9YVxa9Q\",\"realm\":\"Turtle WoW\",\"character\":\"Alice\",\"pub\":\"fopaGShm3jUsv7zDw5omF7VlKcLenEhzHNqzpTMdXAg\",\"sig\":\"Y-CAmH3Ry5g27Xd1yLlEMVsZZ3CqVkGUX-RgXbxJUOYu5SXQ2yVr2xSB3t6GmHIDJW9-Z05oWBHC4e6H97B2Dw\"}"
+    },
+    {
+     "op": "connect",
+     "conn": "b",
+     "ip": "10.0.0.1"
+    },
+    {
+     "op": "send",
+     "conn": "b",
+     "text": "{\"t\":\"register\",\"v\":2,\"sid\":\"tzZ25VVl9jn0Qz3idjyR-Q\",\"realm\":\"turtle  wow\",\"character\":\"Bobby\",\"pub\":\"m3YBXt3J-TR-wwgvSZINGIbkkWfQHrPYAHNbwSz7BeA\",\"sig\":\"shAyZdvQfKpPo6X2BukE2AY0GDOm__GuaEN0QegYfJhsztvIEJajLn_I2gBUjp3I5-YoranRqX-uPXrJvQNgCQ\"}"
+    },
+    {
+     "op": "connect",
+     "conn": "c",
+     "ip": "10.0.0.1"
+    },
+    {
+     "op": "send",
+     "conn": "c",
+     "text": "{\"t\":\"register\",\"v\":2,\"sid\":\"BuPphdk2LCOwOfctcEZewA\",\"realm\":\"Elsewhere\",\"character\":\"Alicia\",\"pub\":\"L9Rh8jmR1ihegqIrl6HLWqqgJectEn_V43mo7NCQRQs\",\"sig\":\"actr68HvpSiz57wFopzk7jZ2pS1Ean65E5gUhTetE1SGvPfvJ-WxhJYD0GK_btweIQO4nS-984E_o2ZrPHpZBQ\"}"
+    },
+    {
+     "op": "connect",
+     "conn": "d",
+     "ip": "10.0.0.1"
+    },
+    {
+     "op": "send",
+     "conn": "d",
+     "text": "{\"t\":\"register\",\"v\":2,\"sid\":\"djnrig1zjZea8Wiyv4IASw\",\"realm\":\"Elsewhere\",\"character\":\"Alice\",\"pub\":\"fopaGShm3jUsv7zDw5omF7VlKcLenEhzHNqzpTMdXAg\",\"sig\":\"sqjq-NUmu5LjEQ4R1ZF9-3e4S7t7eyx09Fn5yT5tMBy86FZg3O3ekDYs3XnXEGE-I6beEPdeO0vJTIO8baaqBw\"}"
+    },
+    {
+     "op": "send",
+     "conn": "a",
+     "text": "{\"t\":\"proximity\",\"peers\":[[\"Alice\",5,1],[\"Bobby\",6,1]]}"
+    },
+    {
+     "op": "send",
+     "conn": "b",
+     "text": "{\"t\":\"proximity\",\"peers\":[[\"Alice\",7,1]]}"
+    },
+    {
+     "op": "send",
+     "conn": "c",
+     "text": "{\"t\":\"proximity\",\"peers\":[[\"Alice\",5,1]]}"
+    },
+    {
+     "op": "send",
+     "conn": "d",
+     "text": "{\"t\":\"proximity\",\"peers\":[[\"Alicia\",5,1]]}"
+    }
+   ],
+   "transcript": [
+    [
+     [
+      "a",
+      {
+       "t": "hello",
+       "v": 2,
+       "nonce": "UeB7Aeb5uvyotRr5bUcMQw",
+       "now": 1700000000.0,
+       "join_code": false,
+       "ice": [],
+       "limits": {
+        "idle": 30.0,
+        "report_ttl": 6.0,
+        "link_radius": 90.0,
+        "max_report": 64
+       }
+      }
+     ]
+    ],
+    [
+     [
+      "a",
+      {
+       "t": "registered",
+       "sid": "wDJGr9J9JzYTi2J9YVxa9Q",
+       "token": "DnYO9YSleQKzMdFQ-fusg73o",
+       "lease": 30.0,
+       "now": 1700000000.0,
+       "roster": [],
+       "more": 0
+      }
+     ]
+    ],
+    [
+     [
+      "b",
+      {
+       "t": "hello",
+       "v": 2,
+       "nonce": "_UgcVbSTG2Yee8bl6_590w",
+       "now": 1700000000.0,
+       "join_code": false,
+       "ice": [],
+       "limits": {
+        "idle": 30.0,
+        "report_ttl": 6.0,
+        "link_radius": 90.0,
+        "max_report": 64
+       }
+      }
+     ]
+    ],
+    [
+     [
+      "b",
+      {
+       "t": "registered",
+       "sid": "tzZ25VVl9jn0Qz3idjyR-Q",
+       "token": "nl0UScF78GoUl2qfk7o3uYmy",
+       "lease": 30.0,
+       "now": 1700000000.0,
+       "roster": [
+        [
+         "Alice",
+         "wDJGr9J9JzYTi2J9YVxa9Q"
+        ]
+       ],
+       "more": 0
+      }
+     ],
+     [
+      "a",
+      {
+       "t": "roster_update",
+       "add": [
+        [
+         "Bobby",
+         "tzZ25VVl9jn0Qz3idjyR-Q"
+        ]
+       ]
+      }
+     ]
+    ],
+    [
+     [
+      "c",
+      {
+       "t": "hello",
+       "v": 2,
+       "nonce": "Tbiz8IVo7ymqqn6ziExzXg",
+       "now": 1700000000.0,
+       "join_code": false,
+       "ice": [],
+       "limits": {
+        "idle": 30.0,
+        "report_ttl": 6.0,
+        "link_radius": 90.0,
+        "max_report": 64
+       }
+      }
+     ]
+    ],
+    [
+     [
+      "c",
+      {
+       "t": "registered",
+       "sid": "BuPphdk2LCOwOfctcEZewA",
+       "token": "svM_WTeUmKE-Z3QIAc6YXxNe",
+       "lease": 30.0,
+       "now": 1700000000.0,
+       "roster": [],
+       "more": 0
+      }
+     ]
+    ],
+    [
+     [
+      "d",
+      {
+       "t": "hello",
+       "v": 2,
+       "nonce": "KLol0h7_x3_MfxsmqlixEQ",
+       "now": 1700000000.0,
+       "join_code": false,
+       "ice": [],
+       "limits": {
+        "idle": 30.0,
+        "report_ttl": 6.0,
+        "link_radius": 90.0,
+        "max_report": 64
+       }
+      }
+     ]
+    ],
+    [
+     [
+      "d",
+      {
+       "t": "registered",
+       "sid": "djnrig1zjZea8Wiyv4IASw",
+       "token": "6JiUDsWg6AzVvjy094J7q1cw",
+       "lease": 30.0,
+       "now": 1700000000.0,
+       "roster": [
+        [
+         "Alicia",
+         "BuPphdk2LCOwOfctcEZewA"
+        ]
+       ],
+       "more": 0
+      }
+     ],
+     [
+      "c",
+      {
+       "t": "roster_update",
+       "add": [
+        [
+         "Alice",
+         "djnrig1zjZea8Wiyv4IASw"
+        ]
+       ]
+      }
+     ]
+    ],
+    [],
+    [
+     [
+      "b",
+      {
+       "t": "peer_available",
+       "sid": "wDJGr9J9JzYTi2J9YVxa9Q",
+       "character": "Alice",
+       "distance": 6.5
+      }
+     ],
+     [
+      "a",
+      {
+       "t": "peer_available",
+       "sid": "tzZ25VVl9jn0Qz3idjyR-Q",
+       "character": "Bobby",
+       "distance": 6.5
+      }
+     ]
+    ],
+    [],
+    [
+     [
+      "d",
+      {
+       "t": "peer_available",
+       "sid": "BuPphdk2LCOwOfctcEZewA",
+       "character": "Alicia",
+       "distance": 5.0
+      }
+     ],
+     [
+      "c",
+      {
+       "t": "peer_available",
+       "sid": "djnrig1zjZea8Wiyv4IASw",
+       "character": "Alice",
+       "distance": 5.0
+      }
+     ]
+    ]
+   ],
+   "stats": {
+    "connections": 4,
+    "sessions": 4,
+    "realms": 2,
+    "largest_realm": 2,
+    "links": 2,
+    "reserved": 0,
+    "totals": {
+     "connections": 4,
+     "registered": 4,
+     "rejected": 0,
+     "signals": 0,
+     "rate_limited": 0,
+     "errors": 0,
+     "links_up": 2,
+     "proximity": 4,
+     "roster_msgs": 2,
+     "takeovers": 0
+    }
+   }
+  },
+  {
+   "name": "duplicate login, takeover, sid collision",
+   "setup": {
+    "limits": {},
+    "join_code": null,
+    "ice": []
+   },
+   "steps": [
+    {
+     "op": "connect",
+     "conn": "a",
+     "ip": "10.0.0.1"
+    },
+    {
+     "op": "send",
+     "conn": "a",
+     "text": "{\"t\":\"register\",\"v\":2,\"sid\":\"wDJGr9J9JzYTi2J9YVxa9Q\",\"realm\":\"Testrealm\",\"character\":\"Alice\",\"pub\":\"fopaGShm3jUsv7zDw5omF7VlKcLenEhzHNqzpTMdXAg\",\"sig\":\"ujFTuC6hUzR6_bxwVrzK-D6tdNU7FQW-hoWSsRUXmfkCCouprGa12z22Gd622gcG-2zkzLeIqWkjVeaIV9zVAg\"}"
+    },
+    {
+     "op": "connect",
+     "conn": "b",
+     "ip": "10.0.0.1"
+    },
+    {
+     "op": "send",
+     "conn": "b",
+     "text": "{\"t\":\"register\",\"v\":2,\"sid\":\"tzZ25VVl9jn0Qz3idjyR-Q\",\"realm\":\"Testrealm\",\"character\":\"Bobby\",\"pub\":\"m3YBXt3J-TR-wwgvSZINGIbkkWfQHrPYAHNbwSz7BeA\",\"sig\":\"yZafPeA9VtP-BCIP9odE_0zNF9Ks6VuR7kq5RxGSSBX6C_HOkJDFXlkmDFBEI41PWXo_PqXZsXiEbdbZhngGBQ\"}"
+    },
+    {
+     "op": "connect",
+     "conn": "x",
+     "ip": "10.0.0.1"
+    },
+    {
+     "op": "send",
+     "conn": "x",
+     "text": "{\"t\":\"register\",\"v\":2,\"sid\":\"wdFWNPMx3wTuDuL70OAihw\",\"realm\":\"Testrealm\",\"character\":\"Alice\",\"pub\":\"Fo8wArEfHaJggw6wdtxiOyGsbA4WXMVka2A_wSdMunE\",\"sig\":\"znAWytEieoIK8H2n8aVIRbhBRuB33GM2e0NFegFS5-9U1py4SOSHZ5ruJiZS3nKXmZ1IQSmPyM_AOFLvOR5-Dw\"}"
+    },
+    {
+     "op": "connect",
+     "conn": "y",
+     "ip": "10.0.0.1"
+    },
+    {
+     "op": "send",
+     "conn": "y",
+     "text": "{\"t\":\"register\",\"v\":2,\"sid\":\"wDJGr9J9JzYTi2J9YVxa9Q\",\"realm\":\"Testrealm\",\"character\":\"Alice\",\"pub\":\"G-fl8vVFWW966K8_h7qaHq9x64v4X8M1A4ypCoeTRic\",\"sig\":\"pxGtSwcGarRDMJndN0gXHfQwX5ORSVvhwAg5Ddi0wf6GoM83aXq5uFqQgzuNxQY93IThu8HEjjvAeeDJriFbBA\"}"
+    },
+    {
+     "op": "connect",
+     "conn": "v",
+     "ip": "10.0.0.1"
+    },
+    {
+     "op": "send",
+     "conn": "v",
+     "text": "{\"t\":\"register\",\"v\":2,\"sid\":\"wDJGr9J9JzYTi2J9YVxa9Q\",\"realm\":\"Testrealm\",\"character\":\"Mallory\",\"pub\":\"41G5ywV6YMl99reTC2D-mCc9x4UMR2CNtH1wQjqii2Y\",\"sig\":\"Hsj1mJfHMMoim-daw1pEPAzIFBgBOHrCozBSXFwMAl2vEoFRJHHAF8HQ82xkAM3qc8RBhAruqBEjBkUYuN2dBg\"}"
+    },
+    {
+     "op": "connect",
+     "conn": "z",
+     "ip": "10.0.0.1"
+    },
+    {
+     "op": "send",
+     "conn": "z",
+     "text": "{\"t\":\"register\",\"v\":2,\"sid\":\"-EPlx4NAchwtOjtfTlbY2A\",\"realm\":\"Testrealm\",\"character\":\"Alice\",\"pub\":\"fopaGShm3jUsv7zDw5omF7VlKcLenEhzHNqzpTMdXAg\",\"sig\":\"gOcgZD17ubeZezpBcgJJo6oOuNQH2IC4KjGvkQMHNjN6POlwfcd6JMi5x2nU7ogIDCnRSkCtJ41CV9zH02fDBA\"}"
+    },
+    {
+     "op": "send",
+     "conn": "b",
+     "text": "{\"t\":\"proximity\",\"peers\":[[\"Alice\",5,1]]}"
+    }
+   ],
+   "transcript": [
+    [
+     [
+      "a",
+      {
+       "t": "hello",
+       "v": 2,
+       "nonce": "UeB7Aeb5uvyotRr5bUcMQw",
+       "now": 1700000000.0,
+       "join_code": false,
+       "ice": [],
+       "limits": {
+        "idle": 30.0,
+        "report_ttl": 6.0,
+        "link_radius": 90.0,
+        "max_report": 64
+       }
+      }
+     ]
+    ],
+    [
+     [
+      "a",
+      {
+       "t": "registered",
+       "sid": "wDJGr9J9JzYTi2J9YVxa9Q",
+       "token": "DnYO9YSleQKzMdFQ-fusg73o",
+       "lease": 30.0,
+       "now": 1700000000.0,
+       "roster": [],
+       "more": 0
+      }
+     ]
+    ],
+    [
+     [
+      "b",
+      {
+       "t": "hello",
+       "v": 2,
+       "nonce": "_UgcVbSTG2Yee8bl6_590w",
+       "now": 1700000000.0,
+       "join_code": false,
+       "ice": [],
+       "limits": {
+        "idle": 30.0,
+        "report_ttl": 6.0,
+        "link_radius": 90.0,
+        "max_report": 64
+       }
+      }
+     ]
+    ],
+    [
+     [
+      "b",
+      {
+       "t": "registered",
+       "sid": "tzZ25VVl9jn0Qz3idjyR-Q",
+       "token": "nl0UScF78GoUl2qfk7o3uYmy",
+       "lease": 30.0,
+       "now": 1700000000.0,
+       "roster": [
+        [
+         "Alice",
+         "wDJGr9J9JzYTi2J9YVxa9Q"
+        ]
+       ],
+       "more": 0
+      }
+     ],
+     [
+      "a",
+      {
+       "t": "roster_update",
+       "add": [
+        [
+         "Bobby",
+         "tzZ25VVl9jn0Qz3idjyR-Q"
+        ]
+       ]
+      }
+     ]
+    ],
+    [
+     [
+      "x",
+      {
+       "t": "hello",
+       "v": 2,
+       "nonce": "Tbiz8IVo7ymqqn6ziExzXg",
+       "now": 1700000000.0,
+       "join_code": false,
+       "ice": [],
+       "limits": {
+        "idle": 30.0,
+        "report_ttl": 6.0,
+        "link_radius": 90.0,
+        "max_report": 64
+       }
+      }
+     ]
+    ],
+    [
+     [
+      "x",
+      {
+       "t": "error",
+       "code": "name_in_use",
+       "msg": "that character is already online"
+      }
+     ]
+    ],
+    [
+     [
+      "y",
+      {
+       "t": "hello",
+       "v": 2,
+       "nonce": "svM_WTeUmKE-Z3QIAc6YXw",
+       "now": 1700000000.0,
+       "join_code": false,
+       "ice": [],
+       "limits": {
+        "idle": 30.0,
+        "report_ttl": 6.0,
+        "link_radius": 90.0,
+        "max_report": 64
+       }
+      }
+     ]
+    ],
+    [
+     [
+      "y",
+      {
+       "t": "error",
+       "code": "name_in_use",
+       "msg": "that character is already online"
+      }
+     ]
+    ],
+    [
+     [
+      "v",
+      {
+       "t": "hello",
+       "v": 2,
+       "nonce": "E14ouiXSHv_Hf8x_GyaqWA",
+       "now": 1700000000.0,
+       "join_code": false,
+       "ice": [],
+       "limits": {
+        "idle": 30.0,
+        "report_ttl": 6.0,
+        "link_radius": 90.0,
+        "max_report": 64
+       }
+      }
+     ]
+    ],
+    [
+     [
+      "v",
+      {
+       "t": "error",
+       "code": "sid_taken",
+       "msg": "session id in use"
+      }
+     ]
+    ],
+    [
+     [
+      "z",
+      {
+       "t": "hello",
+       "v": 2,
+       "nonce": "sRHomJQOxaDoDNW-PLT3gg",
+       "now": 1700000000.0,
+       "join_code": false,
+       "ice": [],
+       "limits": {
+        "idle": 30.0,
+        "report_ttl": 6.0,
+        "link_radius": 90.0,
+        "max_report": 64
+       }
+      }
+     ]
+    ],
+    [
+     [
+      "a",
+      "close",
+      4409,
+      "replaced by a newer connection"
+     ],
+     [
+      "b",
+      {
+       "t": "roster_update",
+       "remove": [
+        "wDJGr9J9JzYTi2J9YVxa9Q"
+       ]
+      }
+     ],
+     [
+      "z",
+      {
+       "t": "registered",
+       "sid": "-EPlx4NAchwtOjtfTlbY2A",
+       "token": "e6tXMDBf6BD2k0Klhwsjeq59",
+       "lease": 30.0,
+       "now": 1700000000.0,
+       "roster": [
+        [
+         "Bobby",
+         "tzZ25VVl9jn0Qz3idjyR-Q"
+        ]
+       ],
+       "more": 0
+      }
+     ],
+     [
+      "b",
+      {
+       "t": "roster_update",
+       "add": [
+        [
+         "Alice",
+         "-EPlx4NAchwtOjtfTlbY2A"
+        ]
+       ]
+      }
+     ]
+    ],
+    []
+   ],
+   "stats": {
+    "connections": 5,
+    "sessions": 2,
+    "realms": 1,
+    "largest_realm": 2,
+    "links": 0,
+    "reserved": 0,
+    "totals": {
+     "connections": 6,
+     "registered": 3,
+     "rejected": 0,
+     "signals": 0,
+     "rate_limited": 0,
+     "errors": 3,
+     "links_up": 0,
+     "proximity": 1,
+     "roster_msgs": 3,
+     "takeovers": 1
+    }
+   }
+  },
+  {
+   "name": "character change and reservation",
+   "setup": {
+    "limits": {},
+    "join_code": null,
+    "ice": []
+   },
+   "steps": [
+    {
+     "op": "connect",
+     "conn": "a",
+     "ip": "10.0.0.1"
+    },
+    {
+     "op": "send",
+     "conn": "a",
+     "text": "{\"t\":\"register\",\"v\":2,\"sid\":\"wDJGr9J9JzYTi2J9YVxa9Q\",\"realm\":\"Testrealm\",\"character\":\"Alice\",\"pub\":\"fopaGShm3jUsv7zDw5omF7VlKcLenEhzHNqzpTMdXAg\",\"sig\":\"ujFTuC6hUzR6_bxwVrzK-D6tdNU7FQW-hoWSsRUXmfkCCouprGa12z22Gd622gcG-2zkzLeIqWkjVeaIV9zVAg\"}"
+    },
+    {
+     "op": "connect",
+     "conn": "b",
+     "ip": "10.0.0.1"
+    },
+    {
+     "op": "send",
+     "conn": "b",
+     "text": "{\"t\":\"register\",\"v\":2,\"sid\":\"tzZ25VVl9jn0Qz3idjyR-Q\",\"realm\":\"Testrealm\",\"character\":\"Bobby\",\"pub\":\"m3YBXt3J-TR-wwgvSZINGIbkkWfQHrPYAHNbwSz7BeA\",\"sig\":\"yZafPeA9VtP-BCIP9odE_0zNF9Ks6VuR7kq5RxGSSBX6C_HOkJDFXlkmDFBEI41PWXo_PqXZsXiEbdbZhngGBQ\"}"
+    },
+    {
+     "op": "disconnect",
+     "conn": "a",
+     "reserve": true
+    },
+    {
+     "op": "connect",
+     "conn": "t",
+     "ip": "10.0.0.1"
+    },
+    {
+     "op": "send",
+     "conn": "t",
+     "text": "{\"t\":\"register\",\"v\":2,\"sid\":\"VebpU31BGq7sTkeNLe1ttg\",\"realm\":\"Testrealm\",\"character\":\"Alice\",\"pub\":\"tqyOs1_W5AScVDi0TO2sutsBZCEvn6VEnkwxtuQ-69Y\",\"sig\":\"Xwj1cowhxd3nhv_efkycKeygFAtwXxn0wngdPtD4OOs3A7oZFo0YkMylduw4FAYZ5bcLrt9oDoxMTGF5KfkyBQ\"}"
+    },
+    {
+     "op": "connect",
+     "conn": "w",
+     "ip": "10.0.0.1"
+    },
+    {
+     "op": "send",
+     "conn": "w",
+     "text": "{\"t\":\"register\",\"v\":2,\"sid\":\"kuTWE5owt7go2aG0wH6gfA\",\"realm\":\"Testrealm\",\"character\":\"Alice\",\"pub\":\"fopaGShm3jUsv7zDw5omF7VlKcLenEhzHNqzpTMdXAg\",\"sig\":\"9Ca-pPmdxLDqhqMs4sw2-tx4cxRoNIrZ68BLoaoVJPWYxPq2ws3M7-EPS_qWiX9VPZ6gCG_9UfrzqBl2MeoWBA\",\"token\":\"wrong-token-xxxxxxxxxxxx\"}"
+    },
+    {
+     "op": "connect",
+     "conn": "r",
+     "ip": "10.0.0.1"
+    },
+    {
+     "op": "send",
+     "conn": "r",
+     "text": "{\"t\":\"register\",\"v\":2,\"sid\":\"QJd9FXoHPI3jnlu_2b8jfw\",\"realm\":\"Testrealm\",\"character\":\"Alice\",\"pub\":\"fopaGShm3jUsv7zDw5omF7VlKcLenEhzHNqzpTMdXAg\",\"sig\":\"6qCcxnUEKfY_yafkLF4gPb_X8WJTDXxl4NgB9JUtEyqtYrU-dIt0yLxa3ubabnAJvbWZwslG_u7-wSLyT9bXCA\",\"token\":\"DnYO9YSleQKzMdFQ-fusg73o\"}"
+    },
+    {
+     "op": "disconnect",
+     "conn": "r",
+     "reserve": true
+    },
+    {
+     "op": "advance",
+     "seconds": 31,
+     "step": 1.0
+    },
+    {
+     "op": "connect",
+     "conn": "e",
+     "ip": "10.0.0.1"
+    },
+    {
+     "op": "send",
+     "conn": "e",
+     "text": "{\"t\":\"register\",\"v\":2,\"sid\":\"m-WwW0Dp6bi0LhJRam4CUQ\",\"realm\":\"Testrealm\",\"character\":\"Alice\",\"pub\":\"H_pyy9499OUVMAW7ahvwxD7GN3kwiTL1SKAsvWo0fPQ\",\"sig\":\"gtbW735J9h-aJm5RT7NfMh5NGSmgNzCa2fzokFOr0YAiqVq2b3rVJwoNAY8wUTX1sNEIY-YKL03cy6LRZ9iYDA\"}"
+    },
+    {
+     "op": "send",
+     "conn": "e",
+     "text": "{\"t\":\"unregister\"}"
+    },
+    {
+     "op": "connect",
+     "conn": "f",
+     "ip": "10.0.0.1"
+    },
+    {
+     "op": "send",
+     "conn": "f",
+     "text": "{\"t\":\"register\",\"v\":2,\"sid\":\"mrqh0zRBpSo3uwFhCO7NWg\",\"realm\":\"Testrealm\",\"character\":\"Alice\",\"pub\":\"ljLI3BoCx7Rc6fYzpuRgba848riTSeoVV9bLZt9WTYc\",\"sig\":\"GIFV7ElOaQOX6NaIhxIVIB0sTA1i6nT5TFOIBJPp0KfUVGqTeqs973uWbmRs3JmT5hUjmuRpNBUn7kVPZnumCQ\"}"
+    }
+   ],
+   "transcript": [
+    [
+     [
+      "a",
+      {
+       "t": "hello",
+       "v": 2,
+       "nonce": "UeB7Aeb5uvyotRr5bUcMQw",
+       "now": 1700000000.0,
+       "join_code": false,
+       "ice": [],
+       "limits": {
+        "idle": 30.0,
+        "report_ttl": 6.0,
+        "link_radius": 90.0,
+        "max_report": 64
+       }
+      }
+     ]
+    ],
+    [
+     [
+      "a",
+      {
+       "t": "registered",
+       "sid": "wDJGr9J9JzYTi2J9YVxa9Q",
+       "token": "DnYO9YSleQKzMdFQ-fusg73o",
+       "lease": 30.0,
+       "now": 1700000000.0,
+       "roster": [],
+       "more": 0
+      }
+     ]
+    ],
+    [
+     [
+      "b",
+      {
+       "t": "hello",
+       "v": 2,
+       "nonce": "_UgcVbSTG2Yee8bl6_590w",
+       "now": 1700000000.0,
+       "join_code": false,
+       "ice": [],
+       "limits": {
+        "idle": 30.0,
+        "report_ttl": 6.0,
+        "link_radius": 90.0,
+        "max_report": 64
+       }
+      }
+     ]
+    ],
+    [
+     [
+      "b",
+      {
+       "t": "registered",
+       "sid": "tzZ25VVl9jn0Qz3idjyR-Q",
+       "token": "nl0UScF78GoUl2qfk7o3uYmy",
+       "lease": 30.0,
+       "now": 1700000000.0,
+       "roster": [
+        [
+         "Alice",
+         "wDJGr9J9JzYTi2J9YVxa9Q"
+        ]
+       ],
+       "more": 0
+      }
+     ],
+     [
+      "a",
+      {
+       "t": "roster_update",
+       "add": [
+        [
+         "Bobby",
+         "tzZ25VVl9jn0Qz3idjyR-Q"
+        ]
+       ]
+      }
+     ]
+    ],
+    [
+     [
+      "b",
+      {
+       "t": "roster_update",
+       "remove": [
+        "wDJGr9J9JzYTi2J9YVxa9Q"
+       ]
+      }
+     ]
+    ],
+    [
+     [
+      "t",
+      {
+       "t": "hello",
+       "v": 2,
+       "nonce": "Tbiz8IVo7ymqqn6ziExzXg",
+       "now": 1700000000.0,
+       "join_code": false,
+       "ice": [],
+       "limits": {
+        "idle": 30.0,
+        "report_ttl": 6.0,
+        "link_radius": 90.0,
+        "max_report": 64
+       }
+      }
+     ]
+    ],
+    [
+     [
+      "t",
+      {
+       "t": "error",
+       "code": "name_in_use",
+       "msg": "that character was just online; retry shortly"
+      }
+     ]
+    ],
+    [
+     [
+      "w",
+      {
+       "t": "hello",
+       "v": 2,
+       "nonce": "svM_WTeUmKE-Z3QIAc6YXw",
+       "now": 1700000000.0,
+       "join_code": false,
+       "ice": [],
+       "limits": {
+        "idle": 30.0,
+        "report_ttl": 6.0,
+        "link_radius": 90.0,
+        "max_report": 64
+       }
+      }
+     ]
+    ],
+    [
+     [
+      "w",
+      {
+       "t": "error",
+       "code": "name_in_use",
+       "msg": "that character was just online; retry shortly"
+      }
+     ]
+    ],
+    [
+     [
+      "r",
+      {
+       "t": "hello",
+       "v": 2,
+       "nonce": "E14ouiXSHv_Hf8x_GyaqWA",
+       "now": 1700000000.0,
+       "join_code": false,
+       "ice": [],
+       "limits": {
+        "idle": 30.0,
+        "report_ttl": 6.0,
+        "link_radius": 90.0,
+        "max_report": 64
+       }
+      }
+     ]
+    ],
+    [
+     [
+      "r",
+      {
+       "t": "registered",
+       "sid": "QJd9FXoHPI3jnlu_2b8jfw",
+       "token": "sRHomJQOxaDoDNW-PLT3gnur",
+       "lease": 30.0,
+       "now": 1700000000.0,
+       "roster": [
+        [
+         "Bobby",
+         "tzZ25VVl9jn0Qz3idjyR-Q"
+        ]
+       ],
+       "more": 0
+      }
+     ],
+     [
+      "b",
+      {
+       "t": "roster_update",
+       "add": [
+        [
+         "Alice",
+         "QJd9FXoHPI3jnlu_2b8jfw"
+        ]
+       ]
+      }
+     ]
+    ],
+    [
+     [
+      "b",
+      {
+       "t": "roster_update",
+       "remove": [
+        "QJd9FXoHPI3jnlu_2b8jfw"
+       ]
+      }
+     ]
+    ],
+    [
+     [
+      "t",
+      {
+       "t": "error",
+       "code": "register_timeout",
+       "msg": "register within 10s"
+      }
+     ],
+     [
+      "t",
+      "close",
+      4408,
+      "register timeout"
+     ],
+     [
+      "w",
+      {
+       "t": "error",
+       "code": "register_timeout",
+       "msg": "register within 10s"
+      }
+     ],
+     [
+      "w",
+      "close",
+      4408,
+      "register timeout"
+     ],
+     [
+      "b",
+      "close",
+      4408,
+      "idle"
+     ]
+    ],
+    [
+     [
+      "e",
+      {
+       "t": "hello",
+       "v": 2,
+       "nonce": "VzAwX-gQ9pNCpYcLI3qufQ",
+       "now": 1700000000.0,
+       "join_code": false,
+       "ice": [],
+       "limits": {
+        "idle": 30.0,
+        "report_ttl": 6.0,
+        "link_radius": 90.0,
+        "max_report": 64
+       }
+      }
+     ]
+    ],
+    [
+     [
+      "e",
+      {
+       "t": "registered",
+       "sid": "m-WwW0Dp6bi0LhJRam4CUQ",
+       "token": "yTVQmIbdtHeLj1INDnwQn3G3",
+       "lease": 30.0,
+       "now": 1700000000.0,
+       "roster": [],
+       "more": 0
+      }
+     ]
+    ],
+    [
+     [
+      "e",
+      "close",
+      1000,
+      "bye"
+     ]
+    ],
+    [
+     [
+      "f",
+      {
+       "t": "hello",
+       "v": 2,
+       "nonce": "ha_HPt8cuEki6cSZXmwZ8g",
+       "now": 1700000000.0,
+       "join_code": false,
+       "ice": [],
+       "limits": {
+        "idle": 30.0,
+        "report_ttl": 6.0,
+        "link_radius": 90.0,
+        "max_report": 64
+       }
+      }
+     ]
+    ],
+    [
+     [
+      "f",
+      {
+       "t": "registered",
+       "sid": "mrqh0zRBpSo3uwFhCO7NWg",
+       "token": "hamOuPplMPn7YD59PZc9HD_M",
+       "lease": 30.0,
+       "now": 1700000000.0,
+       "roster": [],
+       "more": 0
+      }
+     ]
+    ]
+   ],
+   "stats": {
+    "connections": 1,
+    "sessions": 1,
+    "realms": 1,
+    "largest_realm": 1,
+    "links": 0,
+    "reserved": 1,
+    "totals": {
+     "connections": 7,
+     "registered": 5,
+     "rejected": 0,
+     "signals": 0,
+     "rate_limited": 0,
+     "errors": 4,
+     "links_up": 0,
+     "proximity": 0,
+     "roster_msgs": 4,
+     "takeovers": 0
+    }
+   }
+  },
+  {
+   "name": "roster chunks",
+   "setup": {
+    "limits": {
+     "roster_chunk": 2
+    },
+    "join_code": null,
+    "ice": []
+   },
+   "steps": [
+    {
+     "op": "connect",
+     "conn": "c0",
+     "ip": "10.0.3.0"
+    },
+    {
+     "op": "send",
+     "conn": "c0",
+     "text": "{\"t\":\"register\",\"v\":2,\"sid\":\"6W-p1KM_866dRJT0Ht9fMg\",\"realm\":\"Testrealm\",\"character\":\"Aaa\",\"pub\":\"Nye52zE3rSMpWQwusMmue3a1sVu7BuJOEq510V63xZo\",\"sig\":\"9iFFZQj-kiAdZwjLX7LTUDMqABbkORfcZIxpy-dCDNOJkKpMEFH5CCwjmNUHTT9fQ0OKtuJMijUUhXywgFdrDQ\"}"
+    },
+    {
+     "op": "connect",
+     "conn": "c1",
+     "ip": "10.0.3.1"
+    },
+    {
+     "op": "send",
+     "conn": "c1",
+     "text": "{\"t\":\"register\",\"v\":2,\"sid\":\"N48whiZr-Jawo8p7tU5fsA\",\"realm\":\"Testrealm\",\"character\":\"Bbb\",\"pub\":\"gMx8xY_eaDDpa44CzSNGkiqzBbCvBEj773hTJdyXMwM\",\"sig\":\"kDvk3W5UMcMMUe1vjYl5lglSxHHAqyLGfTu2XqTF112SbW4vXFdqQzYVBcyC2NoajFSx2RHfCH8KIrmGrrJdBg\"}"
+    },
+    {
+     "op": "connect",
+     "conn": "c2",
+     "ip": "10.0.3.2"
+    },
+    {
+     "op": "send",
+     "conn": "c2",
+     "text": "{\"t\":\"register\",\"v\":2,\"sid\":\"tiVof1uPb8OZwSgwZi0IwA\",\"realm\":\"Testrealm\",\"character\":\"Ccc\",\"pub\":\"meKdQDdZr_PLOSDyOFvkcFmcHfQS8H25BlWtF0CYUiY\",\"sig\":\"oIy6sJcVSCpNvXwNcYUwnA88sTDqB13GqV7yaNU_qJcrguOcKIikFFx_3vrUrebNez7ikqa1GwDcqe6ztUifBg\"}"
+    },
+    {
+     "op": "connect",
+     "conn": "c3",
+     "ip": "10.0.3.3"
+    },
+    {
+     "op": "send",
+     "conn": "c3",
+     "text": "{\"t\":\"register\",\"v\":2,\"sid\":\"X6zbal7qaOgJHX8plfnw1w\",\"realm\":\"Testrealm\",\"character\":\"Ddd\",\"pub\":\"UJq36BbhbU5oxqWrre8Lcn-vgeJrYXesk8YyGA7y7iU\",\"sig\":\"Le4HfxkGSysKqUPUhWiZfj8RxhmZ3sCvahAHORiFL1peobFtXxi0eSHp64z2786KHwJ1tWm7pNLAcdok6Y1kAw\"}"
+    },
+    {
+     "op": "connect",
+     "conn": "c4",
+     "ip": "10.0.3.4"
+    },
+    {
+     "op": "send",
+     "conn": "c4",
+     "text": "{\"t\":\"register\",\"v\":2,\"sid\":\"d6VK42PtGmJpGhgYkwmSuw\",\"realm\":\"Testrealm\",\"character\":\"Eee\",\"pub\":\"KFeGr7YRbwBJZyBoU63np_6SBuafpB9YLKl1lc6Vdu8\",\"sig\":\"Oq2Rg8LmjhZFHZgztc2JAUy8a7B-9Z7400VOt500GQO-9BfgAryBU97Xbwz6nIRdXp8FAnh1axn3BlDfbUR2CA\"}"
+    },
+    {
+     "op": "disconnect",
+     "conn": "c1",
+     "reserve": true
+    }
+   ],
+   "transcript": [
+    [
+     [
+      "c0",
+      {
+       "t": "hello",
+       "v": 2,
+       "nonce": "UeB7Aeb5uvyotRr5bUcMQw",
+       "now": 1700000000.0,
+       "join_code": false,
+       "ice": [],
+       "limits": {
+        "idle": 30.0,
+        "report_ttl": 6.0,
+        "link_radius": 90.0,
+        "max_report": 64
+       }
+      }
+     ]
+    ],
+    [
+     [
+      "c0",
+      {
+       "t": "registered",
+       "sid": "6W-p1KM_866dRJT0Ht9fMg",
+       "token": "DnYO9YSleQKzMdFQ-fusg73o",
+       "lease": 30.0,
+       "now": 1700000000.0,
+       "roster": [],
+       "more": 0
+      }
+     ]
+    ],
+    [
+     [
+      "c1",
+      {
+       "t": "hello",
+       "v": 2,
+       "nonce": "_UgcVbSTG2Yee8bl6_590w",
+       "now": 1700000000.0,
+       "join_code": false,
+       "ice": [],
+       "limits": {
+        "idle": 30.0,
+        "report_ttl": 6.0,
+        "link_radius": 90.0,
+        "max_report": 64
+       }
+      }
+     ]
+    ],
+    [
+     [
+      "c1",
+      {
+       "t": "registered",
+       "sid": "N48whiZr-Jawo8p7tU5fsA",
+       "token": "nl0UScF78GoUl2qfk7o3uYmy",
+       "lease": 30.0,
+       "now": 1700000000.0,
+       "roster": [
+        [
+         "Aaa",
+         "6W-p1KM_866dRJT0Ht9fMg"
+        ]
+       ],
+       "more": 0
+      }
+     ],
+     [
+      "c0",
+      {
+       "t": "roster_update",
+       "add": [
+        [
+         "Bbb",
+         "N48whiZr-Jawo8p7tU5fsA"
+        ]
+       ]
+      }
+     ]
+    ],
+    [
+     [
+      "c2",
+      {
+       "t": "hello",
+       "v": 2,
+       "nonce": "Tbiz8IVo7ymqqn6ziExzXg",
+       "now": 1700000000.0,
+       "join_code": false,
+       "ice": [],
+       "limits": {
+        "idle": 30.0,
+        "report_ttl": 6.0,
+        "link_radius": 90.0,
+        "max_report": 64
+       }
+      }
+     ]
+    ],
+    [
+     [
+      "c2",
+      {
+       "t": "registered",
+       "sid": "tiVof1uPb8OZwSgwZi0IwA",
+       "token": "svM_WTeUmKE-Z3QIAc6YXxNe",
+       "lease": 30.0,
+       "now": 1700000000.0,
+       "roster": [
+        [
+         "Aaa",
+         "6W-p1KM_866dRJT0Ht9fMg"
+        ],
+        [
+         "Bbb",
+         "N48whiZr-Jawo8p7tU5fsA"
+        ]
+       ],
+       "more": 0
+      }
+     ],
+     [
+      "c0",
+      {
+       "t": "roster_update",
+       "add": [
+        [
+         "Ccc",
+         "tiVof1uPb8OZwSgwZi0IwA"
+        ]
+       ]
+      }
+     ],
+     [
+      "c1",
+      {
+       "t": "roster_update",
+       "add": [
+        [
+         "Ccc",
+         "tiVof1uPb8OZwSgwZi0IwA"
+        ]
+       ]
+      }
+     ]
+    ],
+    [
+     [
+      "c3",
+      {
+       "t": "hello",
+       "v": 2,
+       "nonce": "KLol0h7_x3_MfxsmqlixEQ",
+       "now": 1700000000.0,
+       "join_code": false,
+       "ice": [],
+       "limits": {
+        "idle": 30.0,
+        "report_ttl": 6.0,
+        "link_radius": 90.0,
+        "max_report": 64
+       }
+      }
+     ]
+    ],
+    [
+     [
+      "c3",
+      {
+       "t": "registered",
+       "sid": "X6zbal7qaOgJHX8plfnw1w",
+       "token": "6JiUDsWg6AzVvjy094J7q1cw",
+       "lease": 30.0,
+       "now": 1700000000.0,
+       "roster": [
+        [
+         "Aaa",
+         "6W-p1KM_866dRJT0Ht9fMg"
+        ],
+        [
+         "Bbb",
+         "N48whiZr-Jawo8p7tU5fsA"
+        ]
+       ],
+       "more": 1
+      }
+     ],
+     [
+      "c3",
+      {
+       "t": "roster_update",
+       "add": [
+        [
+         "Ccc",
+         "tiVof1uPb8OZwSgwZi0IwA"
+        ]
+       ]
+      }
+     ],
+     [
+      "c0",
+      {
+       "t": "roster_update",
+       "add": [
+        [
+         "Ddd",
+         "X6zbal7qaOgJHX8plfnw1w"
+        ]
+       ]
+      }
+     ],
+     [
+      "c1",
+      {
+       "t": "roster_update",
+       "add": [
+        [
+         "Ddd",
+         "X6zbal7qaOgJHX8plfnw1w"
+        ]
+       ]
+      }
+     ],
+     [
+      "c2",
+      {
+       "t": "roster_update",
+       "add": [
+        [
+         "Ddd",
+         "X6zbal7qaOgJHX8plfnw1w"
+        ]
+       ]
+      }
+     ]
+    ],
+    [
+     [
+      "c4",
+      {
+       "t": "hello",
+       "v": 2,
+       "nonce": "MF_oEPaTQqWHCyN6rn3JNQ",
+       "now": 1700000000.0,
+       "join_code": false,
+       "ice": [],
+       "limits": {
+        "idle": 30.0,
+        "report_ttl": 6.0,
+        "link_radius": 90.0,
+        "max_report": 64
+       }
+      }
+     ]
+    ],
+    [
+     [
+      "c4",
+      {
+       "t": "registered",
+       "sid": "d6VK42PtGmJpGhgYkwmSuw",
+       "token": "UJiG3bR3i49SDQ58EJ9xt4Wv",
+       "lease": 30.0,
+       "now": 1700000000.0,
+       "roster": [
+        [
+         "Aaa",
+         "6W-p1KM_866dRJT0Ht9fMg"
+        ],
+        [
+         "Bbb",
+         "N48whiZr-Jawo8p7tU5fsA"
+        ]
+       ],
+       "more": 2
+      }
+     ],
+     [
+      "c4",
+      {
+       "t": "roster_update",
+       "add": [
+        [
+         "Ccc",
+         "tiVof1uPb8OZwSgwZi0IwA"
+        ],
+        [
+         "Ddd",
+         "X6zbal7qaOgJHX8plfnw1w"
+        ]
+       ]
+      }
+     ],
+     [
+      "c0",
+      {
+       "t": "roster_update",
+       "add": [
+        [
+         "Eee",
+         "d6VK42PtGmJpGhgYkwmSuw"
+        ]
+       ]
+      }
+     ],
+     [
+      "c1",
+      {
+       "t": "roster_update",
+       "add": [
+        [
+         "Eee",
+         "d6VK42PtGmJpGhgYkwmSuw"
+        ]
+       ]
+      }
+     ],
+     [
+      "c2",
+      {
+       "t": "roster_update",
+       "add": [
+        [
+         "Eee",
+         "d6VK42PtGmJpGhgYkwmSuw"
+        ]
+       ]
+      }
+     ],
+     [
+      "c3",
+      {
+       "t": "roster_update",
+       "add": [
+        [
+         "Eee",
+         "d6VK42PtGmJpGhgYkwmSuw"
+        ]
+       ]
+      }
+     ]
+    ],
+    [
+     [
+      "c0",
+      {
+       "t": "roster_update",
+       "remove": [
+        "N48whiZr-Jawo8p7tU5fsA"
+       ]
+      }
+     ],
+     [
+      "c2",
+      {
+       "t": "roster_update",
+       "remove": [
+        "N48whiZr-Jawo8p7tU5fsA"
+       ]
+      }
+     ],
+     [
+      "c3",
+      {
+       "t": "roster_update",
+       "remove": [
+        "N48whiZr-Jawo8p7tU5fsA"
+       ]
+      }
+     ],
+     [
+      "c4",
+      {
+       "t": "roster_update",
+       "remove": [
+        "N48whiZr-Jawo8p7tU5fsA"
+       ]
+      }
+     ]
+    ]
+   ],
+   "stats": {
+    "connections": 4,
+    "sessions": 4,
+    "realms": 1,
+    "largest_realm": 4,
+    "links": 0,
+    "reserved": 1,
+    "totals": {
+     "connections": 5,
+     "registered": 5,
+     "rejected": 0,
+     "signals": 0,
+     "rate_limited": 0,
+     "errors": 0,
+     "links_up": 0,
+     "proximity": 0,
+     "roster_msgs": 16,
+     "takeovers": 0
+    }
+   }
+  },
+  {
+   "name": "realm cap",
+   "setup": {
+    "limits": {
+     "realm_cap": 2
+    },
+    "join_code": null,
+    "ice": []
+   },
+   "steps": [
+    {
+     "op": "connect",
+     "conn": "c0",
+     "ip": "10.0.4.0"
+    },
+    {
+     "op": "send",
+     "conn": "c0",
+     "text": "{\"t\":\"register\",\"v\":2,\"sid\":\"6W-p1KM_866dRJT0Ht9fMg\",\"realm\":\"Testrealm\",\"character\":\"Aaa\",\"pub\":\"Nye52zE3rSMpWQwusMmue3a1sVu7BuJOEq510V63xZo\",\"sig\":\"9iFFZQj-kiAdZwjLX7LTUDMqABbkORfcZIxpy-dCDNOJkKpMEFH5CCwjmNUHTT9fQ0OKtuJMijUUhXywgFdrDQ\"}"
+    },
+    {
+     "op": "connect",
+     "conn": "c1",
+     "ip": "10.0.4.1"
+    },
+    {
+     "op": "send",
+     "conn": "c1",
+     "text": "{\"t\":\"register\",\"v\":2,\"sid\":\"N48whiZr-Jawo8p7tU5fsA\",\"realm\":\"Testrealm\",\"character\":\"Bbb\",\"pub\":\"gMx8xY_eaDDpa44CzSNGkiqzBbCvBEj773hTJdyXMwM\",\"sig\":\"kDvk3W5UMcMMUe1vjYl5lglSxHHAqyLGfTu2XqTF112SbW4vXFdqQzYVBcyC2NoajFSx2RHfCH8KIrmGrrJdBg\"}"
+    },
+    {
+     "op": "connect",
+     "conn": "c2",
+     "ip": "10.0.4.2"
+    },
+    {
+     "op": "send",
+     "conn": "c2",
+     "text": "{\"t\":\"register\",\"v\":2,\"sid\":\"tiVof1uPb8OZwSgwZi0IwA\",\"realm\":\"Testrealm\",\"character\":\"Ccc\",\"pub\":\"meKdQDdZr_PLOSDyOFvkcFmcHfQS8H25BlWtF0CYUiY\",\"sig\":\"oIy6sJcVSCpNvXwNcYUwnA88sTDqB13GqV7yaNU_qJcrguOcKIikFFx_3vrUrebNez7ikqa1GwDcqe6ztUifBg\"}"
+    }
+   ],
+   "transcript": [
+    [
+     [
+      "c0",
+      {
+       "t": "hello",
+       "v": 2,
+       "nonce": "UeB7Aeb5uvyotRr5bUcMQw",
+       "now": 1700000000.0,
+       "join_code": false,
+       "ice": [],
+       "limits": {
+        "idle": 30.0,
+        "report_ttl": 6.0,
+        "link_radius": 90.0,
+        "max_report": 64
+       }
+      }
+     ]
+    ],
+    [
+     [
+      "c0",
+      {
+       "t": "registered",
+       "sid": "6W-p1KM_866dRJT0Ht9fMg",
+       "token": "DnYO9YSleQKzMdFQ-fusg73o",
+       "lease": 30.0,
+       "now": 1700000000.0,
+       "roster": [],
+       "more": 0
+      }
+     ]
+    ],
+    [
+     [
+      "c1",
+      {
+       "t": "hello",
+       "v": 2,
+       "nonce": "_UgcVbSTG2Yee8bl6_590w",
+       "now": 1700000000.0,
+       "join_code": false,
+       "ice": [],
+       "limits": {
+        "idle": 30.0,
+        "report_ttl": 6.0,
+        "link_radius": 90.0,
+        "max_report": 64
+       }
+      }
+     ]
+    ],
+    [
+     [
+      "c1",
+      {
+       "t": "registered",
+       "sid": "N48whiZr-Jawo8p7tU5fsA",
+       "token": "nl0UScF78GoUl2qfk7o3uYmy",
+       "lease": 30.0,
+       "now": 1700000000.0,
+       "roster": [
+        [
+         "Aaa",
+         "6W-p1KM_866dRJT0Ht9fMg"
+        ]
+       ],
+       "more": 0
+      }
+     ],
+     [
+      "c0",
+      {
+       "t": "roster_update",
+       "add": [
+        [
+         "Bbb",
+         "N48whiZr-Jawo8p7tU5fsA"
+        ]
+       ]
+      }
+     ]
+    ],
+    [
+     [
+      "c2",
+      {
+       "t": "hello",
+       "v": 2,
+       "nonce": "Tbiz8IVo7ymqqn6ziExzXg",
+       "now": 1700000000.0,
+       "join_code": false,
+       "ice": [],
+       "limits": {
+        "idle": 30.0,
+        "report_ttl": 6.0,
+        "link_radius": 90.0,
+        "max_report": 64
+       }
+      }
+     ]
+    ],
+    [
+     [
+      "c2",
+      {
+       "t": "error",
+       "code": "realm_full",
+       "msg": "too many sessions on this realm"
+      }
+     ]
+    ]
+   ],
+   "stats": {
+    "connections": 3,
+    "sessions": 2,
+    "realms": 1,
+    "largest_realm": 2,
+    "links": 0,
+    "reserved": 0,
+    "totals": {
+     "connections": 3,
+     "registered": 2,
+     "rejected": 0,
+     "signals": 0,
+     "rate_limited": 0,
+     "errors": 1,
+     "links_up": 0,
+     "proximity": 0,
+     "roster_msgs": 1,
+     "takeovers": 0
+    }
+   }
+  },
+  {
+   "name": "mutual proximity links and unlinks",
+   "setup": {
+    "limits": {},
+    "join_code": null,
+    "ice": []
+   },
+   "steps": [
+    {
+     "op": "connect",
+     "conn": "a",
+     "ip": "10.0.0.1"
+    },
+    {
+     "op": "send",
+     "conn": "a",
+     "text": "{\"t\":\"register\",\"v\":2,\"sid\":\"wDJGr9J9JzYTi2J9YVxa9Q\",\"realm\":\"Testrealm\",\"character\":\"Alice\",\"pub\":\"fopaGShm3jUsv7zDw5omF7VlKcLenEhzHNqzpTMdXAg\",\"sig\":\"ujFTuC6hUzR6_bxwVrzK-D6tdNU7FQW-hoWSsRUXmfkCCouprGa12z22Gd622gcG-2zkzLeIqWkjVeaIV9zVAg\"}"
+    },
+    {
+     "op": "connect",
+     "conn": "b",
+     "ip": "10.0.0.1"
+    },
+    {
+     "op": "send",
+     "conn": "b",
+     "text": "{\"t\":\"register\",\"v\":2,\"sid\":\"tzZ25VVl9jn0Qz3idjyR-Q\",\"realm\":\"Testrealm\",\"character\":\"Bobby\",\"pub\":\"m3YBXt3J-TR-wwgvSZINGIbkkWfQHrPYAHNbwSz7BeA\",\"sig\":\"yZafPeA9VtP-BCIP9odE_0zNF9Ks6VuR7kq5RxGSSBX6C_HOkJDFXlkmDFBEI41PWXo_PqXZsXiEbdbZhngGBQ\"}"
+    },
+    {
+     "op": "send",
+     "conn": "a",
+     "text": "{\"t\":\"proximity\",\"peers\":[[\"Bobby\",18.0,1]]}"
+    },
+    {
+     "op": "send",
+     "conn": "b",
+     "text": "{\"t\":\"proximity\",\"peers\":[[\"Alice\",19.0,1]]}"
+    },
+    {
+     "op": "advance",
+     "seconds": 2,
+     "step": 1.0
+    },
+    {
+     "op": "send",
+     "conn": "a",
+     "text": "{\"t\":\"proximity\",\"peers\":[[\"Bobby\",18.0,1]]}"
+    },
+    {
+     "op": "advance",
+     "seconds": 5,
+     "step": 1.0
+    },
+    {
+     "op": "send",
+     "conn": "a",
+     "text": "{\"t\":\"proximity\",\"peers\":[[\"Bobby\",18.0,1]]}"
+    },
+    {
+     "op": "advance",
+     "seconds": 4,
+     "step": 1.0
+    }
+   ],
+   "transcript": [
+    [
+     [
+      "a",
+      {
+       "t": "hello",
+       "v": 2,
+       "nonce": "UeB7Aeb5uvyotRr5bUcMQw",
+       "now": 1700000000.0,
+       "join_code": false,
+       "ice": [],
+       "limits": {
+        "idle": 30.0,
+        "report_ttl": 6.0,
+        "link_radius": 90.0,
+        "max_report": 64
+       }
+      }
+     ]
+    ],
+    [
+     [
+      "a",
+      {
+       "t": "registered",
+       "sid": "wDJGr9J9JzYTi2J9YVxa9Q",
+       "token": "DnYO9YSleQKzMdFQ-fusg73o",
+       "lease": 30.0,
+       "now": 1700000000.0,
+       "roster": [],
+       "more": 0
+      }
+     ]
+    ],
+    [
+     [
+      "b",
+      {
+       "t": "hello",
+       "v": 2,
+       "nonce": "_UgcVbSTG2Yee8bl6_590w",
+       "now": 1700000000.0,
+       "join_code": false,
+       "ice": [],
+       "limits": {
+        "idle": 30.0,
+        "report_ttl": 6.0,
+        "link_radius": 90.0,
+        "max_report": 64
+       }
+      }
+     ]
+    ],
+    [
+     [
+      "b",
+      {
+       "t": "registered",
+       "sid": "tzZ25VVl9jn0Qz3idjyR-Q",
+       "token": "nl0UScF78GoUl2qfk7o3uYmy",
+       "lease": 30.0,
+       "now": 1700000000.0,
+       "roster": [
+        [
+         "Alice",
+         "wDJGr9J9JzYTi2J9YVxa9Q"
+        ]
+       ],
+       "more": 0
+      }
+     ],
+     [
+      "a",
+      {
+       "t": "roster_update",
+       "add": [
+        [
+         "Bobby",
+         "tzZ25VVl9jn0Qz3idjyR-Q"
+        ]
+       ]
+      }
+     ]
+    ],
+    [],
+    [
+     [
+      "b",
+      {
+       "t": "peer_available",
+       "sid": "wDJGr9J9JzYTi2J9YVxa9Q",
+       "character": "Alice",
+       "distance": 18.5
+      }
+     ],
+     [
+      "a",
+      {
+       "t": "peer_available",
+       "sid": "tzZ25VVl9jn0Qz3idjyR-Q",
+       "character": "Bobby",
+       "distance": 18.5
+      }
+     ]
+    ],
+    [],
+    [],
+    [],
+    [],
+    [
+     [
+      "b",
+      {
+       "t": "peer_out_of_range",
+       "sid": "wDJGr9J9JzYTi2J9YVxa9Q",
+       "character": "Alice"
+      }
+     ],
+     [
+      "a",
+      {
+       "t": "peer_out_of_range",
+       "sid": "tzZ25VVl9jn0Qz3idjyR-Q",
+       "character": "Bobby"
+      }
+     ]
+    ]
+   ],
+   "stats": {
+    "connections": 2,
+    "sessions": 2,
+    "realms": 1,
+    "largest_realm": 2,
+    "links": 0,
+    "reserved": 0,
+    "totals": {
+     "connections": 2,
+     "registered": 2,
+     "rejected": 0,
+     "signals": 0,
+     "rate_limited": 0,
+     "errors": 0,
+     "links_up": 1,
+     "proximity": 4,
+     "roster_msgs": 1,
+     "takeovers": 0
+    }
+   }
+  },
+  {
+   "name": "one-sided and disagreeing reports",
+   "setup": {
+    "limits": {},
+    "join_code": null,
+    "ice": []
+   },
+   "steps": [
+    {
+     "op": "connect",
+     "conn": "a",
+     "ip": "10.0.0.1"
+    },
+    {
+     "op": "send",
+     "conn": "a",
+     "text": "{\"t\":\"register\",\"v\":2,\"sid\":\"wDJGr9J9JzYTi2J9YVxa9Q\",\"realm\":\"Testrealm\",\"character\":\"Alice\",\"pub\":\"fopaGShm3jUsv7zDw5omF7VlKcLenEhzHNqzpTMdXAg\",\"sig\":\"ujFTuC6hUzR6_bxwVrzK-D6tdNU7FQW-hoWSsRUXmfkCCouprGa12z22Gd622gcG-2zkzLeIqWkjVeaIV9zVAg\"}"
+    },
+    {
+     "op": "connect",
+     "conn": "b",
+     "ip": "10.0.0.1"
+    },
+    {
+     "op": "send",
+     "conn": "b",
+     "text": "{\"t\":\"register\",\"v\":2,\"sid\":\"tzZ25VVl9jn0Qz3idjyR-Q\",\"realm\":\"Testrealm\",\"character\":\"Bobby\",\"pub\":\"m3YBXt3J-TR-wwgvSZINGIbkkWfQHrPYAHNbwSz7BeA\",\"sig\":\"yZafPeA9VtP-BCIP9odE_0zNF9Ks6VuR7kq5RxGSSBX6C_HOkJDFXlkmDFBEI41PWXo_PqXZsXiEbdbZhngGBQ\"}"
+    },
+    {
+     "op": "send",
+     "conn": "a",
+     "text": "{\"t\":\"proximity\",\"peers\":[[\"Bobby\",5,1]]}"
+    },
+    {
+     "op": "send",
+     "conn": "b",
+     "text": "{\"t\":\"proximity\",\"peers\":[[\"Alice\",40,1]]}"
+    },
+    {
+     "op": "send",
+     "conn": "b",
+     "text": "{\"t\":\"proximity\",\"peers\":[[\"Alice\",16.9,1]]}"
+    },
+    {
+     "op": "send",
+     "conn": "a",
+     "text": "{\"t\":\"proximity\",\"peers\":[[\"Bobby\",60,1]]}"
+    },
+    {
+     "op": "advance",
+     "seconds": 3.5,
+     "step": 1.0
+    },
+    {
+     "op": "send",
+     "conn": "b",
+     "text": "{\"t\":\"proximity\",\"peers\":[[\"Alice\",60,1]]}"
+    },
+    {
+     "op": "advance",
+     "seconds": 1,
+     "step": 1.0
+    }
+   ],
+   "transcript": [
+    [
+     [
+      "a",
+      {
+       "t": "hello",
+       "v": 2,
+       "nonce": "UeB7Aeb5uvyotRr5bUcMQw",
+       "now": 1700000000.0,
+       "join_code": false,
+       "ice": [],
+       "limits": {
+        "idle": 30.0,
+        "report_ttl": 6.0,
+        "link_radius": 90.0,
+        "max_report": 64
+       }
+      }
+     ]
+    ],
+    [
+     [
+      "a",
+      {
+       "t": "registered",
+       "sid": "wDJGr9J9JzYTi2J9YVxa9Q",
+       "token": "DnYO9YSleQKzMdFQ-fusg73o",
+       "lease": 30.0,
+       "now": 1700000000.0,
+       "roster": [],
+       "more": 0
+      }
+     ]
+    ],
+    [
+     [
+      "b",
+      {
+       "t": "hello",
+       "v": 2,
+       "nonce": "_UgcVbSTG2Yee8bl6_590w",
+       "now": 1700000000.0,
+       "join_code": false,
+       "ice": [],
+       "limits": {
+        "idle": 30.0,
+        "report_ttl": 6.0,
+        "link_radius": 90.0,
+        "max_report": 64
+       }
+      }
+     ]
+    ],
+    [
+     [
+      "b",
+      {
+       "t": "registered",
+       "sid": "tzZ25VVl9jn0Qz3idjyR-Q",
+       "token": "nl0UScF78GoUl2qfk7o3uYmy",
+       "lease": 30.0,
+       "now": 1700000000.0,
+       "roster": [
+        [
+         "Alice",
+         "wDJGr9J9JzYTi2J9YVxa9Q"
+        ]
+       ],
+       "more": 0
+      }
+     ],
+     [
+      "a",
+      {
+       "t": "roster_update",
+       "add": [
+        [
+         "Bobby",
+         "tzZ25VVl9jn0Qz3idjyR-Q"
+        ]
+       ]
+      }
+     ]
+    ],
+    [],
+    [],
+    [
+     [
+      "b",
+      {
+       "t": "peer_available",
+       "sid": "wDJGr9J9JzYTi2J9YVxa9Q",
+       "character": "Alice",
+       "distance": 11.0
+      }
+     ],
+     [
+      "a",
+      {
+       "t": "peer_available",
+       "sid": "tzZ25VVl9jn0Qz3idjyR-Q",
+       "character": "Bobby",
+       "distance": 11.0
+      }
+     ]
+    ],
+    [],
+    [
+     [
+      "b",
+      {
+       "t": "peer_out_of_range",
+       "sid": "wDJGr9J9JzYTi2J9YVxa9Q",
+       "character": "Alice"
+      }
+     ],
+     [
+      "a",
+      {
+       "t": "peer_out_of_range",
+       "sid": "tzZ25VVl9jn0Qz3idjyR-Q",
+       "character": "Bobby"
+      }
+     ]
+    ],
+    [
+     [
+      "b",
+      {
+       "t": "peer_available",
+       "sid": "wDJGr9J9JzYTi2J9YVxa9Q",
+       "character": "Alice",
+       "distance": 60.0
+      }
+     ],
+     [
+      "a",
+      {
+       "t": "peer_available",
+       "sid": "tzZ25VVl9jn0Qz3idjyR-Q",
+       "character": "Bobby",
+       "distance": 60.0
+      }
+     ]
+    ],
+    []
+   ],
+   "stats": {
+    "connections": 2,
+    "sessions": 2,
+    "realms": 1,
+    "largest_realm": 2,
+    "links": 1,
+    "reserved": 0,
+    "totals": {
+     "connections": 2,
+     "registered": 2,
+     "rejected": 0,
+     "signals": 0,
+     "rate_limited": 0,
+     "errors": 0,
+     "links_up": 2,
+     "proximity": 5,
+     "roster_msgs": 1,
+     "takeovers": 0
+    }
+   }
+  },
+  {
+   "name": "rounding of the shared distance",
+   "setup": {
+    "limits": {},
+    "join_code": null,
+    "ice": []
+   },
+   "steps": [
+    {
+     "op": "connect",
+     "conn": "a",
+     "ip": "10.0.0.1"
+    },
+    {
+     "op": "send",
+     "conn": "a",
+     "text": "{\"t\":\"register\",\"v\":2,\"sid\":\"wDJGr9J9JzYTi2J9YVxa9Q\",\"realm\":\"Testrealm\",\"character\":\"Alice\",\"pub\":\"fopaGShm3jUsv7zDw5omF7VlKcLenEhzHNqzpTMdXAg\",\"sig\":\"ujFTuC6hUzR6_bxwVrzK-D6tdNU7FQW-hoWSsRUXmfkCCouprGa12z22Gd622gcG-2zkzLeIqWkjVeaIV9zVAg\"}"
+    },
+    {
+     "op": "connect",
+     "conn": "b",
+     "ip": "10.0.0.1"
+    },
+    {
+     "op": "send",
+     "conn": "b",
+     "text": "{\"t\":\"register\",\"v\":2,\"sid\":\"tzZ25VVl9jn0Qz3idjyR-Q\",\"realm\":\"Testrealm\",\"character\":\"Bobby\",\"pub\":\"m3YBXt3J-TR-wwgvSZINGIbkkWfQHrPYAHNbwSz7BeA\",\"sig\":\"yZafPeA9VtP-BCIP9odE_0zNF9Ks6VuR7kq5RxGSSBX6C_HOkJDFXlkmDFBEI41PWXo_PqXZsXiEbdbZhngGBQ\"}"
+    },
+    {
+     "op": "send",
+     "conn": "a",
+     "text": "{\"t\":\"proximity\",\"peers\":[[\"Bobby\",18.1,1]]}"
+    },
+    {
+     "op": "send",
+     "conn": "b",
+     "text": "{\"t\":\"proximity\",\"peers\":[[\"Alice\",18.4,1]]}"
+    }
+   ],
+   "transcript": [
+    [
+     [
+      "a",
+      {
+       "t": "hello",
+       "v": 2,
+       "nonce": "UeB7Aeb5uvyotRr5bUcMQw",
+       "now": 1700000000.0,
+       "join_code": false,
+       "ice": [],
+       "limits": {
+        "idle": 30.0,
+        "report_ttl": 6.0,
+        "link_radius": 90.0,
+        "max_report": 64
+       }
+      }
+     ]
+    ],
+    [
+     [
+      "a",
+      {
+       "t": "registered",
+       "sid": "wDJGr9J9JzYTi2J9YVxa9Q",
+       "token": "DnYO9YSleQKzMdFQ-fusg73o",
+       "lease": 30.0,
+       "now": 1700000000.0,
+       "roster": [],
+       "more": 0
+      }
+     ]
+    ],
+    [
+     [
+      "b",
+      {
+       "t": "hello",
+       "v": 2,
+       "nonce": "_UgcVbSTG2Yee8bl6_590w",
+       "now": 1700000000.0,
+       "join_code": false,
+       "ice": [],
+       "limits": {
+        "idle": 30.0,
+        "report_ttl": 6.0,
+        "link_radius": 90.0,
+        "max_report": 64
+       }
+      }
+     ]
+    ],
+    [
+     [
+      "b",
+      {
+       "t": "registered",
+       "sid": "tzZ25VVl9jn0Qz3idjyR-Q",
+       "token": "nl0UScF78GoUl2qfk7o3uYmy",
+       "lease": 30.0,
+       "now": 1700000000.0,
+       "roster": [
+        [
+         "Alice",
+         "wDJGr9J9JzYTi2J9YVxa9Q"
+        ]
+       ],
+       "more": 0
+      }
+     ],
+     [
+      "a",
+      {
+       "t": "roster_update",
+       "add": [
+        [
+         "Bobby",
+         "tzZ25VVl9jn0Qz3idjyR-Q"
+        ]
+       ]
+      }
+     ]
+    ],
+    [],
+    [
+     [
+      "b",
+      {
+       "t": "peer_available",
+       "sid": "wDJGr9J9JzYTi2J9YVxa9Q",
+       "character": "Alice",
+       "distance": 18.3
+      }
+     ],
+     [
+      "a",
+      {
+       "t": "peer_available",
+       "sid": "tzZ25VVl9jn0Qz3idjyR-Q",
+       "character": "Bobby",
+       "distance": 18.3
+      }
+     ]
+    ]
+   ],
+   "stats": {
+    "connections": 2,
+    "sessions": 2,
+    "realms": 1,
+    "largest_realm": 2,
+    "links": 1,
+    "reserved": 0,
+    "totals": {
+     "connections": 2,
+     "registered": 2,
+     "rejected": 0,
+     "signals": 0,
+     "rate_limited": 0,
+     "errors": 0,
+     "links_up": 1,
+     "proximity": 2,
+     "roster_msgs": 1,
+     "takeovers": 0
+    }
+   }
+  },
+  {
+   "name": "register after report completes the pair",
+   "setup": {
+    "limits": {},
+    "join_code": null,
+    "ice": []
+   },
+   "steps": [
+    {
+     "op": "connect",
+     "conn": "a",
+     "ip": "10.0.0.1"
+    },
+    {
+     "op": "send",
+     "conn": "a",
+     "text": "{\"t\":\"register\",\"v\":2,\"sid\":\"wDJGr9J9JzYTi2J9YVxa9Q\",\"realm\":\"Testrealm\",\"character\":\"Alice\",\"pub\":\"fopaGShm3jUsv7zDw5omF7VlKcLenEhzHNqzpTMdXAg\",\"sig\":\"ujFTuC6hUzR6_bxwVrzK-D6tdNU7FQW-hoWSsRUXmfkCCouprGa12z22Gd622gcG-2zkzLeIqWkjVeaIV9zVAg\"}"
+    },
+    {
+     "op": "send",
+     "conn": "a",
+     "text": "{\"t\":\"proximity\",\"peers\":[[\"Bobby\",10,1]]}"
+    },
+    {
+     "op": "connect",
+     "conn": "b",
+     "ip": "10.0.0.1"
+    },
+    {
+     "op": "send",
+     "conn": "b",
+     "text": "{\"t\":\"register\",\"v\":2,\"sid\":\"tzZ25VVl9jn0Qz3idjyR-Q\",\"realm\":\"Testrealm\",\"character\":\"Bobby\",\"pub\":\"m3YBXt3J-TR-wwgvSZINGIbkkWfQHrPYAHNbwSz7BeA\",\"sig\":\"yZafPeA9VtP-BCIP9odE_0zNF9Ks6VuR7kq5RxGSSBX6C_HOkJDFXlkmDFBEI41PWXo_PqXZsXiEbdbZhngGBQ\"}"
+    },
+    {
+     "op": "send",
+     "conn": "b",
+     "text": "{\"t\":\"proximity\",\"peers\":[[\"Alice\",11,1]]}"
+    },
+    {
+     "op": "disconnect",
+     "conn": "b",
+     "reserve": true
+    }
+   ],
+   "transcript": [
+    [
+     [
+      "a",
+      {
+       "t": "hello",
+       "v": 2,
+       "nonce": "UeB7Aeb5uvyotRr5bUcMQw",
+       "now": 1700000000.0,
+       "join_code": false,
+       "ice": [],
+       "limits": {
+        "idle": 30.0,
+        "report_ttl": 6.0,
+        "link_radius": 90.0,
+        "max_report": 64
+       }
+      }
+     ]
+    ],
+    [
+     [
+      "a",
+      {
+       "t": "registered",
+       "sid": "wDJGr9J9JzYTi2J9YVxa9Q",
+       "token": "DnYO9YSleQKzMdFQ-fusg73o",
+       "lease": 30.0,
+       "now": 1700000000.0,
+       "roster": [],
+       "more": 0
+      }
+     ]
+    ],
+    [],
+    [
+     [
+      "b",
+      {
+       "t": "hello",
+       "v": 2,
+       "nonce": "_UgcVbSTG2Yee8bl6_590w",
+       "now": 1700000000.0,
+       "join_code": false,
+       "ice": [],
+       "limits": {
+        "idle": 30.0,
+        "report_ttl": 6.0,
+        "link_radius": 90.0,
+        "max_report": 64
+       }
+      }
+     ]
+    ],
+    [
+     [
+      "b",
+      {
+       "t": "registered",
+       "sid": "tzZ25VVl9jn0Qz3idjyR-Q",
+       "token": "nl0UScF78GoUl2qfk7o3uYmy",
+       "lease": 30.0,
+       "now": 1700000000.0,
+       "roster": [
+        [
+         "Alice",
+         "wDJGr9J9JzYTi2J9YVxa9Q"
+        ]
+       ],
+       "more": 0
+      }
+     ],
+     [
+      "a",
+      {
+       "t": "roster_update",
+       "add": [
+        [
+         "Bobby",
+         "tzZ25VVl9jn0Qz3idjyR-Q"
+        ]
+       ]
+      }
+     ]
+    ],
+    [
+     [
+      "b",
+      {
+       "t": "peer_available",
+       "sid": "wDJGr9J9JzYTi2J9YVxa9Q",
+       "character": "Alice",
+       "distance": 10.5
+      }
+     ],
+     [
+      "a",
+      {
+       "t": "peer_available",
+       "sid": "tzZ25VVl9jn0Qz3idjyR-Q",
+       "character": "Bobby",
+       "distance": 10.5
+      }
+     ]
+    ],
+    [
+     [
+      "a",
+      {
+       "t": "peer_out_of_range",
+       "sid": "tzZ25VVl9jn0Qz3idjyR-Q",
+       "character": "Bobby"
+      }
+     ],
+     [
+      "a",
+      {
+       "t": "roster_update",
+       "remove": [
+        "tzZ25VVl9jn0Qz3idjyR-Q"
+       ]
+      }
+     ]
+    ]
+   ],
+   "stats": {
+    "connections": 1,
+    "sessions": 1,
+    "realms": 1,
+    "largest_realm": 1,
+    "links": 0,
+    "reserved": 1,
+    "totals": {
+     "connections": 2,
+     "registered": 2,
+     "rejected": 0,
+     "signals": 0,
+     "rate_limited": 0,
+     "errors": 0,
+     "links_up": 1,
+     "proximity": 2,
+     "roster_msgs": 2,
+     "takeovers": 0
+    }
+   }
+  },
+  {
+   "name": "replacement set and three way",
+   "setup": {
+    "limits": {},
+    "join_code": null,
+    "ice": []
+   },
+   "steps": [
+    {
+     "op": "connect",
+     "conn": "a",
+     "ip": "10.0.0.1"
+    },
+    {
+     "op": "send",
+     "conn": "a",
+     "text": "{\"t\":\"register\",\"v\":2,\"sid\":\"wDJGr9J9JzYTi2J9YVxa9Q\",\"realm\":\"Testrealm\",\"character\":\"Alice\",\"pub\":\"fopaGShm3jUsv7zDw5omF7VlKcLenEhzHNqzpTMdXAg\",\"sig\":\"ujFTuC6hUzR6_bxwVrzK-D6tdNU7FQW-hoWSsRUXmfkCCouprGa12z22Gd622gcG-2zkzLeIqWkjVeaIV9zVAg\"}"
+    },
+    {
+     "op": "connect",
+     "conn": "b",
+     "ip": "10.0.0.1"
+    },
+    {
+     "op": "send",
+     "conn": "b",
+     "text": "{\"t\":\"register\",\"v\":2,\"sid\":\"tzZ25VVl9jn0Qz3idjyR-Q\",\"realm\":\"Testrealm\",\"character\":\"Bobby\",\"pub\":\"m3YBXt3J-TR-wwgvSZINGIbkkWfQHrPYAHNbwSz7BeA\",\"sig\":\"yZafPeA9VtP-BCIP9odE_0zNF9Ks6VuR7kq5RxGSSBX6C_HOkJDFXlkmDFBEI41PWXo_PqXZsXiEbdbZhngGBQ\"}"
+    },
+    {
+     "op": "connect",
+     "conn": "c",
+     "ip": "10.0.0.1"
+    },
+    {
+     "op": "send",
+     "conn": "c",
+     "text": "{\"t\":\"register\",\"v\":2,\"sid\":\"g7cK8wRUBADFB5-uHrRX4Q\",\"realm\":\"Testrealm\",\"character\":\"Carol\",\"pub\":\"3SdpmjWiJbnnGH7lNnkMaz28XzPokAHtzGTpH9Qa7hE\",\"sig\":\"ylxKSedvZ6CoUXoLRiDu66NiB_ZE78d5ii2LqDDIUN6HeRaEvhf0BU7vPL4g-Owl90-7Iv5_k5LvNblBnPTqAw\"}"
+    },
+    {
+     "op": "send",
+     "conn": "a",
+     "text": "{\"t\":\"proximity\",\"peers\":[[\"Bobby\",10,1],[\"Carol\",12,1]]}"
+    },
+    {
+     "op": "send",
+     "conn": "b",
+     "text": "{\"t\":\"proximity\",\"peers\":[[\"Alice\",10,1],[\"Carol\",5,1]]}"
+    },
+    {
+     "op": "send",
+     "conn": "c",
+     "text": "{\"t\":\"proximity\",\"peers\":[[\"Alice\",12,1],[\"Bobby\",5,1],[\"Carol\",0,1]]}"
+    },
+    {
+     "op": "send",
+     "conn": "a",
+     "text": "{\"t\":\"proximity\",\"peers\":[[\"Carol\",12,1]]}"
+    },
+    {
+     "op": "advance",
+     "seconds": 4,
+     "step": 1.0
+    },
+    {
+     "op": "send",
+     "conn": "a",
+     "text": "{\"t\":\"proximity\",\"peers\":[[\"Carol\",12,1]]}"
+    },
+    {
+     "op": "advance",
+     "seconds": 1,
+     "step": 1.0
+    }
+   ],
+   "transcript": [
+    [
+     [
+      "a",
+      {
+       "t": "hello",
+       "v": 2,
+       "nonce": "UeB7Aeb5uvyotRr5bUcMQw",
+       "now": 1700000000.0,
+       "join_code": false,
+       "ice": [],
+       "limits": {
+        "idle": 30.0,
+        "report_ttl": 6.0,
+        "link_radius": 90.0,
+        "max_report": 64
+       }
+      }
+     ]
+    ],
+    [
+     [
+      "a",
+      {
+       "t": "registered",
+       "sid": "wDJGr9J9JzYTi2J9YVxa9Q",
+       "token": "DnYO9YSleQKzMdFQ-fusg73o",
+       "lease": 30.0,
+       "now": 1700000000.0,
+       "roster": [],
+       "more": 0
+      }
+     ]
+    ],
+    [
+     [
+      "b",
+      {
+       "t": "hello",
+       "v": 2,
+       "nonce": "_UgcVbSTG2Yee8bl6_590w",
+       "now": 1700000000.0,
+       "join_code": false,
+       "ice": [],
+       "limits": {
+        "idle": 30.0,
+        "report_ttl": 6.0,
+        "link_radius": 90.0,
+        "max_report": 64
+       }
+      }
+     ]
+    ],
+    [
+     [
+      "b",
+      {
+       "t": "registered",
+       "sid": "tzZ25VVl9jn0Qz3idjyR-Q",
+       "token": "nl0UScF78GoUl2qfk7o3uYmy",
+       "lease": 30.0,
+       "now": 1700000000.0,
+       "roster": [
+        [
+         "Alice",
+         "wDJGr9J9JzYTi2J9YVxa9Q"
+        ]
+       ],
+       "more": 0
+      }
+     ],
+     [
+      "a",
+      {
+       "t": "roster_update",
+       "add": [
+        [
+         "Bobby",
+         "tzZ25VVl9jn0Qz3idjyR-Q"
+        ]
+       ]
+      }
+     ]
+    ],
+    [
+     [
+      "c",
+      {
+       "t": "hello",
+       "v": 2,
+       "nonce": "Tbiz8IVo7ymqqn6ziExzXg",
+       "now": 1700000000.0,
+       "join_code": false,
+       "ice": [],
+       "limits": {
+        "idle": 30.0,
+        "report_ttl": 6.0,
+        "link_radius": 90.0,
+        "max_report": 64
+       }
+      }
+     ]
+    ],
+    [
+     [
+      "c",
+      {
+       "t": "registered",
+       "sid": "g7cK8wRUBADFB5-uHrRX4Q",
+       "token": "svM_WTeUmKE-Z3QIAc6YXxNe",
+       "lease": 30.0,
+       "now": 1700000000.0,
+       "roster": [
+        [
+         "Alice",
+         "wDJGr9J9JzYTi2J9YVxa9Q"
+        ],
+        [
+         "Bobby",
+         "tzZ25VVl9jn0Qz3idjyR-Q"
+        ]
+       ],
+       "more": 0
+      }
+     ],
+     [
+      "a",
+      {
+       "t": "roster_update",
+       "add": [
+        [
+         "Carol",
+         "g7cK8wRUBADFB5-uHrRX4Q"
+        ]
+       ]
+      }
+     ],
+     [
+      "b",
+      {
+       "t": "roster_update",
+       "add": [
+        [
+         "Carol",
+         "g7cK8wRUBADFB5-uHrRX4Q"
+        ]
+       ]
+      }
+     ]
+    ],
+    [],
+    [
+     [
+      "b",
+      {
+       "t": "peer_available",
+       "sid": "wDJGr9J9JzYTi2J9YVxa9Q",
+       "character": "Alice",
+       "distance": 10.0
+      }
+     ],
+     [
+      "a",
+      {
+       "t": "peer_available",
+       "sid": "tzZ25VVl9jn0Qz3idjyR-Q",
+       "character": "Bobby",
+       "distance": 10.0
+      }
+     ]
+    ],
+    [
+     [
+      "c",
+      {
+       "t": "peer_available",
+       "sid": "wDJGr9J9JzYTi2J9YVxa9Q",
+       "character": "Alice",
+       "distance": 12.0
+      }
+     ],
+     [
+      "a",
+      {
+       "t": "peer_available",
+       "sid": "g7cK8wRUBADFB5-uHrRX4Q",
+       "character": "Carol",
+       "distance": 12.0
+      }
+     ],
+     [
+      "c",
+      {
+       "t": "peer_available",
+       "sid": "tzZ25VVl9jn0Qz3idjyR-Q",
+       "character": "Bobby",
+       "distance": 5.0
+      }
+     ],
+     [
+      "b",
+      {
+       "t": "peer_available",
+       "sid": "g7cK8wRUBADFB5-uHrRX4Q",
+       "character": "Carol",
+       "distance": 5.0
+      }
+     ]
+    ],
+    [],
+    [
+     [
+      "b",
+      {
+       "t": "peer_out_of_range",
+       "sid": "wDJGr9J9JzYTi2J9YVxa9Q",
+       "character": "Alice"
+      }
+     ],
+     [
+      "a",
+      {
+       "t": "peer_out_of_range",
+       "sid": "tzZ25VVl9jn0Qz3idjyR-Q",
+       "character": "Bobby"
+      }
+     ]
+    ],
+    [],
+    []
+   ],
+   "stats": {
+    "connections": 3,
+    "sessions": 3,
+    "realms": 1,
+    "largest_realm": 3,
+    "links": 2,
+    "reserved": 0,
+    "totals": {
+     "connections": 3,
+     "registered": 3,
+     "rejected": 0,
+     "signals": 0,
+     "rate_limited": 0,
+     "errors": 0,
+     "links_up": 3,
+     "proximity": 5,
+     "roster_msgs": 3,
+     "takeovers": 0
+    }
+   }
+  },
+  {
+   "name": "disconnect drops links and notifies",
+   "setup": {
+    "limits": {},
+    "join_code": null,
+    "ice": []
+   },
+   "steps": [
+    {
+     "op": "connect",
+     "conn": "a",
+     "ip": "10.0.0.1"
+    },
+    {
+     "op": "send",
+     "conn": "a",
+     "text": "{\"t\":\"register\",\"v\":2,\"sid\":\"wDJGr9J9JzYTi2J9YVxa9Q\",\"realm\":\"Testrealm\",\"character\":\"Alice\",\"pub\":\"fopaGShm3jUsv7zDw5omF7VlKcLenEhzHNqzpTMdXAg\",\"sig\":\"ujFTuC6hUzR6_bxwVrzK-D6tdNU7FQW-hoWSsRUXmfkCCouprGa12z22Gd622gcG-2zkzLeIqWkjVeaIV9zVAg\"}"
+    },
+    {
+     "op": "connect",
+     "conn": "b",
+     "ip": "10.0.0.1"
+    },
+    {
+     "op": "send",
+     "conn": "b",
+     "text": "{\"t\":\"register\",\"v\":2,\"sid\":\"tzZ25VVl9jn0Qz3idjyR-Q\",\"realm\":\"Testrealm\",\"character\":\"Bobby\",\"pub\":\"m3YBXt3J-TR-wwgvSZINGIbkkWfQHrPYAHNbwSz7BeA\",\"sig\":\"yZafPeA9VtP-BCIP9odE_0zNF9Ks6VuR7kq5RxGSSBX6C_HOkJDFXlkmDFBEI41PWXo_PqXZsXiEbdbZhngGBQ\"}"
+    },
+    {
+     "op": "send",
+     "conn": "a",
+     "text": "{\"t\":\"proximity\",\"peers\":[[\"Bobby\",10,1]]}"
+    },
+    {
+     "op": "send",
+     "conn": "b",
+     "text": "{\"t\":\"proximity\",\"peers\":[[\"Alice\",10,1]]}"
+    },
+    {
+     "op": "disconnect",
+     "conn": "b",
+     "reserve": true
+    }
+   ],
+   "transcript": [
+    [
+     [
+      "a",
+      {
+       "t": "hello",
+       "v": 2,
+       "nonce": "UeB7Aeb5uvyotRr5bUcMQw",
+       "now": 1700000000.0,
+       "join_code": false,
+       "ice": [],
+       "limits": {
+        "idle": 30.0,
+        "report_ttl": 6.0,
+        "link_radius": 90.0,
+        "max_report": 64
+       }
+      }
+     ]
+    ],
+    [
+     [
+      "a",
+      {
+       "t": "registered",
+       "sid": "wDJGr9J9JzYTi2J9YVxa9Q",
+       "token": "DnYO9YSleQKzMdFQ-fusg73o",
+       "lease": 30.0,
+       "now": 1700000000.0,
+       "roster": [],
+       "more": 0
+      }
+     ]
+    ],
+    [
+     [
+      "b",
+      {
+       "t": "hello",
+       "v": 2,
+       "nonce": "_UgcVbSTG2Yee8bl6_590w",
+       "now": 1700000000.0,
+       "join_code": false,
+       "ice": [],
+       "limits": {
+        "idle": 30.0,
+        "report_ttl": 6.0,
+        "link_radius": 90.0,
+        "max_report": 64
+       }
+      }
+     ]
+    ],
+    [
+     [
+      "b",
+      {
+       "t": "registered",
+       "sid": "tzZ25VVl9jn0Qz3idjyR-Q",
+       "token": "nl0UScF78GoUl2qfk7o3uYmy",
+       "lease": 30.0,
+       "now": 1700000000.0,
+       "roster": [
+        [
+         "Alice",
+         "wDJGr9J9JzYTi2J9YVxa9Q"
+        ]
+       ],
+       "more": 0
+      }
+     ],
+     [
+      "a",
+      {
+       "t": "roster_update",
+       "add": [
+        [
+         "Bobby",
+         "tzZ25VVl9jn0Qz3idjyR-Q"
+        ]
+       ]
+      }
+     ]
+    ],
+    [],
+    [
+     [
+      "b",
+      {
+       "t": "peer_available",
+       "sid": "wDJGr9J9JzYTi2J9YVxa9Q",
+       "character": "Alice",
+       "distance": 10.0
+      }
+     ],
+     [
+      "a",
+      {
+       "t": "peer_available",
+       "sid": "tzZ25VVl9jn0Qz3idjyR-Q",
+       "character": "Bobby",
+       "distance": 10.0
+      }
+     ]
+    ],
+    [
+     [
+      "a",
+      {
+       "t": "peer_out_of_range",
+       "sid": "tzZ25VVl9jn0Qz3idjyR-Q",
+       "character": "Bobby"
+      }
+     ],
+     [
+      "a",
+      {
+       "t": "roster_update",
+       "remove": [
+        "tzZ25VVl9jn0Qz3idjyR-Q"
+       ]
+      }
+     ]
+    ]
+   ],
+   "stats": {
+    "connections": 1,
+    "sessions": 1,
+    "realms": 1,
+    "largest_realm": 1,
+    "links": 0,
+    "reserved": 1,
+    "totals": {
+     "connections": 2,
+     "registered": 2,
+     "rejected": 0,
+     "signals": 0,
+     "rate_limited": 0,
+     "errors": 0,
+     "links_up": 1,
+     "proximity": 2,
+     "roster_msgs": 2,
+     "takeovers": 0
+    }
+   }
+  },
+  {
+   "name": "malformed proximity",
+   "setup": {
+    "limits": {},
+    "join_code": null,
+    "ice": []
+   },
+   "steps": [
+    {
+     "op": "connect",
+     "conn": "a",
+     "ip": "10.0.0.1"
+    },
+    {
+     "op": "send",
+     "conn": "a",
+     "text": "{\"t\":\"register\",\"v\":2,\"sid\":\"wDJGr9J9JzYTi2J9YVxa9Q\",\"realm\":\"Testrealm\",\"character\":\"Alice\",\"pub\":\"fopaGShm3jUsv7zDw5omF7VlKcLenEhzHNqzpTMdXAg\",\"sig\":\"ujFTuC6hUzR6_bxwVrzK-D6tdNU7FQW-hoWSsRUXmfkCCouprGa12z22Gd622gcG-2zkzLeIqWkjVeaIV9zVAg\"}"
+    },
+    {
+     "op": "connect",
+     "conn": "b",
+     "ip": "10.0.0.1"
+    },
+    {
+     "op": "send",
+     "conn": "b",
+     "text": "{\"t\":\"register\",\"v\":2,\"sid\":\"tzZ25VVl9jn0Qz3idjyR-Q\",\"realm\":\"Testrealm\",\"character\":\"Bobby\",\"pub\":\"m3YBXt3J-TR-wwgvSZINGIbkkWfQHrPYAHNbwSz7BeA\",\"sig\":\"yZafPeA9VtP-BCIP9odE_0zNF9Ks6VuR7kq5RxGSSBX6C_HOkJDFXlkmDFBEI41PWXo_PqXZsXiEbdbZhngGBQ\"}"
+    },
+    {
+     "op": "send",
+     "conn": "a",
+     "text": "{\"t\":\"proximity\",\"peers\":\"nope\"}"
+    },
+    {
+     "op": "advance",
+     "seconds": 0.3,
+     "step": 1.0
+    },
+    {
+     "op": "send",
+     "conn": "a",
+     "text": "{\"t\":\"proximity\",\"peers\":[[\"Bobby\"]]}"
+    },
+    {
+     "op": "advance",
+     "seconds": 0.3,
+     "step": 1.0
+    },
+    {
+     "op": "send",
+     "conn": "a",
+     "text": "{\"t\":\"proximity\",\"peers\":[[\"Bobby\",\"far\"]]}"
+    },
+    {
+     "op": "advance",
+     "seconds": 0.3,
+     "step": 1.0
+    },
+    {
+     "op": "send",
+     "conn": "a",
+     "text": "{\"t\":\"proximity\",\"peers\":[[\"Bobby\",-1]]}"
+    },
+    {
+     "op": "advance",
+     "seconds": 0.3,
+     "step": 1.0
+    },
+    {
+     "op": "send",
+     "conn": "a",
+     "text": "{\"t\":\"proximity\",\"peers\":[[\"Bobby\",600]]}"
+    },
+    {
+     "op": "advance",
+     "seconds": 0.3,
+     "step": 1.0
+    },
+    {
+     "op": "send",
+     "conn": "a",
+     "text": "{\"t\":\"proximity\",\"peers\":[[\"Bobby\",true]]}"
+    },
+    {
+     "op": "advance",
+     "seconds": 0.3,
+     "step": 1.0
+    },
+    {
+     "op": "send",
+     "conn": "a",
+     "text": "{\"t\":\"proximity\",\"peers\":[[5,5]]}"
+    },
+    {
+     "op": "advance",
+     "seconds": 0.3,
+     "step": 1.0
+    },
+    {
+     "op": "send",
+     "conn": "a",
+     "text": "{\"t\":\"proximity\",\"peers\":[[\"B\",5]]}"
+    },
+    {
+     "op": "advance",
+     "seconds": 0.3,
+     "step": 1.0
+    },
+    {
+     "op": "send",
+     "conn": "a",
+     "text": "{\"t\":\"proximity\",\"peers\":[[\"Bob by\",5]]}"
+    },
+    {
+     "op": "advance",
+     "seconds": 0.3,
+     "step": 1.0
+    },
+    {
+     "op": "send",
+     "conn": "a",
+     "text": "{\"t\":\"proximity\",\"peers\":[\"Bobby\"]}"
+    },
+    {
+     "op": "advance",
+     "seconds": 0.3,
+     "step": 1.0
+    },
+    {
+     "op": "send",
+     "conn": "a",
+     "text": "{\"t\":\"proximity\",\"peers\":[null]}"
+    },
+    {
+     "op": "advance",
+     "seconds": 0.3,
+     "step": 1.0
+    },
+    {
+     "op": "send",
+     "conn": "a",
+     "text": "{\"t\":\"proximity\",\"peers\":[[\"Bobby\",5],[\"Bobby\",5],[\"Bobby\",5],[\"Bobby\",5],[\"Bobby\",5],[\"Bobby\",5],[\"Bobby\",5],[\"Bobby\",5],[\"Bobby\",5],[\"Bobby\",5],[\"Bobby\",5],[\"Bobby\",5],[\"Bobby\",5],[\"Bobby\",5],[\"Bobby\",5],[\"Bobby\",5],[\"Bobby\",5],[\"Bobby\",5],[\"Bobby\",5],[\"Bobby\",5],[\"Bobby\",5],[\"Bobby\",5],[\"Bobby\",5],[\"Bobby\",5],[\"Bobby\",5],[\"Bobby\",5],[\"Bobby\",5],[\"Bobby\",5],[\"Bobby\",5],[\"Bobby\",5],[\"Bobby\",5],[\"Bobby\",5],[\"Bobby\",5],[\"Bobby\",5],[\"Bobby\",5],[\"Bobby\",5],[\"Bobby\",5],[\"Bobby\",5],[\"Bobby\",5],[\"Bobby\",5],[\"Bobby\",5],[\"Bobby\",5],[\"Bobby\",5],[\"Bobby\",5],[\"Bobby\",5],[\"Bobby\",5],[\"Bobby\",5],[\"Bobby\",5],[\"Bobby\",5],[\"Bobby\",5],[\"Bobby\",5],[\"Bobby\",5],[\"Bobby\",5],[\"Bobby\",5],[\"Bobby\",5],[\"Bobby\",5],[\"Bobby\",5],[\"Bobby\",5],[\"Bobby\",5],[\"Bobby\",5],[\"Bobby\",5],[\"Bobby\",5],[\"Bobby\",5],[\"Bobby\",5],[\"Bobby\",5]]}"
+    },
+    {
+     "op": "advance",
+     "seconds": 0.3,
+     "step": 1.0
+    },
+    {
+     "op": "send",
+     "conn": "a",
+     "text": "{\"t\":\"proximity\",\"peers\":null}"
+    },
+    {
+     "op": "advance",
+     "seconds": 0.3,
+     "step": 1.0
+    },
+    {
+     "op": "send",
+     "conn": "a",
+     "text": "{\"t\":\"proximity\",\"peers\":{}}"
+    },
+    {
+     "op": "advance",
+     "seconds": 0.3,
+     "step": 1.0
+    },
+    {
+     "op": "send",
+     "conn": "a",
+     "text": "{\"t\":\"proximity\",\"peers\":[[\"Bobby\",NaN,1]]}"
+    },
+    {
+     "op": "send",
+     "conn": "a",
+     "text": "{\"t\":\"proximity\"}"
+    }
+   ],
+   "transcript": [
+    [
+     [
+      "a",
+      {
+       "t": "hello",
+       "v": 2,
+       "nonce": "UeB7Aeb5uvyotRr5bUcMQw",
+       "now": 1700000000.0,
+       "join_code": false,
+       "ice": [],
+       "limits": {
+        "idle": 30.0,
+        "report_ttl": 6.0,
+        "link_radius": 90.0,
+        "max_report": 64
+       }
+      }
+     ]
+    ],
+    [
+     [
+      "a",
+      {
+       "t": "registered",
+       "sid": "wDJGr9J9JzYTi2J9YVxa9Q",
+       "token": "DnYO9YSleQKzMdFQ-fusg73o",
+       "lease": 30.0,
+       "now": 1700000000.0,
+       "roster": [],
+       "more": 0
+      }
+     ]
+    ],
+    [
+     [
+      "b",
+      {
+       "t": "hello",
+       "v": 2,
+       "nonce": "_UgcVbSTG2Yee8bl6_590w",
+       "now": 1700000000.0,
+       "join_code": false,
+       "ice": [],
+       "limits": {
+        "idle": 30.0,
+        "report_ttl": 6.0,
+        "link_radius": 90.0,
+        "max_report": 64
+       }
+      }
+     ]
+    ],
+    [
+     [
+      "b",
+      {
+       "t": "registered",
+       "sid": "tzZ25VVl9jn0Qz3idjyR-Q",
+       "token": "nl0UScF78GoUl2qfk7o3uYmy",
+       "lease": 30.0,
+       "now": 1700000000.0,
+       "roster": [
+        [
+         "Alice",
+         "wDJGr9J9JzYTi2J9YVxa9Q"
+        ]
+       ],
+       "more": 0
+      }
+     ],
+     [
+      "a",
+      {
+       "t": "roster_update",
+       "add": [
+        [
+         "Bobby",
+         "tzZ25VVl9jn0Qz3idjyR-Q"
+        ]
+       ]
+      }
+     ]
+    ],
+    [
+     [
+      "a",
+      {
+       "t": "error",
+       "code": "bad_msg",
+       "msg": "peers must be a list"
+      }
+     ]
+    ],
+    [],
+    [
+     [
+      "a",
+      {
+       "t": "error",
+       "code": "bad_msg",
+       "msg": "entries are [name, yards, ts]"
+      }
+     ]
+    ],
+    [],
+    [
+     [
+      "a",
+      {
+       "t": "error",
+       "code": "bad_msg",
+       "msg": "bad distance"
+      }
+     ]
+    ],
+    [],
+    [
+     [
+      "a",
+      {
+       "t": "error",
+       "code": "bad_msg",
+       "msg": "bad distance"
+      }
+     ]
+    ],
+    [],
+    [
+     [
+      "a",
+      {
+       "t": "error",
+       "code": "bad_msg",
+       "msg": "bad distance"
+      }
+     ]
+    ],
+    [],
+    [
+     [
+      "a",
+      {
+       "t": "error",
+       "code": "bad_msg",
+       "msg": "bad distance"
+      }
+     ]
+    ],
+    [],
+    [
+     [
+      "a",
+      {
+       "t": "error",
+       "code": "bad_msg",
+       "msg": "entries are [name, yards, ts]"
+      }
+     ]
+    ],
+    [],
+    [
+     [
+      "a",
+      {
+       "t": "error",
+       "code": "bad_msg",
+       "msg": "entries are [name, yards, ts]"
+      }
+     ]
+    ],
+    [],
+    [
+     [
+      "a",
+      {
+       "t": "error",
+       "code": "bad_msg",
+       "msg": "entries are [name, yards, ts]"
+      }
+     ]
+    ],
+    [],
+    [
+     [
+      "a",
+      {
+       "t": "error",
+       "code": "bad_msg",
+       "msg": "entries are [name, yards, ts]"
+      }
+     ]
+    ],
+    [],
+    [
+     [
+      "a",
+      {
+       "t": "error",
+       "code": "bad_msg",
+       "msg": "entries are [name, yards, ts]"
+      }
+     ]
+    ],
+    [],
+    [
+     [
+      "a",
+      {
+       "t": "error",
+       "code": "too_many",
+       "msg": "at most 64 entries"
+      }
+     ]
+    ],
+    [],
+    [
+     [
+      "a",
+      {
+       "t": "error",
+       "code": "bad_msg",
+       "msg": "peers must be a list"
+      }
+     ]
+    ],
+    [],
+    [
+     [
+      "a",
+      {
+       "t": "error",
+       "code": "bad_msg",
+       "msg": "peers must be a list"
+      }
+     ]
+    ],
+    [],
+    [
+     [
+      "a",
+      {
+       "t": "error",
+       "code": "bad_json",
+       "msg": ""
+      }
+     ]
+    ],
+    [
+     [
+      "a",
+      {
+       "t": "error",
+       "code": "bad_msg",
+       "msg": "peers must be a list"
+      }
+     ]
+    ]
+   ],
+   "stats": {
+    "connections": 2,
+    "sessions": 2,
+    "realms": 1,
+    "largest_realm": 2,
+    "links": 0,
+    "reserved": 0,
+    "totals": {
+     "connections": 2,
+     "registered": 2,
+     "rejected": 0,
+     "signals": 0,
+     "rate_limited": 0,
+     "errors": 16,
+     "links_up": 0,
+     "proximity": 0,
+     "roster_msgs": 1,
+     "takeovers": 0
+    }
+   }
+  },
+  {
+   "name": "signalling relay rules",
+   "setup": {
+    "limits": {},
+    "join_code": null,
+    "ice": []
+   },
+   "steps": [
+    {
+     "op": "connect",
+     "conn": "a",
+     "ip": "10.0.0.1"
+    },
+    {
+     "op": "send",
+     "conn": "a",
+     "text": "{\"t\":\"register\",\"v\":2,\"sid\":\"wDJGr9J9JzYTi2J9YVxa9Q\",\"realm\":\"Testrealm\",\"character\":\"Alice\",\"pub\":\"fopaGShm3jUsv7zDw5omF7VlKcLenEhzHNqzpTMdXAg\",\"sig\":\"ujFTuC6hUzR6_bxwVrzK-D6tdNU7FQW-hoWSsRUXmfkCCouprGa12z22Gd622gcG-2zkzLeIqWkjVeaIV9zVAg\"}"
+    },
+    {
+     "op": "connect",
+     "conn": "b",
+     "ip": "10.0.0.1"
+    },
+    {
+     "op": "send",
+     "conn": "b",
+     "text": "{\"t\":\"register\",\"v\":2,\"sid\":\"tzZ25VVl9jn0Qz3idjyR-Q\",\"realm\":\"Testrealm\",\"character\":\"Bobby\",\"pub\":\"m3YBXt3J-TR-wwgvSZINGIbkkWfQHrPYAHNbwSz7BeA\",\"sig\":\"yZafPeA9VtP-BCIP9odE_0zNF9Ks6VuR7kq5RxGSSBX6C_HOkJDFXlkmDFBEI41PWXo_PqXZsXiEbdbZhngGBQ\"}"
+    },
+    {
+     "op": "send",
+     "conn": "a",
+     "text": "{\"t\":\"proximity\",\"peers\":[[\"Bobby\",10,1]]}"
+    },
+    {
+     "op": "send",
+     "conn": "b",
+     "text": "{\"t\":\"proximity\",\"peers\":[[\"Alice\",10,1]]}"
+    },
+    {
+     "op": "send",
+     "conn": "a",
+     "text": "{\"t\":\"offer\",\"to\":\"tzZ25VVl9jn0Qz3idjyR-Q\",\"ep\":5,\"data\":{\"sdp\":\"x\"}}"
+    },
+    {
+     "op": "send",
+     "conn": "b",
+     "text": "{\"t\":\"answer\",\"to\":\"wDJGr9J9JzYTi2J9YVxa9Q\",\"ep\":5,\"data\":{\"sdp\":\"y\"}}"
+    },
+    {
+     "op": "send",
+     "conn": "a",
+     "text": "{\"t\":\"ice\",\"to\":\"tzZ25VVl9jn0Qz3idjyR-Q\",\"ep\":5,\"data\":{\"candidate\":{\"candidate\":\"c1\"}}}"
+    },
+    {
+     "op": "send",
+     "conn": "a",
+     "text": "{\"t\":\"bye\",\"to\":\"tzZ25VVl9jn0Qz3idjyR-Q\",\"ep\":5}"
+    },
+    {
+     "op": "send",
+     "conn": "a",
+     "text": "{\"t\":\"offer\",\"to\":\"tplpThyB5yjejX2rNEfXrQ\",\"ep\":1,\"data\":{}}"
+    },
+    {
+     "op": "send",
+     "conn": "a",
+     "text": "{\"t\":\"offer\",\"to\":5,\"ep\":1,\"data\":{}}"
+    },
+    {
+     "op": "send",
+     "conn": "a",
+     "text": "{\"t\":\"offer\",\"to\":\"tzZ25VVl9jn0Qz3idjyR-Q\",\"ep\":-1,\"data\":{}}"
+    },
+    {
+     "op": "send",
+     "conn": "a",
+     "text": "{\"t\":\"offer\",\"to\":\"tzZ25VVl9jn0Qz3idjyR-Q\",\"ep\":2147483648,\"data\":{}}"
+    },
+    {
+     "op": "send",
+     "conn": "a",
+     "text": "{\"t\":\"offer\",\"to\":\"tzZ25VVl9jn0Qz3idjyR-Q\",\"ep\":\"x\",\"data\":{}}"
+    },
+    {
+     "op": "send",
+     "conn": "a",
+     "text": "{\"t\":\"offer\",\"to\":\"tzZ25VVl9jn0Qz3idjyR-Q\",\"ep\":true,\"data\":{}}"
+    },
+    {
+     "op": "send",
+     "conn": "a",
+     "text": "{\"t\":\"offer\",\"to\":\"tzZ25VVl9jn0Qz3idjyR-Q\",\"ep\":null,\"data\":{}}"
+    },
+    {
+     "op": "send",
+     "conn": "a",
+     "text": "{\"t\":\"offer\",\"to\":\"tzZ25VVl9jn0Qz3idjyR-Q\",\"ep\":1,\"data\":{\"sdp\":\"xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\"}}"
+    },
+    {
+     "op": "send",
+     "conn": "a",
+     "text": "{\"t\":\"offer\",\"to\":\"tzZ25VVl9jn0Qz3idjyR-Q\"}"
+    }
+   ],
+   "transcript": [
+    [
+     [
+      "a",
+      {
+       "t": "hello",
+       "v": 2,
+       "nonce": "UeB7Aeb5uvyotRr5bUcMQw",
+       "now": 1700000000.0,
+       "join_code": false,
+       "ice": [],
+       "limits": {
+        "idle": 30.0,
+        "report_ttl": 6.0,
+        "link_radius": 90.0,
+        "max_report": 64
+       }
+      }
+     ]
+    ],
+    [
+     [
+      "a",
+      {
+       "t": "registered",
+       "sid": "wDJGr9J9JzYTi2J9YVxa9Q",
+       "token": "DnYO9YSleQKzMdFQ-fusg73o",
+       "lease": 30.0,
+       "now": 1700000000.0,
+       "roster": [],
+       "more": 0
+      }
+     ]
+    ],
+    [
+     [
+      "b",
+      {
+       "t": "hello",
+       "v": 2,
+       "nonce": "_UgcVbSTG2Yee8bl6_590w",
+       "now": 1700000000.0,
+       "join_code": false,
+       "ice": [],
+       "limits": {
+        "idle": 30.0,
+        "report_ttl": 6.0,
+        "link_radius": 90.0,
+        "max_report": 64
+       }
+      }
+     ]
+    ],
+    [
+     [
+      "b",
+      {
+       "t": "registered",
+       "sid": "tzZ25VVl9jn0Qz3idjyR-Q",
+       "token": "nl0UScF78GoUl2qfk7o3uYmy",
+       "lease": 30.0,
+       "now": 1700000000.0,
+       "roster": [
+        [
+         "Alice",
+         "wDJGr9J9JzYTi2J9YVxa9Q"
+        ]
+       ],
+       "more": 0
+      }
+     ],
+     [
+      "a",
+      {
+       "t": "roster_update",
+       "add": [
+        [
+         "Bobby",
+         "tzZ25VVl9jn0Qz3idjyR-Q"
+        ]
+       ]
+      }
+     ]
+    ],
+    [],
+    [
+     [
+      "b",
+      {
+       "t": "peer_available",
+       "sid": "wDJGr9J9JzYTi2J9YVxa9Q",
+       "character": "Alice",
+       "distance": 10.0
+      }
+     ],
+     [
+      "a",
+      {
+       "t": "peer_available",
+       "sid": "tzZ25VVl9jn0Qz3idjyR-Q",
+       "character": "Bobby",
+       "distance": 10.0
+      }
+     ]
+    ],
+    [
+     [
+      "b",
+      {
+       "t": "offer",
+       "from": "wDJGr9J9JzYTi2J9YVxa9Q",
+       "ep": 5,
+       "data": {
+        "sdp": "x"
+       }
+      }
+     ]
+    ],
+    [
+     [
+      "a",
+      {
+       "t": "answer",
+       "from": "tzZ25VVl9jn0Qz3idjyR-Q",
+       "ep": 5,
+       "data": {
+        "sdp": "y"
+       }
+      }
+     ]
+    ],
+    [
+     [
+      "b",
+      {
+       "t": "ice",
+       "from": "wDJGr9J9JzYTi2J9YVxa9Q",
+       "ep": 5,
+       "data": {
+        "candidate": {
+         "candidate": "c1"
+        }
+       }
+      }
+     ]
+    ],
+    [
+     [
+      "b",
+      {
+       "t": "bye",
+       "from": "wDJGr9J9JzYTi2J9YVxa9Q",
+       "ep": 5,
+       "data": null
+      }
+     ]
+    ],
+    [
+     [
+      "a",
+      {
+       "t": "error",
+       "code": "not_linked",
+       "msg": "peer unavailable"
+      }
+     ]
+    ],
+    [
+     [
+      "a",
+      {
+       "t": "error",
+       "code": "bad_msg",
+       "msg": "bad signal"
+      }
+     ]
+    ],
+    [
+     [
+      "a",
+      {
+       "t": "error",
+       "code": "bad_msg",
+       "msg": "bad signal"
+      }
+     ]
+    ],
+    [
+     [
+      "a",
+      {
+       "t": "error",
+       "code": "bad_msg",
+       "msg": "bad signal"
+      }
+     ]
+    ],
+    [
+     [
+      "a",
+      {
+       "t": "error",
+       "code": "bad_msg",
+       "msg": "bad signal"
+      }
+     ]
+    ],
+    [
+     [
+      "a",
+      {
+       "t": "error",
+       "code": "bad_msg",
+       "msg": "bad signal"
+      }
+     ]
+    ],
+    [
+     [
+      "a",
+      {
+       "t": "error",
+       "code": "bad_msg",
+       "msg": "bad signal"
+      }
+     ]
+    ],
+    [
+     [
+      "a",
+      {
+       "t": "error",
+       "code": "too_big",
+       "msg": "signal payload too large"
+      }
+     ]
+    ],
+    [
+     [
+      "b",
+      {
+       "t": "offer",
+       "from": "wDJGr9J9JzYTi2J9YVxa9Q",
+       "ep": 0,
+       "data": null
+      }
+     ]
+    ]
+   ],
+   "stats": {
+    "connections": 2,
+    "sessions": 2,
+    "realms": 1,
+    "largest_realm": 2,
+    "links": 1,
+    "reserved": 0,
+    "totals": {
+     "connections": 2,
+     "registered": 2,
+     "rejected": 0,
+     "signals": 5,
+     "rate_limited": 0,
+     "errors": 8,
+     "links_up": 1,
+     "proximity": 2,
+     "roster_msgs": 1,
+     "takeovers": 0
+    }
+   }
+  },
+  {
+   "name": "per link signal budget",
+   "setup": {
+    "limits": {
+     "link_signals_per_minute": 5,
+     "bucket_capacity": 1000,
+     "bucket_rate": 1000,
+     "idle_timeout": 1000
+    },
+    "join_code": null,
+    "ice": []
+   },
+   "steps": [
+    {
+     "op": "connect",
+     "conn": "a",
+     "ip": "10.0.0.1"
+    },
+    {
+     "op": "send",
+     "conn": "a",
+     "text": "{\"t\":\"register\",\"v\":2,\"sid\":\"wDJGr9J9JzYTi2J9YVxa9Q\",\"realm\":\"Testrealm\",\"character\":\"Alice\",\"pub\":\"fopaGShm3jUsv7zDw5omF7VlKcLenEhzHNqzpTMdXAg\",\"sig\":\"ujFTuC6hUzR6_bxwVrzK-D6tdNU7FQW-hoWSsRUXmfkCCouprGa12z22Gd622gcG-2zkzLeIqWkjVeaIV9zVAg\"}"
+    },
+    {
+     "op": "connect",
+     "conn": "b",
+     "ip": "10.0.0.1"
+    },
+    {
+     "op": "send",
+     "conn": "b",
+     "text": "{\"t\":\"register\",\"v\":2,\"sid\":\"tzZ25VVl9jn0Qz3idjyR-Q\",\"realm\":\"Testrealm\",\"character\":\"Bobby\",\"pub\":\"m3YBXt3J-TR-wwgvSZINGIbkkWfQHrPYAHNbwSz7BeA\",\"sig\":\"yZafPeA9VtP-BCIP9odE_0zNF9Ks6VuR7kq5RxGSSBX6C_HOkJDFXlkmDFBEI41PWXo_PqXZsXiEbdbZhngGBQ\"}"
+    },
+    {
+     "op": "send",
+     "conn": "a",
+     "text": "{\"t\":\"proximity\",\"peers\":[[\"Bobby\",10,1]]}"
+    },
+    {
+     "op": "send",
+     "conn": "b",
+     "text": "{\"t\":\"proximity\",\"peers\":[[\"Alice\",10,1]]}"
+    },
+    {
+     "op": "send",
+     "conn": "a",
+     "text": "{\"t\":\"ice\",\"to\":\"tzZ25VVl9jn0Qz3idjyR-Q\",\"ep\":1,\"data\":{\"i\":0}}"
+    },
+    {
+     "op": "send",
+     "conn": "a",
+     "text": "{\"t\":\"ice\",\"to\":\"tzZ25VVl9jn0Qz3idjyR-Q\",\"ep\":1,\"data\":{\"i\":1}}"
+    },
+    {
+     "op": "send",
+     "conn": "a",
+     "text": "{\"t\":\"ice\",\"to\":\"tzZ25VVl9jn0Qz3idjyR-Q\",\"ep\":1,\"data\":{\"i\":2}}"
+    },
+    {
+     "op": "send",
+     "conn": "a",
+     "text": "{\"t\":\"ice\",\"to\":\"tzZ25VVl9jn0Qz3idjyR-Q\",\"ep\":1,\"data\":{\"i\":3}}"
+    },
+    {
+     "op": "send",
+     "conn": "a",
+     "text": "{\"t\":\"ice\",\"to\":\"tzZ25VVl9jn0Qz3idjyR-Q\",\"ep\":1,\"data\":{\"i\":4}}"
+    },
+    {
+     "op": "send",
+     "conn": "a",
+     "text": "{\"t\":\"ice\",\"to\":\"tzZ25VVl9jn0Qz3idjyR-Q\",\"ep\":1,\"data\":{\"i\":5}}"
+    },
+    {
+     "op": "send",
+     "conn": "a",
+     "text": "{\"t\":\"ice\",\"to\":\"tzZ25VVl9jn0Qz3idjyR-Q\",\"ep\":1,\"data\":{\"i\":6}}"
+    },
+    {
+     "op": "advance",
+     "seconds": 61,
+     "step": 1.0
+    },
+    {
+     "op": "send",
+     "conn": "a",
+     "text": "{\"t\":\"proximity\",\"peers\":[[\"Bobby\",10,1]]}"
+    },
+    {
+     "op": "send",
+     "conn": "b",
+     "text": "{\"t\":\"proximity\",\"peers\":[[\"Alice\",10,1]]}"
+    },
+    {
+     "op": "send",
+     "conn": "a",
+     "text": "{\"t\":\"ice\",\"to\":\"tzZ25VVl9jn0Qz3idjyR-Q\",\"ep\":1,\"data\":{\"i\":99}}"
+    }
+   ],
+   "transcript": [
+    [
+     [
+      "a",
+      {
+       "t": "hello",
+       "v": 2,
+       "nonce": "UeB7Aeb5uvyotRr5bUcMQw",
+       "now": 1700000000.0,
+       "join_code": false,
+       "ice": [],
+       "limits": {
+        "idle": 1000,
+        "report_ttl": 6.0,
+        "link_radius": 90.0,
+        "max_report": 64
+       }
+      }
+     ]
+    ],
+    [
+     [
+      "a",
+      {
+       "t": "registered",
+       "sid": "wDJGr9J9JzYTi2J9YVxa9Q",
+       "token": "DnYO9YSleQKzMdFQ-fusg73o",
+       "lease": 30.0,
+       "now": 1700000000.0,
+       "roster": [],
+       "more": 0
+      }
+     ]
+    ],
+    [
+     [
+      "b",
+      {
+       "t": "hello",
+       "v": 2,
+       "nonce": "_UgcVbSTG2Yee8bl6_590w",
+       "now": 1700000000.0,
+       "join_code": false,
+       "ice": [],
+       "limits": {
+        "idle": 1000,
+        "report_ttl": 6.0,
+        "link_radius": 90.0,
+        "max_report": 64
+       }
+      }
+     ]
+    ],
+    [
+     [
+      "b",
+      {
+       "t": "registered",
+       "sid": "tzZ25VVl9jn0Qz3idjyR-Q",
+       "token": "nl0UScF78GoUl2qfk7o3uYmy",
+       "lease": 30.0,
+       "now": 1700000000.0,
+       "roster": [
+        [
+         "Alice",
+         "wDJGr9J9JzYTi2J9YVxa9Q"
+        ]
+       ],
+       "more": 0
+      }
+     ],
+     [
+      "a",
+      {
+       "t": "roster_update",
+       "add": [
+        [
+         "Bobby",
+         "tzZ25VVl9jn0Qz3idjyR-Q"
+        ]
+       ]
+      }
+     ]
+    ],
+    [],
+    [
+     [
+      "b",
+      {
+       "t": "peer_available",
+       "sid": "wDJGr9J9JzYTi2J9YVxa9Q",
+       "character": "Alice",
+       "distance": 10.0
+      }
+     ],
+     [
+      "a",
+      {
+       "t": "peer_available",
+       "sid": "tzZ25VVl9jn0Qz3idjyR-Q",
+       "character": "Bobby",
+       "distance": 10.0
+      }
+     ]
+    ],
+    [
+     [
+      "b",
+      {
+       "t": "ice",
+       "from": "wDJGr9J9JzYTi2J9YVxa9Q",
+       "ep": 1,
+       "data": {
+        "i": 0
+       }
+      }
+     ]
+    ],
+    [
+     [
+      "b",
+      {
+       "t": "ice",
+       "from": "wDJGr9J9JzYTi2J9YVxa9Q",
+       "ep": 1,
+       "data": {
+        "i": 1
+       }
+      }
+     ]
+    ],
+    [
+     [
+      "b",
+      {
+       "t": "ice",
+       "from": "wDJGr9J9JzYTi2J9YVxa9Q",
+       "ep": 1,
+       "data": {
+        "i": 2
+       }
+      }
+     ]
+    ],
+    [
+     [
+      "b",
+      {
+       "t": "ice",
+       "from": "wDJGr9J9JzYTi2J9YVxa9Q",
+       "ep": 1,
+       "data": {
+        "i": 3
+       }
+      }
+     ]
+    ],
+    [
+     [
+      "b",
+      {
+       "t": "ice",
+       "from": "wDJGr9J9JzYTi2J9YVxa9Q",
+       "ep": 1,
+       "data": {
+        "i": 4
+       }
+      }
+     ]
+    ],
+    [
+     [
+      "a",
+      {
+       "t": "error",
+       "code": "rate_limited",
+       "msg": "too many signals to this peer"
+      }
+     ]
+    ],
+    [
+     [
+      "a",
+      {
+       "t": "error",
+       "code": "rate_limited",
+       "msg": "too many signals to this peer"
+      }
+     ]
+    ],
+    [
+     [
+      "b",
+      {
+       "t": "peer_out_of_range",
+       "sid": "wDJGr9J9JzYTi2J9YVxa9Q",
+       "character": "Alice"
+      }
+     ],
+     [
+      "a",
+      {
+       "t": "peer_out_of_range",
+       "sid": "tzZ25VVl9jn0Qz3idjyR-Q",
+       "character": "Bobby"
+      }
+     ]
+    ],
+    [],
+    [
+     [
+      "b",
+      {
+       "t": "peer_available",
+       "sid": "wDJGr9J9JzYTi2J9YVxa9Q",
+       "character": "Alice",
+       "distance": 10.0
+      }
+     ],
+     [
+      "a",
+      {
+       "t": "peer_available",
+       "sid": "tzZ25VVl9jn0Qz3idjyR-Q",
+       "character": "Bobby",
+       "distance": 10.0
+      }
+     ]
+    ],
+    [
+     [
+      "b",
+      {
+       "t": "ice",
+       "from": "wDJGr9J9JzYTi2J9YVxa9Q",
+       "ep": 1,
+       "data": {
+        "i": 99
+       }
+      }
+     ]
+    ]
+   ],
+   "stats": {
+    "connections": 2,
+    "sessions": 2,
+    "realms": 1,
+    "largest_realm": 2,
+    "links": 1,
+    "reserved": 0,
+    "totals": {
+     "connections": 2,
+     "registered": 2,
+     "rejected": 0,
+     "signals": 6,
+     "rate_limited": 0,
+     "errors": 2,
+     "links_up": 2,
+     "proximity": 4,
+     "roster_msgs": 1,
+     "takeovers": 0
+    }
+   }
+  },
+  {
+   "name": "rate limits",
+   "setup": {
+    "limits": {
+     "bucket_capacity": 4,
+     "bucket_rate": 0.5,
+     "prox_capacity": 3,
+     "prox_rate": 0.5
+    },
+    "join_code": null,
+    "ice": []
+   },
+   "steps": [
+    {
+     "op": "connect",
+     "conn": "a",
+     "ip": "10.0.0.1"
+    },
+    {
+     "op": "send",
+     "conn": "a",
+     "text": "{\"t\":\"register\",\"v\":2,\"sid\":\"wDJGr9J9JzYTi2J9YVxa9Q\",\"realm\":\"Testrealm\",\"character\":\"Alice\",\"pub\":\"fopaGShm3jUsv7zDw5omF7VlKcLenEhzHNqzpTMdXAg\",\"sig\":\"ujFTuC6hUzR6_bxwVrzK-D6tdNU7FQW-hoWSsRUXmfkCCouprGa12z22Gd622gcG-2zkzLeIqWkjVeaIV9zVAg\"}"
+    },
+    {
+     "op": "connect",
+     "conn": "b",
+     "ip": "10.0.0.1"
+    },
+    {
+     "op": "send",
+     "conn": "b",
+     "text": "{\"t\":\"register\",\"v\":2,\"sid\":\"tzZ25VVl9jn0Qz3idjyR-Q\",\"realm\":\"Testrealm\",\"character\":\"Bobby\",\"pub\":\"m3YBXt3J-TR-wwgvSZINGIbkkWfQHrPYAHNbwSz7BeA\",\"sig\":\"yZafPeA9VtP-BCIP9odE_0zNF9Ks6VuR7kq5RxGSSBX6C_HOkJDFXlkmDFBEI41PWXo_PqXZsXiEbdbZhngGBQ\"}"
+    },
+    {
+     "op": "send",
+     "conn": "a",
+     "text": "{\"t\":\"proximity\",\"peers\":[[\"Bobby\",10,1]]}"
+    },
+    {
+     "op": "send",
+     "conn": "a",
+     "text": "{\"t\":\"proximity\",\"peers\":[[\"Bobby\",11,1]]}"
+    },
+    {
+     "op": "send",
+     "conn": "a",
+     "text": "{\"t\":\"proximity\",\"peers\":[[\"Bobby\",12,1]]}"
+    },
+    {
+     "op": "send",
+     "conn": "a",
+     "text": "{\"t\":\"proximity\",\"peers\":[[\"Bobby\",20,1]]}"
+    },
+    {
+     "op": "advance",
+     "seconds": 2,
+     "step": 1.0
+    },
+    {
+     "op": "send",
+     "conn": "b",
+     "text": "{\"t\":\"ping\"}"
+    },
+    {
+     "op": "send",
+     "conn": "b",
+     "text": "{\"t\":\"ping\"}"
+    },
+    {
+     "op": "send",
+     "conn": "b",
+     "text": "{\"t\":\"ping\"}"
+    },
+    {
+     "op": "send",
+     "conn": "b",
+     "text": "{\"t\":\"ping\"}"
+    },
+    {
+     "op": "send",
+     "conn": "b",
+     "text": "{\"t\":\"ping\"}"
+    },
+    {
+     "op": "send",
+     "conn": "b",
+     "text": "{\"t\":\"ping\"}"
+    },
+    {
+     "op": "send",
+     "conn": "b",
+     "text": "{\"t\":\"ping\"}"
+    },
+    {
+     "op": "send",
+     "conn": "b",
+     "text": "{\"t\":\"ping\"}"
+    }
+   ],
+   "transcript": [
+    [
+     [
+      "a",
+      {
+       "t": "hello",
+       "v": 2,
+       "nonce": "UeB7Aeb5uvyotRr5bUcMQw",
+       "now": 1700000000.0,
+       "join_code": false,
+       "ice": [],
+       "limits": {
+        "idle": 30.0,
+        "report_ttl": 6.0,
+        "link_radius": 90.0,
+        "max_report": 64
+       }
+      }
+     ]
+    ],
+    [
+     [
+      "a",
+      {
+       "t": "registered",
+       "sid": "wDJGr9J9JzYTi2J9YVxa9Q",
+       "token": "DnYO9YSleQKzMdFQ-fusg73o",
+       "lease": 30.0,
+       "now": 1700000000.0,
+       "roster": [],
+       "more": 0
+      }
+     ]
+    ],
+    [
+     [
+      "b",
+      {
+       "t": "hello",
+       "v": 2,
+       "nonce": "_UgcVbSTG2Yee8bl6_590w",
+       "now": 1700000000.0,
+       "join_code": false,
+       "ice": [],
+       "limits": {
+        "idle": 30.0,
+        "report_ttl": 6.0,
+        "link_radius": 90.0,
+        "max_report": 64
+       }
+      }
+     ]
+    ],
+    [
+     [
+      "b",
+      {
+       "t": "registered",
+       "sid": "tzZ25VVl9jn0Qz3idjyR-Q",
+       "token": "nl0UScF78GoUl2qfk7o3uYmy",
+       "lease": 30.0,
+       "now": 1700000000.0,
+       "roster": [
+        [
+         "Alice",
+         "wDJGr9J9JzYTi2J9YVxa9Q"
+        ]
+       ],
+       "more": 0
+      }
+     ],
+     [
+      "a",
+      {
+       "t": "roster_update",
+       "add": [
+        [
+         "Bobby",
+         "tzZ25VVl9jn0Qz3idjyR-Q"
+        ]
+       ]
+      }
+     ]
+    ],
+    [],
+    [],
+    [],
+    [
+     [
+      "a",
+      {
+       "t": "error",
+       "code": "rate_limited",
+       "msg": "slow down"
+      }
+     ]
+    ],
+    [],
+    [
+     [
+      "b",
+      {
+       "t": "pong",
+       "now": 1700000000.0
+      }
+     ]
+    ],
+    [
+     [
+      "b",
+      {
+       "t": "pong",
+       "now": 1700000000.0
+      }
+     ]
+    ],
+    [
+     [
+      "b",
+      {
+       "t": "pong",
+       "now": 1700000000.0
+      }
+     ]
+    ],
+    [
+     [
+      "b",
+      {
+       "t": "pong",
+       "now": 1700000000.0
+      }
+     ]
+    ],
+    [
+     [
+      "b",
+      {
+       "t": "error",
+       "code": "rate_limited",
+       "msg": "slow down"
+      }
+     ]
+    ],
+    [
+     [
+      "b",
+      {
+       "t": "error",
+       "code": "rate_limited",
+       "msg": "slow down"
+      }
+     ]
+    ],
+    [
+     [
+      "b",
+      {
+       "t": "error",
+       "code": "rate_limited",
+       "msg": "slow down"
+      }
+     ]
+    ],
+    [
+     [
+      "b",
+      {
+       "t": "error",
+       "code": "rate_limited",
+       "msg": "slow down"
+      }
+     ]
+    ]
+   ],
+   "stats": {
+    "connections": 2,
+    "sessions": 2,
+    "realms": 1,
+    "largest_realm": 2,
+    "links": 0,
+    "reserved": 0,
+    "totals": {
+     "connections": 2,
+     "registered": 2,
+     "rejected": 0,
+     "signals": 0,
+     "rate_limited": 5,
+     "errors": 5,
+     "links_up": 0,
+     "proximity": 3,
+     "roster_msgs": 1,
+     "takeovers": 0
+    }
+   }
+  },
+  {
+   "name": "garbage never raises",
+   "setup": {
+    "limits": {},
+    "join_code": null,
+    "ice": []
+   },
+   "steps": [
+    {
+     "op": "connect",
+     "conn": "a",
+     "ip": "10.0.0.1"
+    },
+    {
+     "op": "send",
+     "conn": "a",
+     "text": "{\"t\":\"register\",\"v\":2,\"sid\":\"wDJGr9J9JzYTi2J9YVxa9Q\",\"realm\":\"Testrealm\",\"character\":\"Alice\",\"pub\":\"fopaGShm3jUsv7zDw5omF7VlKcLenEhzHNqzpTMdXAg\",\"sig\":\"ujFTuC6hUzR6_bxwVrzK-D6tdNU7FQW-hoWSsRUXmfkCCouprGa12z22Gd622gcG-2zkzLeIqWkjVeaIV9zVAg\"}"
+    },
+    {
+     "op": "connect",
+     "conn": "b",
+     "ip": "10.0.0.1"
+    },
+    {
+     "op": "send",
+     "conn": "b",
+     "text": "{\"t\":\"register\",\"v\":2,\"sid\":\"tzZ25VVl9jn0Qz3idjyR-Q\",\"realm\":\"Testrealm\",\"character\":\"Bobby\",\"pub\":\"m3YBXt3J-TR-wwgvSZINGIbkkWfQHrPYAHNbwSz7BeA\",\"sig\":\"yZafPeA9VtP-BCIP9odE_0zNF9Ks6VuR7kq5RxGSSBX6C_HOkJDFXlkmDFBEI41PWXo_PqXZsXiEbdbZhngGBQ\"}"
+    },
+    {
+     "op": "send",
+     "conn": "a",
+     "text": ""
+    },
+    {
+     "op": "advance",
+     "seconds": 0.1,
+     "step": 0.1
+    },
+    {
+     "op": "send",
+     "conn": "a",
+     "text": "not json"
+    },
+    {
+     "op": "advance",
+     "seconds": 0.1,
+     "step": 0.1
+    },
+    {
+     "op": "send",
+     "conn": "a",
+     "text": "[]"
+    },
+    {
+     "op": "advance",
+     "seconds": 0.1,
+     "step": 0.1
+    },
+    {
+     "op": "send",
+     "conn": "a",
+     "text": "null"
+    },
+    {
+     "op": "advance",
+     "seconds": 0.1,
+     "step": 0.1
+    },
+    {
+     "op": "send",
+     "conn": "a",
+     "text": "5"
+    },
+    {
+     "op": "advance",
+     "seconds": 0.1,
+     "step": 0.1
+    },
+    {
+     "op": "send",
+     "conn": "a",
+     "text": "{\"t\":5}"
+    },
+    {
+     "op": "advance",
+     "seconds": 0.1,
+     "step": 0.1
+    },
+    {
+     "op": "send",
+     "conn": "a",
+     "text": "{\"t\":\"zzz\"}"
+    },
+    {
+     "op": "advance",
+     "seconds": 0.1,
+     "step": 0.1
+    },
+    {
+     "op": "send",
+     "conn": "a",
+     "text": "{{{{{{{{{{"
+    },
+    {
+     "op": "advance",
+     "seconds": 0.1,
+     "step": 0.1
+    },
+    {
+     "op": "send",
+     "conn": "a",
+     "text": "{\"t\":\"proximity\"}"
+    },
+    {
+     "op": "advance",
+     "seconds": 0.1,
+     "step": 0.1
+    },
+    {
+     "op": "send",
+     "conn": "a",
+     "text": "\"str\""
+    },
+    {
+     "op": "advance",
+     "seconds": 0.1,
+     "step": 0.1
+    },
+    {
+     "op": "send",
+     "conn": "a",
+     "text": "true"
+    },
+    {
+     "op": "advance",
+     "seconds": 0.1,
+     "step": 0.1
+    },
+    {
+     "op": "send",
+     "conn": "a",
+     "text": "{\"t\":\"register\"}"
+    },
+    {
+     "op": "advance",
+     "seconds": 0.1,
+     "step": 0.1
+    },
+    {
+     "op": "send",
+     "conn": "a",
+     "text": "{\"t\":\"offer\"}"
+    },
+    {
+     "op": "advance",
+     "seconds": 0.1,
+     "step": 0.1
+    },
+    {
+     "op": "send",
+     "conn": "a",
+     "text": "{\"t\":\"ping\",\"ts\":null}"
+    },
+    {
+     "op": "advance",
+     "seconds": 0.1,
+     "step": 0.1
+    },
+    {
+     "op": "send",
+     "conn": "a",
+     "text": "{\"t\":\"ping\",\"ts\":1e300}"
+    },
+    {
+     "op": "advance",
+     "seconds": 0.1,
+     "step": 0.1
+    },
+    {
+     "op": "rawbytes",
+     "conn": "a",
+     "hex": "000102"
+    },
+    {
+     "op": "send",
+     "conn": "b",
+     "text": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+    }
+   ],
+   "transcript": [
+    [
+     [
+      "a",
+      {
+       "t": "hello",
+       "v": 2,
+       "nonce": "UeB7Aeb5uvyotRr5bUcMQw",
+       "now": 1700000000.0,
+       "join_code": false,
+       "ice": [],
+       "limits": {
+        "idle": 30.0,
+        "report_ttl": 6.0,
+        "link_radius": 90.0,
+        "max_report": 64
+       }
+      }
+     ]
+    ],
+    [
+     [
+      "a",
+      {
+       "t": "registered",
+       "sid": "wDJGr9J9JzYTi2J9YVxa9Q",
+       "token": "DnYO9YSleQKzMdFQ-fusg73o",
+       "lease": 30.0,
+       "now": 1700000000.0,
+       "roster": [],
+       "more": 0
+      }
+     ]
+    ],
+    [
+     [
+      "b",
+      {
+       "t": "hello",
+       "v": 2,
+       "nonce": "_UgcVbSTG2Yee8bl6_590w",
+       "now": 1700000000.0,
+       "join_code": false,
+       "ice": [],
+       "limits": {
+        "idle": 30.0,
+        "report_ttl": 6.0,
+        "link_radius": 90.0,
+        "max_report": 64
+       }
+      }
+     ]
+    ],
+    [
+     [
+      "b",
+      {
+       "t": "registered",
+       "sid": "tzZ25VVl9jn0Qz3idjyR-Q",
+       "token": "nl0UScF78GoUl2qfk7o3uYmy",
+       "lease": 30.0,
+       "now": 1700000000.0,
+       "roster": [
+        [
+         "Alice",
+         "wDJGr9J9JzYTi2J9YVxa9Q"
+        ]
+       ],
+       "more": 0
+      }
+     ],
+     [
+      "a",
+      {
+       "t": "roster_update",
+       "add": [
+        [
+         "Bobby",
+         "tzZ25VVl9jn0Qz3idjyR-Q"
+        ]
+       ]
+      }
+     ]
+    ],
+    [
+     [
+      "a",
+      {
+       "t": "error",
+       "code": "bad_json",
+       "msg": ""
+      }
+     ]
+    ],
+    [],
+    [
+     [
+      "a",
+      {
+       "t": "error",
+       "code": "bad_json",
+       "msg": ""
+      }
+     ]
+    ],
+    [],
+    [
+     [
+      "a",
+      {
+       "t": "error",
+       "code": "bad_msg",
+       "msg": "need an object with a string 't'"
+      }
+     ]
+    ],
+    [],
+    [
+     [
+      "a",
+      {
+       "t": "error",
+       "code": "bad_msg",
+       "msg": "need an object with a string 't'"
+      }
+     ]
+    ],
+    [],
+    [
+     [
+      "a",
+      {
+       "t": "error",
+       "code": "bad_msg",
+       "msg": "need an object with a string 't'"
+      }
+     ]
+    ],
+    [],
+    [
+     [
+      "a",
+      {
+       "t": "error",
+       "code": "bad_msg",
+       "msg": "need an object with a string 't'"
+      }
+     ]
+    ],
+    [],
+    [
+     [
+      "a",
+      {
+       "t": "error",
+       "code": "bad_msg",
+       "msg": "unknown type"
+      }
+     ]
+    ],
+    [],
+    [
+     [
+      "a",
+      {
+       "t": "error",
+       "code": "bad_json",
+       "msg": ""
+      }
+     ]
+    ],
+    [],
+    [
+     [
+      "a",
+      {
+       "t": "error",
+       "code": "bad_msg",
+       "msg": "peers must be a list"
+      }
+     ]
+    ],
+    [],
+    [
+     [
+      "a",
+      {
+       "t": "error",
+       "code": "bad_msg",
+       "msg": "need an object with a string 't'"
+      }
+     ]
+    ],
+    [],
+    [
+     [
+      "a",
+      {
+       "t": "error",
+       "code": "bad_msg",
+       "msg": "need an object with a string 't'"
+      }
+     ]
+    ],
+    [],
+    [
+     [
+      "a",
+      {
+       "t": "error",
+       "code": "already_registered",
+       "msg": "reconnect to change identity"
+      }
+     ]
+    ],
+    [],
+    [
+     [
+      "a",
+      {
+       "t": "error",
+       "code": "bad_msg",
+       "msg": "bad signal"
+      }
+     ]
+    ],
+    [],
+    [
+     [
+      "a",
+      {
+       "t": "pong",
+       "now": 1700000000.0
+      }
+     ]
+    ],
+    [],
+    [
+     [
+      "a",
+      {
+       "t": "pong",
+       "now": 1700000000.0,
+       "ts": 1e+300
+      }
+     ]
+    ],
+    [],
+    [
+     [
+      "a",
+      {
+       "t": "error",
+       "code": "bad_msg",
+       "msg": "text frames only"
+      }
+     ]
+    ],
+    [
+     [
+      "b",
+      {
+       "t": "error",
+       "code": "too_big",
+       "msg": "message too large"
+      }
+     ],
+     [
+      "b",
+      "close",
+      1009,
+      "too big"
+     ],
+     [
+      "a",
+      {
+       "t": "roster_update",
+       "remove": [
+        "tzZ25VVl9jn0Qz3idjyR-Q"
+       ]
+      }
+     ]
+    ]
+   ],
+   "stats": {
+    "connections": 1,
+    "sessions": 1,
+    "realms": 1,
+    "largest_realm": 1,
+    "links": 0,
+    "reserved": 1,
+    "totals": {
+     "connections": 2,
+     "registered": 2,
+     "rejected": 0,
+     "signals": 0,
+     "rate_limited": 0,
+     "errors": 15,
+     "links_up": 0,
+     "proximity": 0,
+     "roster_msgs": 2,
+     "takeovers": 0
+    }
+   }
+  },
+  {
+   "name": "unregister closes politely",
+   "setup": {
+    "limits": {},
+    "join_code": null,
+    "ice": []
+   },
+   "steps": [
+    {
+     "op": "connect",
+     "conn": "a",
+     "ip": "10.0.0.1"
+    },
+    {
+     "op": "send",
+     "conn": "a",
+     "text": "{\"t\":\"register\",\"v\":2,\"sid\":\"wDJGr9J9JzYTi2J9YVxa9Q\",\"realm\":\"Testrealm\",\"character\":\"Alice\",\"pub\":\"fopaGShm3jUsv7zDw5omF7VlKcLenEhzHNqzpTMdXAg\",\"sig\":\"ujFTuC6hUzR6_bxwVrzK-D6tdNU7FQW-hoWSsRUXmfkCCouprGa12z22Gd622gcG-2zkzLeIqWkjVeaIV9zVAg\"}"
+    },
+    {
+     "op": "connect",
+     "conn": "b",
+     "ip": "10.0.0.1"
+    },
+    {
+     "op": "send",
+     "conn": "b",
+     "text": "{\"t\":\"register\",\"v\":2,\"sid\":\"tzZ25VVl9jn0Qz3idjyR-Q\",\"realm\":\"Testrealm\",\"character\":\"Bobby\",\"pub\":\"m3YBXt3J-TR-wwgvSZINGIbkkWfQHrPYAHNbwSz7BeA\",\"sig\":\"yZafPeA9VtP-BCIP9odE_0zNF9Ks6VuR7kq5RxGSSBX6C_HOkJDFXlkmDFBEI41PWXo_PqXZsXiEbdbZhngGBQ\"}"
+    },
+    {
+     "op": "send",
+     "conn": "a",
+     "text": "{\"t\":\"unregister\"}"
+    },
+    {
+     "op": "send",
+     "conn": "b",
+     "text": "{\"t\":\"ping\"}"
+    }
+   ],
+   "transcript": [
+    [
+     [
+      "a",
+      {
+       "t": "hello",
+       "v": 2,
+       "nonce": "UeB7Aeb5uvyotRr5bUcMQw",
+       "now": 1700000000.0,
+       "join_code": false,
+       "ice": [],
+       "limits": {
+        "idle": 30.0,
+        "report_ttl": 6.0,
+        "link_radius": 90.0,
+        "max_report": 64
+       }
+      }
+     ]
+    ],
+    [
+     [
+      "a",
+      {
+       "t": "registered",
+       "sid": "wDJGr9J9JzYTi2J9YVxa9Q",
+       "token": "DnYO9YSleQKzMdFQ-fusg73o",
+       "lease": 30.0,
+       "now": 1700000000.0,
+       "roster": [],
+       "more": 0
+      }
+     ]
+    ],
+    [
+     [
+      "b",
+      {
+       "t": "hello",
+       "v": 2,
+       "nonce": "_UgcVbSTG2Yee8bl6_590w",
+       "now": 1700000000.0,
+       "join_code": false,
+       "ice": [],
+       "limits": {
+        "idle": 30.0,
+        "report_ttl": 6.0,
+        "link_radius": 90.0,
+        "max_report": 64
+       }
+      }
+     ]
+    ],
+    [
+     [
+      "b",
+      {
+       "t": "registered",
+       "sid": "tzZ25VVl9jn0Qz3idjyR-Q",
+       "token": "nl0UScF78GoUl2qfk7o3uYmy",
+       "lease": 30.0,
+       "now": 1700000000.0,
+       "roster": [
+        [
+         "Alice",
+         "wDJGr9J9JzYTi2J9YVxa9Q"
+        ]
+       ],
+       "more": 0
+      }
+     ],
+     [
+      "a",
+      {
+       "t": "roster_update",
+       "add": [
+        [
+         "Bobby",
+         "tzZ25VVl9jn0Qz3idjyR-Q"
+        ]
+       ]
+      }
+     ]
+    ],
+    [
+     [
+      "a",
+      "close",
+      1000,
+      "bye"
+     ],
+     [
+      "b",
+      {
+       "t": "roster_update",
+       "remove": [
+        "wDJGr9J9JzYTi2J9YVxa9Q"
+       ]
+      }
+     ]
+    ],
+    [
+     [
+      "b",
+      {
+       "t": "pong",
+       "now": 1700000000.0
+      }
+     ]
+    ]
+   ],
+   "stats": {
+    "connections": 1,
+    "sessions": 1,
+    "realms": 1,
+    "largest_realm": 1,
+    "links": 0,
+    "reserved": 0,
+    "totals": {
+     "connections": 2,
+     "registered": 2,
+     "rejected": 0,
+     "signals": 0,
+     "rate_limited": 0,
+     "errors": 0,
+     "links_up": 0,
+     "proximity": 0,
+     "roster_msgs": 2,
+     "takeovers": 0
+    }
+   }
+  },
+  {
+   "name": "timeouts",
+   "setup": {
+    "limits": {},
+    "join_code": null,
+    "ice": []
+   },
+   "steps": [
+    {
+     "op": "connect",
+     "conn": "a",
+     "ip": "10.0.0.1"
+    },
+    {
+     "op": "connect",
+     "conn": "b",
+     "ip": "10.0.0.1"
+    },
+    {
+     "op": "send",
+     "conn": "b",
+     "text": "{\"t\":\"register\",\"v\":2,\"sid\":\"tzZ25VVl9jn0Qz3idjyR-Q\",\"realm\":\"Testrealm\",\"character\":\"Bobby\",\"pub\":\"m3YBXt3J-TR-wwgvSZINGIbkkWfQHrPYAHNbwSz7BeA\",\"sig\":\"foYyo7_mPOmsXZH9lsWyKwrflbdXGlHBw9SvcrJhFbgOxONVxUN8C26tMZFjzNRKDPiu2z6oTLUAwuTFMAKHDg\"}"
+    },
+    {
+     "op": "connect",
+     "conn": "c",
+     "ip": "10.0.0.1"
+    },
+    {
+     "op": "send",
+     "conn": "c",
+     "text": "{\"t\":\"register\",\"v\":2,\"sid\":\"g7cK8wRUBADFB5-uHrRX4Q\",\"realm\":\"Testrealm\",\"character\":\"Carol\",\"pub\":\"3SdpmjWiJbnnGH7lNnkMaz28XzPokAHtzGTpH9Qa7hE\",\"sig\":\"F4XdhjvZ-qhhD9d1dJ3TtXbKlhkIL7smIHlem4ZkVqgh4ESXOLGT7s6jfSh74_-xEI28m_sFgN2lB4o1qZjEAg\"}"
+    },
+    {
+     "op": "advance",
+     "seconds": 11,
+     "step": 1.0
+    },
+    {
+     "op": "send",
+     "conn": "c",
+     "text": "{\"t\":\"ping\"}"
+    },
+    {
+     "op": "advance",
+     "seconds": 20,
+     "step": 1.0
+    },
+    {
+     "op": "send",
+     "conn": "c",
+     "text": "{\"t\":\"ping\"}"
+    },
+    {
+     "op": "advance",
+     "seconds": 25,
+     "step": 1.0
+    }
+   ],
+   "transcript": [
+    [
+     [
+      "a",
+      {
+       "t": "hello",
+       "v": 2,
+       "nonce": "UeB7Aeb5uvyotRr5bUcMQw",
+       "now": 1700000000.0,
+       "join_code": false,
+       "ice": [],
+       "limits": {
+        "idle": 30.0,
+        "report_ttl": 6.0,
+        "link_radius": 90.0,
+        "max_report": 64
+       }
+      }
+     ]
+    ],
+    [
+     [
+      "b",
+      {
+       "t": "hello",
+       "v": 2,
+       "nonce": "DnYO9YSleQKzMdFQ-fusgw",
+       "now": 1700000000.0,
+       "join_code": false,
+       "ice": [],
+       "limits": {
+        "idle": 30.0,
+        "report_ttl": 6.0,
+        "link_radius": 90.0,
+        "max_report": 64
+       }
+      }
+     ]
+    ],
+    [
+     [
+      "b",
+      {
+       "t": "registered",
+       "sid": "tzZ25VVl9jn0Qz3idjyR-Q",
+       "token": "vej9SBxVtJMbZh57xuXr_n3T",
+       "lease": 30.0,
+       "now": 1700000000.0,
+       "roster": [],
+       "more": 0
+      }
+     ]
+    ],
+    [
+     [
+      "c",
+      {
+       "t": "hello",
+       "v": 2,
+       "nonce": "nl0UScF78GoUl2qfk7o3uQ",
+       "now": 1700000000.0,
+       "join_code": false,
+       "ice": [],
+       "limits": {
+        "idle": 30.0,
+        "report_ttl": 6.0,
+        "link_radius": 90.0,
+        "max_report": 64
+       }
+      }
+     ]
+    ],
+    [
+     [
+      "c",
+      {
+       "t": "registered",
+       "sid": "g7cK8wRUBADFB5-uHrRX4Q",
+       "token": "ibJNuLPwhWjvKaqqfrOITHNe",
+       "lease": 30.0,
+       "now": 1700000000.0,
+       "roster": [
+        [
+         "Bobby",
+         "tzZ25VVl9jn0Qz3idjyR-Q"
+        ]
+       ],
+       "more": 0
+      }
+     ],
+     [
+      "b",
+      {
+       "t": "roster_update",
+       "add": [
+        [
+         "Carol",
+         "g7cK8wRUBADFB5-uHrRX4Q"
+        ]
+       ]
+      }
+     ]
+    ],
+    [
+     [
+      "a",
+      {
+       "t": "error",
+       "code": "register_timeout",
+       "msg": "register within 10s"
+      }
+     ],
+     [
+      "a",
+      "close",
+      4408,
+      "register timeout"
+     ]
+    ],
+    [
+     [
+      "c",
+      {
+       "t": "pong",
+       "now": 1700000000.0
+      }
+     ]
+    ],
+    [
+     [
+      "b",
+      "close",
+      4408,
+      "idle"
+     ],
+     [
+      "c",
+      {
+       "t": "roster_update",
+       "remove": [
+        "tzZ25VVl9jn0Qz3idjyR-Q"
+       ]
+      }
+     ]
+    ],
+    [
+     [
+      "c",
+      {
+       "t": "pong",
+       "now": 1700000000.0
+      }
+     ]
+    ],
+    []
+   ],
+   "stats": {
+    "connections": 1,
+    "sessions": 1,
+    "realms": 1,
+    "largest_realm": 1,
+    "links": 0,
+    "reserved": 1,
+    "totals": {
+     "connections": 3,
+     "registered": 2,
+     "rejected": 0,
+     "signals": 0,
+     "rate_limited": 0,
+     "errors": 1,
+     "links_up": 0,
+     "proximity": 0,
+     "roster_msgs": 2,
+     "takeovers": 0
+    }
+   }
+  },
+  {
+   "name": "address limits",
+   "setup": {
+    "limits": {
+     "max_conns_per_ip": 2,
+     "registers_per_ip_per_minute": 3
+    },
+    "join_code": null,
+    "ice": []
+   },
+   "steps": [
+    {
+     "op": "connect",
+     "conn": "a",
+     "ip": "9.9.9.9"
+    },
+    {
+     "op": "connect",
+     "conn": "b",
+     "ip": "9.9.9.9"
+    },
+    {
+     "op": "connect",
+     "conn": "c",
+     "ip": "9.9.9.9"
+    },
+    {
+     "op": "connect",
+     "conn": "d",
+     "ip": "8.8.8.8"
+    },
+    {
+     "op": "send",
+     "conn": "a",
+     "text": "{\"t\":\"register\",\"v\":2,\"sid\":\"hRJTc_5ZAVM38jiL4aUAEQ\",\"realm\":\"Testrealm\",\"character\":\"Aaa\",\"pub\":\"Nye52zE3rSMpWQwusMmue3a1sVu7BuJOEq510V63xZo\",\"sig\":\"TYh-gGkmCd-TR3NP3BIXQNZgl5Egn49OcZPJ-6YSB0P4DD4y-1Tz1S6XptGgYUU1lpaYoNil0I5BsVFygpotCA\"}"
+    },
+    {
+     "op": "send",
+     "conn": "b",
+     "text": "{\"t\":\"register\",\"v\":2,\"sid\":\"AVVGNXsjMgs4cHyUNLzmow\",\"realm\":\"Testrealm\",\"character\":\"Bbb\",\"pub\":\"gMx8xY_eaDDpa44CzSNGkiqzBbCvBEj773hTJdyXMwM\",\"sig\":\"MIMGMAVF9PUWYRn1R6Tc0aQMcN46q0C2fENWCmAyrOIjjpqI-b-cMNpso09dxeoxxdSlDdD7I_2T2JzZthSCAw\"}"
+    },
+    {
+     "op": "disconnect",
+     "conn": "a",
+     "reserve": true
+    },
+    {
+     "op": "connect",
+     "conn": "e",
+     "ip": "9.9.9.9"
+    },
+    {
+     "op": "send",
+     "conn": "e",
+     "text": "{\"t\":\"register\",\"v\":2,\"sid\":\"6lP6c9QbL9QZ-5YXa7BZjg\",\"realm\":\"Testrealm\",\"character\":\"Ccc\",\"pub\":\"meKdQDdZr_PLOSDyOFvkcFmcHfQS8H25BlWtF0CYUiY\",\"sig\":\"H7uI8Rf_fuX_CFWyo6dKzASXeR90uEteG9u5_TpQ0bg-nKo9vY0Kua5OpYlYkIWUBfVgahkIj79uixcbcX61Dg\"}"
+    },
+    {
+     "op": "send",
+     "conn": "b",
+     "text": "{\"t\":\"register\",\"v\":2,\"sid\":\"Qyaq-vG0Y5Wktdh1tiMQpA\",\"realm\":\"Testrealm\",\"character\":\"Ddd\",\"pub\":\"UJq36BbhbU5oxqWrre8Lcn-vgeJrYXesk8YyGA7y7iU\",\"sig\":\"6T1-xgV9I7E7zbBM3qIt9ICVAkzNyhj9QagZpaXKpkJysKx9Ozk17goj27HtrOoFUrER1wYPrf-lEMB9pTDUAg\"}"
+    },
+    {
+     "op": "disconnect",
+     "conn": "b",
+     "reserve": true
+    },
+    {
+     "op": "connect",
+     "conn": "f",
+     "ip": "9.9.9.9"
+    },
+    {
+     "op": "send",
+     "conn": "f",
+     "text": "{\"t\":\"register\",\"v\":2,\"sid\":\"-ryx99auhuEuh4PQXwFEMQ\",\"realm\":\"Testrealm\",\"character\":\"Eee\",\"pub\":\"KFeGr7YRbwBJZyBoU63np_6SBuafpB9YLKl1lc6Vdu8\",\"sig\":\"PjcHWohVTMxKrczhqRxOdL05WdH92n7yDsY9SZaSiSJcnpjcMoUdV7gp8SKwNo3VMtXw-7DZDUcHjOR3KqA6Bw\"}"
+    },
+    {
+     "op": "advance",
+     "seconds": 61,
+     "step": 1.0
+    },
+    {
+     "op": "send",
+     "conn": "f",
+     "text": "{\"t\":\"register\",\"v\":2,\"sid\":\"-ryx99auhuEuh4PQXwFEMQ\",\"realm\":\"Testrealm\",\"character\":\"Eee\",\"pub\":\"KFeGr7YRbwBJZyBoU63np_6SBuafpB9YLKl1lc6Vdu8\",\"sig\":\"PjcHWohVTMxKrczhqRxOdL05WdH92n7yDsY9SZaSiSJcnpjcMoUdV7gp8SKwNo3VMtXw-7DZDUcHjOR3KqA6Bw\"}"
+    },
+    {
+     "op": "send",
+     "conn": "d",
+     "text": "{\"t\":\"register\",\"v\":2,\"sid\":\"ZKM8PNWzGoq63cCZ5q4Ghg\",\"realm\":\"Testrealm\",\"character\":\"Fff\",\"pub\":\"Vp_ZOPQBSf6uGdKGVDnaEAm4XP_aiZVDExKRS1lc6b0\",\"sig\":\"6j9gd6oFov6q0WxMn6dTfLlqjABrptsOBzNxIBrdcGb9nRguhxtOhSHnEiYcis91R2n3Gf3ABZmduoig6nkrDA\"}"
+    }
+   ],
+   "transcript": [
+    [
+     [
+      "a",
+      {
+       "t": "hello",
+       "v": 2,
+       "nonce": "UeB7Aeb5uvyotRr5bUcMQw",
+       "now": 1700000000.0,
+       "join_code": false,
+       "ice": [],
+       "limits": {
+        "idle": 30.0,
+        "report_ttl": 6.0,
+        "link_radius": 90.0,
+        "max_report": 64
+       }
+      }
+     ]
+    ],
+    [
+     [
+      "b",
+      {
+       "t": "hello",
+       "v": 2,
+       "nonce": "DnYO9YSleQKzMdFQ-fusgw",
+       "now": 1700000000.0,
+       "join_code": false,
+       "ice": [],
+       "limits": {
+        "idle": 30.0,
+        "report_ttl": 6.0,
+        "link_radius": 90.0,
+        "max_report": 64
+       }
+      }
+     ]
+    ],
+    [
+     [
+      "c",
+      "refused"
+     ]
+    ],
+    [
+     [
+      "d",
+      {
+       "t": "hello",
+       "v": 2,
+       "nonce": "vej9SBxVtJMbZh57xuXr_g",
+       "now": 1700000000.0,
+       "join_code": false,
+       "ice": [],
+       "limits": {
+        "idle": 30.0,
+        "report_ttl": 6.0,
+        "link_radius": 90.0,
+        "max_report": 64
+       }
+      }
+     ]
+    ],
+    [
+     [
+      "a",
+      {
+       "t": "registered",
+       "sid": "hRJTc_5ZAVM38jiL4aUAEQ",
+       "token": "fdOeXRRJwXvwahSXap-Tuje5",
+       "lease": 30.0,
+       "now": 1700000000.0,
+       "roster": [],
+       "more": 0
+      }
+     ]
+    ],
+    [
+     [
+      "b",
+      {
+       "t": "registered",
+       "sid": "AVVGNXsjMgs4cHyUNLzmow",
+       "token": "ibJNuLPwhWjvKaqqfrOITHNe",
+       "lease": 30.0,
+       "now": 1700000000.0,
+       "roster": [
+        [
+         "Aaa",
+         "hRJTc_5ZAVM38jiL4aUAEQ"
+        ]
+       ],
+       "more": 0
+      }
+     ],
+     [
+      "a",
+      {
+       "t": "roster_update",
+       "add": [
+        [
+         "Bbb",
+         "AVVGNXsjMgs4cHyUNLzmow"
+        ]
+       ]
+      }
+     ]
+    ],
+    [
+     [
+      "b",
+      {
+       "t": "roster_update",
+       "remove": [
+        "hRJTc_5ZAVM38jiL4aUAEQ"
+       ]
+      }
+     ]
+    ],
+    [
+     [
+      "e",
+      {
+       "t": "hello",
+       "v": 2,
+       "nonce": "svM_WTeUmKE-Z3QIAc6YXw",
+       "now": 1700000000.0,
+       "join_code": false,
+       "ice": [],
+       "limits": {
+        "idle": 30.0,
+        "report_ttl": 6.0,
+        "link_radius": 90.0,
+        "max_report": 64
+       }
+      }
+     ]
+    ],
+    [
+     [
+      "e",
+      {
+       "t": "registered",
+       "sid": "6lP6c9QbL9QZ-5YXa7BZjg",
+       "token": "E14ouiXSHv_Hf8x_GyaqWLER",
+       "lease": 30.0,
+       "now": 1700000000.0,
+       "roster": [
+        [
+         "Bbb",
+         "AVVGNXsjMgs4cHyUNLzmow"
+        ]
+       ],
+       "more": 0
+      }
+     ],
+     [
+      "b",
+      {
+       "t": "roster_update",
+       "add": [
+        [
+         "Ccc",
+         "6lP6c9QbL9QZ-5YXa7BZjg"
+        ]
+       ]
+      }
+     ]
+    ],
+    [
+     [
+      "b",
+      {
+       "t": "error",
+       "code": "already_registered",
+       "msg": "reconnect to change identity"
+      }
+     ]
+    ],
+    [
+     [
+      "e",
+      {
+       "t": "roster_update",
+       "remove": [
+        "AVVGNXsjMgs4cHyUNLzmow"
+       ]
+      }
+     ]
+    ],
+    [
+     [
+      "f",
+      {
+       "t": "hello",
+       "v": 2,
+       "nonce": "6JiUDsWg6AzVvjy094J7qw",
+       "now": 1700000000.0,
+       "join_code": false,
+       "ice": [],
+       "limits": {
+        "idle": 30.0,
+        "report_ttl": 6.0,
+        "link_radius": 90.0,
+        "max_report": 64
+       }
+      }
+     ]
+    ],
+    [
+     [
+      "f",
+      {
+       "t": "error",
+       "code": "ip_rate",
+       "msg": "too many registrations from this address"
+      }
+     ]
+    ],
+    [
+     [
+      "d",
+      {
+       "t": "error",
+       "code": "register_timeout",
+       "msg": "register within 10s"
+      }
+     ],
+     [
+      "d",
+      "close",
+      4408,
+      "register timeout"
+     ],
+     [
+      "f",
+      {
+       "t": "error",
+       "code": "register_timeout",
+       "msg": "register within 10s"
+      }
+     ],
+     [
+      "f",
+      "close",
+      4408,
+      "register timeout"
+     ],
+     [
+      "e",
+      "close",
+      4408,
+      "idle"
+     ]
+    ],
+    [],
+    []
+   ],
+   "stats": {
+    "connections": 0,
+    "sessions": 0,
+    "realms": 0,
+    "largest_realm": 0,
+    "links": 0,
+    "reserved": 0,
+    "totals": {
+     "connections": 5,
+     "registered": 3,
+     "rejected": 1,
+     "signals": 0,
+     "rate_limited": 0,
+     "errors": 4,
+     "links_up": 0,
+     "proximity": 0,
+     "roster_msgs": 4,
+     "takeovers": 0
+    }
+   }
+  },
+  {
+   "name": "global connection cap",
+   "setup": {
+    "limits": {
+     "max_connections": 3
+    },
+    "join_code": null,
+    "ice": []
+   },
+   "steps": [
+    {
+     "op": "connect",
+     "conn": "a",
+     "ip": "1.1.1.1"
+    },
+    {
+     "op": "connect",
+     "conn": "b",
+     "ip": "1.1.1.2"
+    },
+    {
+     "op": "connect",
+     "conn": "c",
+     "ip": "1.1.1.3"
+    },
+    {
+     "op": "connect",
+     "conn": "d",
+     "ip": "1.1.1.4"
+    },
+    {
+     "op": "send",
+     "conn": "a",
+     "text": "{\"t\":\"register\",\"v\":2,\"sid\":\"hRJTc_5ZAVM38jiL4aUAEQ\",\"realm\":\"Testrealm\",\"character\":\"Aaa\",\"pub\":\"Nye52zE3rSMpWQwusMmue3a1sVu7BuJOEq510V63xZo\",\"sig\":\"TYh-gGkmCd-TR3NP3BIXQNZgl5Egn49OcZPJ-6YSB0P4DD4y-1Tz1S6XptGgYUU1lpaYoNil0I5BsVFygpotCA\"}"
+    },
+    {
+     "op": "send",
+     "conn": "b",
+     "text": "{\"t\":\"register\",\"v\":2,\"sid\":\"AVVGNXsjMgs4cHyUNLzmow\",\"realm\":\"Testrealm\",\"character\":\"Bbb\",\"pub\":\"gMx8xY_eaDDpa44CzSNGkiqzBbCvBEj773hTJdyXMwM\",\"sig\":\"MIMGMAVF9PUWYRn1R6Tc0aQMcN46q0C2fENWCmAyrOIjjpqI-b-cMNpso09dxeoxxdSlDdD7I_2T2JzZthSCAw\"}"
+    },
+    {
+     "op": "send",
+     "conn": "c",
+     "text": "{\"t\":\"register\",\"v\":2,\"sid\":\"Hu1GbhcFw7jR-ksF1ot64A\",\"realm\":\"Testrealm\",\"character\":\"Ccc\",\"pub\":\"meKdQDdZr_PLOSDyOFvkcFmcHfQS8H25BlWtF0CYUiY\",\"sig\":\"p2tL7oTa0eCmswdW0LkE9pdOX1xXUNbZBtnmfqtTwRMw66NCgQPZRyc7MHbgdiwtZRO_4FiKIpLbbGx7KgP7AA\"}"
+    },
+    {
+     "op": "disconnect",
+     "conn": "a",
+     "reserve": true
+    },
+    {
+     "op": "connect",
+     "conn": "e",
+     "ip": "1.1.1.5"
+    },
+    {
+     "op": "send",
+     "conn": "e",
+     "text": "{\"t\":\"register\",\"v\":2,\"sid\":\"1ZDEepLb1hoQZTt2Y_PfMg\",\"realm\":\"Testrealm\",\"character\":\"Eee\",\"pub\":\"KFeGr7YRbwBJZyBoU63np_6SBuafpB9YLKl1lc6Vdu8\",\"sig\":\"g3tnBNFE56LCAo0BpvBT4_c_xqcZBXf-UioXPE_FJegXTrq7VbhEBTXsn6PytXbBZJEQTmZXsIqAHE1F2mrYBQ\"}"
+    },
+    {
+     "op": "connect",
+     "conn": "f",
+     "ip": "1.1.1.6"
+    }
+   ],
+   "transcript": [
+    [
+     [
+      "a",
+      {
+       "t": "hello",
+       "v": 2,
+       "nonce": "UeB7Aeb5uvyotRr5bUcMQw",
+       "now": 1700000000.0,
+       "join_code": false,
+       "ice": [],
+       "limits": {
+        "idle": 30.0,
+        "report_ttl": 6.0,
+        "link_radius": 90.0,
+        "max_report": 64
+       }
+      }
+     ]
+    ],
+    [
+     [
+      "b",
+      {
+       "t": "hello",
+       "v": 2,
+       "nonce": "DnYO9YSleQKzMdFQ-fusgw",
+       "now": 1700000000.0,
+       "join_code": false,
+       "ice": [],
+       "limits": {
+        "idle": 30.0,
+        "report_ttl": 6.0,
+        "link_radius": 90.0,
+        "max_report": 64
+       }
+      }
+     ]
+    ],
+    [
+     [
+      "c",
+      {
+       "t": "hello",
+       "v": 2,
+       "nonce": "vej9SBxVtJMbZh57xuXr_g",
+       "now": 1700000000.0,
+       "join_code": false,
+       "ice": [],
+       "limits": {
+        "idle": 30.0,
+        "report_ttl": 6.0,
+        "link_radius": 90.0,
+        "max_report": 64
+       }
+      }
+     ]
+    ],
+    [
+     [
+      "d",
+      "refused"
+     ]
+    ],
+    [
+     [
+      "a",
+      {
+       "t": "registered",
+       "sid": "hRJTc_5ZAVM38jiL4aUAEQ",
+       "token": "fdOeXRRJwXvwahSXap-Tuje5",
+       "lease": 30.0,
+       "now": 1700000000.0,
+       "roster": [],
+       "more": 0
+      }
+     ]
+    ],
+    [
+     [
+      "b",
+      {
+       "t": "registered",
+       "sid": "AVVGNXsjMgs4cHyUNLzmow",
+       "token": "ibJNuLPwhWjvKaqqfrOITHNe",
+       "lease": 30.0,
+       "now": 1700000000.0,
+       "roster": [
+        [
+         "Aaa",
+         "hRJTc_5ZAVM38jiL4aUAEQ"
+        ]
+       ],
+       "more": 0
+      }
+     ],
+     [
+      "a",
+      {
+       "t": "roster_update",
+       "add": [
+        [
+         "Bbb",
+         "AVVGNXsjMgs4cHyUNLzmow"
+        ]
+       ]
+      }
+     ]
+    ],
+    [
+     [
+      "c",
+      {
+       "t": "registered",
+       "sid": "Hu1GbhcFw7jR-ksF1ot64A",
+       "token": "svM_WTeUmKE-Z3QIAc6YXxNe",
+       "lease": 30.0,
+       "now": 1700000000.0,
+       "roster": [
+        [
+         "Aaa",
+         "hRJTc_5ZAVM38jiL4aUAEQ"
+        ],
+        [
+         "Bbb",
+         "AVVGNXsjMgs4cHyUNLzmow"
+        ]
+       ],
+       "more": 0
+      }
+     ],
+     [
+      "a",
+      {
+       "t": "roster_update",
+       "add": [
+        [
+         "Ccc",
+         "Hu1GbhcFw7jR-ksF1ot64A"
+        ]
+       ]
+      }
+     ],
+     [
+      "b",
+      {
+       "t": "roster_update",
+       "add": [
+        [
+         "Ccc",
+         "Hu1GbhcFw7jR-ksF1ot64A"
+        ]
+       ]
+      }
+     ]
+    ],
+    [
+     [
+      "b",
+      {
+       "t": "roster_update",
+       "remove": [
+        "hRJTc_5ZAVM38jiL4aUAEQ"
+       ]
+      }
+     ],
+     [
+      "c",
+      {
+       "t": "roster_update",
+       "remove": [
+        "hRJTc_5ZAVM38jiL4aUAEQ"
+       ]
+      }
+     ]
+    ],
+    [
+     [
+      "e",
+      {
+       "t": "hello",
+       "v": 2,
+       "nonce": "KLol0h7_x3_MfxsmqlixEQ",
+       "now": 1700000000.0,
+       "join_code": false,
+       "ice": [],
+       "limits": {
+        "idle": 30.0,
+        "report_ttl": 6.0,
+        "link_radius": 90.0,
+        "max_report": 64
+       }
+      }
+     ]
+    ],
+    [
+     [
+      "e",
+      {
+       "t": "registered",
+       "sid": "1ZDEepLb1hoQZTt2Y_PfMg",
+       "token": "6JiUDsWg6AzVvjy094J7q1cw",
+       "lease": 30.0,
+       "now": 1700000000.0,
+       "roster": [
+        [
+         "Bbb",
+         "AVVGNXsjMgs4cHyUNLzmow"
+        ],
+        [
+         "Ccc",
+         "Hu1GbhcFw7jR-ksF1ot64A"
+        ]
+       ],
+       "more": 0
+      }
+     ],
+     [
+      "b",
+      {
+       "t": "roster_update",
+       "add": [
+        [
+         "Eee",
+         "1ZDEepLb1hoQZTt2Y_PfMg"
+        ]
+       ]
+      }
+     ],
+     [
+      "c",
+      {
+       "t": "roster_update",
+       "add": [
+        [
+         "Eee",
+         "1ZDEepLb1hoQZTt2Y_PfMg"
+        ]
+       ]
+      }
+     ]
+    ],
+    [
+     [
+      "f",
+      "refused"
+     ]
+    ]
+   ],
+   "stats": {
+    "connections": 3,
+    "sessions": 3,
+    "realms": 1,
+    "largest_realm": 3,
+    "links": 0,
+    "reserved": 1,
+    "totals": {
+     "connections": 4,
+     "registered": 4,
+     "rejected": 2,
+     "signals": 0,
+     "rate_limited": 0,
+     "errors": 0,
+     "links_up": 0,
+     "proximity": 0,
+     "roster_msgs": 7,
+     "takeovers": 0
+    }
+   }
+  }
+ ]
+}

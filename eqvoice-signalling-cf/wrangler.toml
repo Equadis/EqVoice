@@ -1,0 +1,31 @@
+# EqVoice signalling on Cloudflare Workers + one Durable Object.
+#
+#   npm install                (installs wrangler, a dev dependency)
+#   npx wrangler dev           local server at http://127.0.0.1:8787  (ws://127.0.0.1:8787/ws)
+#   npx wrangler deploy        publish to your Cloudflare account (free plan is enough; see README.md)
+#
+# Nothing here is deployed by this repository's tooling. Run `wrangler deploy` yourself when you want it online.
+
+name = "eqvoice-signalling"
+main = "src/worker.js"
+compatibility_date = "2026-04-07"
+
+[[durable_objects.bindings]]
+name = "HUB"
+class_name = "HubDO"
+
+# SQLite-backed Durable Objects are the only kind the Workers Free plan allows.
+[[migrations]]
+tag = "v1"
+new_sqlite_classes = ["HubDO"]
+
+[vars]
+# Everything is optional. Secrets (JOIN_CODE, STATS_TOKEN) belong in `npx wrangler secret put NAME`, not here.
+STUN = "stun:stun.cloudflare.com:3478,stun:stun.l.google.com:19302"
+# LEASE_SECONDS = "30"
+# LINK_RADIUS = "90"
+# DISTANCE_TOLERANCE = "12"
+# MAX_CONNS_PER_IP = "20"
+# REGISTERS_PER_MINUTE = "12"
+# MAX_CONNECTIONS = "10000"
+# LOG_EVENTS = "1"        name-free JSON log lines (production logging); TRACE=1 (wrangler dev --var TRACE:1) logs names: testing only

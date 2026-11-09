@@ -1,0 +1,15 @@
+{
+  "name": "eqvoice-signalling-cf",
+  "version": "0.2.0",
+  "private": true,
+  "description": "EqVoice signalling server for Cloudflare Workers (one Durable Object, WebSocket Hibernation)",
+  "type": "module",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "test": "node tests/run_node.mjs"
+  },
+  "devDependencies": {
+    "wrangler": "^4.0.0"
+  }
+}

@@ -1,0 +1,63 @@
+# EqVoice signalling: PRODUCTION configuration. Nothing in this repository deploys it for you.
+#
+#   npx wrangler deploy -c wrangler.production.toml --dry-run --outdir ../dist/worker-build     builds, uploads nothing, needs no login
+#   npx wrangler deploy -c wrangler.production.toml                                               publishes (read DEPLOY.md first)
+#
+# The development file (wrangler.toml) is unchanged and is what `npm run dev` uses. This one differs in four ways:
+# no workers.dev address (only your own domain answers), observability on, production limits spelled out, and a different
+# Worker name, so a production deploy can never overwrite a development one.
+
+name = "eqvoice-signalling-prod"
+main = "src/worker.js"
+compatibility_date = "2026-04-07"
+
+# Test build: the free *.workers.dev address is ON (no custom domain yet); per-version preview URLs stay off. The JOIN_CODE secret is the gate.
+# With a custom domain later: set workers_dev = false and uncomment the route below.
+workers_dev = true
+preview_urls = false
+
+# ---- your domain ---------------------------------------------------------------------------------------------------------------
+# The domain must already be a zone in your Cloudflare account. `custom_domain = true` makes Cloudflare create the DNS record and
+# the certificate for you. Replace the example and uncomment. Clients then use  wss://voice.example.org/ws
+# routes = [{ pattern = "voice.example.org", custom_domain = true }]
+
+# ---- logs and metrics ----------------------------------------------------------------------------------------------------------
+# Workers Logs keeps the console output of every invocation (see LOG_EVENTS below) and shows request counts, errors and CPU time in
+# the dashboard under Workers & Pages > eqvoice-signalling-prod > Observability. head_sampling_rate 1 keeps every line; lower it
+# (0.1 = one in ten) if the daily log allowance of your plan is ever reached.
+[observability]
+enabled = true
+head_sampling_rate = 1
+
+# ---- the one Durable Object that runs the hub ----------------------------------------------------------------------------------
+[[durable_objects.bindings]]
+name = "HUB"
+class_name = "HubDO"
+
+# SQLite-backed objects are the only kind the Workers Free plan allows (and the cheaper kind on Paid).
+[[migrations]]
+tag = "v1"
+new_sqlite_classes = ["HubDO"]
+
+# ---- settings (not secret) -----------------------------------------------------------------------------------------------------
+[vars]
+# NAT traversal servers handed to clients. Add a TURN server here only if direct connections prove not to be enough
+# (urls and credentials are plain text to every client by design; use short-lived TURN credentials, never your account key):
+#   STUN = "stun:stun.cloudflare.com:3478,stun:stun.l.google.com:19302"
+STUN = "stun:stun.cloudflare.com:3478,stun:stun.l.google.com:19302"
+
+# Production logging: one short JSON line per registration, departure, link and refusal, and a stats line every five minutes.
+# It never records who (no character names, no addresses). TRACE=1 does record names: testing only, never here.
+LOG_EVENTS = "1"
+
+# Limits. These are the defaults, written out so that changing one is a visible, reviewed edit.
+LEASE_SECONDS = "30"            # a dropped session's name stays reserved for its owner this long
+LINK_RADIUS = "90"              # yards; at least the clients' peak_radius (85) plus their leave margin (3): clients warn when it is too small
+DISTANCE_TOLERANCE = "12"       # yards by which the two players' distance figures may disagree
+MAX_CONNS_PER_IP = "20"         # simultaneous connections from one address
+REGISTERS_PER_MINUTE = "12"     # registrations per address per minute
+MAX_CONNECTIONS = "10000"       # all addresses together: the ceiling on what a flood of cheap connections can cost
+
+# ---- secrets: never written in this file ---------------------------------------------------------------------------------------
+#   npx wrangler secret put JOIN_CODE  -c wrangler.production.toml     (optional) clients must present this code to register
+#   npx wrangler secret put STATS_TOKEN -c wrangler.production.toml    (optional) enables  https://<domain>/stats?token=...
