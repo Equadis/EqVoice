@@ -50,7 +50,7 @@ def build_args(exe: Path, url: str, profile: Path, headless: bool = False, fake_
     args = [str(exe), ("--app=" + url) if not headless else "--headless=new",
             "--user-data-dir=" + str(profile), "--no-first-run",
             "--no-default-browser-check", "--autoplay-policy=no-user-gesture-required",
-            "--disable-features=CalculateNativeWinOcclusion,Translate,MediaRouter",
+            "--disable-features=CalculateNativeWinOcclusion,Translate,MediaRouter,IntensiveWakeUpThrottling,TabFreeze,PageFreezing,msSleepingTabs,msEfficiencyMode",
             "--disable-background-timer-throttling", "--disable-renderer-backgrounding",
             "--disable-backgrounding-occluded-windows", "--window-size=560,860",
             # This window shows only EqVoice's own page, served from this PC, and it is useless without the microphone. A new browser profile

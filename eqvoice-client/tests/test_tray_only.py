@@ -308,3 +308,24 @@ def test_a_refused_beta_code_tells_the_player_once_to_get_the_newest_installer(t
                 a._on_sig_event({"t": "_state", "state": "backoff", "error": "RuntimeError: server refused: bad_code (wrong join code)"})
             assert len(told) == 1 and "newest installer" in told[0] and "code" not in told[0].lower().replace("installer", ""), told
     run(go(), 60)
+
+
+def test_an_engine_page_that_goes_silent_is_ended_and_started_again_and_one_that_talks_is_left_alone(tmp_path, monkeypatch):
+    from eqvoice_client import browser
+    killed = []
+    monkeypatch.setattr(browser, "kill_profile", lambda profile: killed.append(profile) or 0)
+
+    async def go():
+        async with Scene(tmp_path) as sc:
+            a = await sc.add("Alice", at=(0, 0), page=False)
+            a.tray_only, a.engine_on_demand, a.engine_silent_s = True, False, 1.5
+            launches = Launches(a)
+            (engine,) = await add_pages(sc, a, "engine")
+            for _ in range(10):                                         # it says hb every 0.3 s: alive
+                await engine.ws.send_json({"t": "hb", "hz": 50})
+                await asyncio.sleep(0.3)
+            assert not killed and launches.calls == [], "an engine that talks is left alone"
+            await until(lambda: killed, 10, "silence for 1.5 s: the frozen browser is killed")
+            await until(lambda: "engine" in launches.roles(), 10, "and an engine is started again")
+            assert not any(p.media for p in a.pages), "the frozen page is gone"
+    run(go(), 60)

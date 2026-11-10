@@ -184,6 +184,8 @@ class App:
         self.level_watch_until = -100.0               # the game's meter is showing: tell it the microphone's level until then
         self.engine_idle_s = 45.0
         self._engine_started_at = -100.0
+        self._media_seen = 0.0                          # when the voice engine's page last said anything (it says hb every two seconds)
+        self.engine_silent_s = 15.0                     # an engine page silent this long is frozen: it is ended and started again
         self._engine_idle_since: Optional[float] = None
         self._engine_stopping = False
         self._told_out_of_date = False
@@ -845,6 +847,7 @@ class App:
         view = self.monitor.view()
         self._sync_identity(view)
         self._manage_engine(now)
+        self._watch_engine(now)
         self._sync_inbox()
         self._sync_ui_files(view)
         self.readings = self._readings(view)
@@ -924,7 +927,7 @@ class App:
         if not r["mesh"]["active"] and not r["engine"]["procs"]:
             return                                    # nothing worth a line: no calls and no engine of ours
         m = r["mesh"]
-        trace("resources", peers_active=m["active"], peers_connected=m["connected"], in_kbps=m["in_kbps"], out_kbps=m["out_kbps"],
+        trace("resources", engine_page_silent_s=round(self.clock() - self._media_seen, 1) if any(p.media for p in self.pages) else None, peers_active=m["active"], peers_connected=m["connected"], in_kbps=m["in_kbps"], out_kbps=m["out_kbps"],
               client_cpu_pct=r["client"]["cpu_pct"], client_mb=r["client"]["private_mb"], engine_cpu_pct=r["engine"]["cpu_pct"],
               engine_mb=r["engine"]["private_mb"], engine_procs=r["engine"]["procs"], setup_ms_avg=m["setup_ms_avg"],
               setup_ms_max=m["setup_ms_max"])
@@ -1308,6 +1311,8 @@ class App:
 
     def _on_page(self, page: Page, m: dict) -> None:
         t = m.get("t")
+        if page.media or t == "hello":
+            self._media_seen = self.clock()
         if t == "hello":
             page.ua = str(m.get("ua", ""))[:200]
             page.webdriver = bool(m.get("webdriver"))
@@ -1617,6 +1622,34 @@ class App:
 
     def _engine_running(self, now: float) -> bool:
         return any(p.media for p in self.pages) or now - self._engine_started_at < 20.0       # (a launch gets twenty seconds to show up)
+
+    def _watch_engine(self, now: float) -> None:
+        """The engine's page is connected but has said nothing for a long time (a frozen browser: it answers no offer, so no call can form).
+        End it and start it again; the usual relaunch rules (and their limit) apply."""
+        if not (self.tray_only and self.launch_browser) or self._quit.is_set() or self._engine_stopping:
+            return
+        if not any(p.media for p in self.pages):
+            return
+        silent = now - max(self._media_seen, self._engine_started_at)
+        if silent < self.engine_silent_s:
+            return
+        self._media_seen = now                           # one restart at a time: the next look is a whole silence later
+        asyncio.ensure_future(self._restart_silent_engine(silent))
+
+    async def _restart_silent_engine(self, silent: float) -> None:
+        log.warning("the voice engine has said nothing for %.0f s: ending it and starting it again", silent)
+        trace("engine_unresponsive", silent_s=round(silent, 1))
+        self._engine_stopping = True
+        try:
+            proc, self._proc = self._proc, None
+            if proc is not None and proc.poll() is None:
+                proc.terminate()
+            await asyncio.get_running_loop().run_in_executor(None, browser.kill_profile, self.cfg.home / "browser-profile")
+        finally:
+            self._engine_stopping = False
+        for p in list(self.pages):
+            if p.media:
+                await p.ws.close()                       # the page leaving starts the usual relaunch (the handler's cleanup)
 
     def _manage_engine(self, now: float) -> None:
         """Start the engine when a game reports a character; stop it when there has been no game for a while."""

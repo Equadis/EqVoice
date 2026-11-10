@@ -164,6 +164,7 @@ class Media {
     setInterval(() => this.fxTick(), 500);
     setInterval(() => this.statsTick(), 500);
     setInterval(() => this.meterTick(), 100);
+    setInterval(() => send({ t: 'hb', hz: Math.round(this.tickHz / 10) * 10 }), 2000);           // "I am alive": the program restarts an engine that goes silent
     setInterval(() => this.sendMic(false), 50);                      // the gate's level moves twenty times a second: the game's one bar follows it
     if (navigator.mediaDevices) navigator.mediaDevices.addEventListener('devicechange', () => this.sendDevices());
   }
