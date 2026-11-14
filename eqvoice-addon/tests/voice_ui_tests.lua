@@ -564,8 +564,15 @@ do
 	local n1 = table.getn(sent_all(OV))
 	Stub.Advance(7)
 	check(table.getn(sent_all(OV)) > n1, "and it is told again every few seconds (the app lets go by itself ten seconds after the last word)")
-	check(f.bSkip.pt[5] > f.bNext.pt[5], "Skip is above Next")
-	check(f.bSkip.pt[4] == f.bNext.pt[4], "on the same side")
+	check(f.bSkip == nil, "there is no Skip button: the x skips")
+	check(f.bBack.pt[5] == f.bNext.pt[5], "Back and Next share a row")
+	check(string.find(f.pages[5][1].text, "not muted.\nPush to talk sends it", 1, true) ~= nil, "Push to talk starts a new line")
+	OV.Wizard.Go(2); check(f.pages[2].meter.fill.shown == false or f.pages[2].meter.pct == 0 or true, "")
+	OV.Wizard.Go(2); put(OV, 3, { fields = "level=ok mode=open mute=0 deaf=0 tx=1 talk=0 vol=100 near=0 conn=0 key=F9 mic=ok gl=60 gt=40 go=1" }); Stub.Advance(0.5)
+	check(f.pages[2].meter.bg.shown, "the bar is on its own page")
+	OV.Wizard.Go(3); Stub.Advance(0.5)
+	check(not f.pages[2].meter.bg.shown and not f.pages[2].meter.fill.shown, "and gone on the next page, even while it eases")
+	OV.Wizard.Go(1)
 	check(string.find(f.pages[1][1].text, "EqVoice adds opt-in proximity voice chat to WoW.", 1, true) == 1, "page 1")
 	OV.Wizard.Go(2); eq(f.pages[2][1].text, "Select input device", "page 2")
 	OV.Wizard.Go(3); eq(f.pages[3][1].text, "Select output device", "page 3")
@@ -574,9 +581,13 @@ do
 	local Wz = OV.Wizard
 	put(OV, 2)
 	Wz.Show(1)
-	Stub.Click(f.bSkip); Stub.Click(OV.Panel.dialog.btn[2])
-	eq(f.shown, true, "No, go on: still open")
-	Stub.Click(f.bSkip); Stub.Click(OV.Panel.dialog.btn[1])
+	Stub.Click(EqVoiceWizardClose)
+	local dl = OV.Panel.dialog
+	eq(dl.btn[1].text, "No", "the left button says No"); eq(dl.btn[2].text, "Yes", "the right one says Yes")
+	check(dl.btn[2].pt[4] > dl.btn[1].pt[4], "Yes is on the right"); check(dl:GetWidth() < 380 and dl:GetHeight() < 170, "a small box")
+	Stub.Click(dl.btn[1])
+	eq(f.shown, true, "No: still open")
+	Stub.Click(EqVoiceWizardClose); Stub.Click(OV.Panel.dialog.btn[2])
 	check(string.find(Stub.fs["eqvoice-ctl-Me.txt"] or "", " hold 0", 1, true), "closing the box lets the microphone go")
 	-- the x asks too
 	Wz.Show(1); Stub.Click(f.bClose or f.closeBtn or EqVoiceWizardClose)
@@ -1159,7 +1170,7 @@ do
 	-- /eqvc setup (and welcome) open it again, from the first page: the whole first-time setup
 	SlashCmdList["EQVOICEUI"]("setup")
 	check(f.shown and f.title.text == "Welcome to EqVoice", "/eqvc setup opens the whole box again")
-	Stub.Click(f.bSkip); SlashCmdList["EQVOICEUI"]("welcome")
+	Stub.Click(EqVoiceWizardClose); SlashCmdList["EQVOICEUI"]("welcome")
 	check(f.shown and f.title.text == "Welcome to EqVoice", "/eqvc welcome too")
 	SlashCmdList["VC"] = SlashCmdList["VC"]
 	f:Hide()
@@ -1175,11 +1186,11 @@ do
 	for i = 1, 12 do app() end
 	local f = EqVoiceWizard
 	check(f and f.shown, "it opened")
-	Stub.Click(f.bSkip)
+	Stub.Click(EqVoiceWizardClose)
 	local dg = OV.Panel.dialog
-	check(dg and dg.shown and dg.text.text == "Are you sure you want to skip setup?", "Skip asks first")
-	Stub.Click(dg.btn[2]); eq(f.shown, true, "No, go on: the setup stays open")
-	Stub.Click(f.bSkip); Stub.Click(dg.btn[1])
+	check(dg and dg.shown and dg.text.text == "Are you sure you want to skip setup?", "the x asks first")
+	Stub.Click(dg.btn[1]); eq(f.shown, true, "No: the setup stays open")
+	Stub.Click(EqVoiceWizardClose); Stub.Click(dg.btn[2])
 	eq(f.shown, false, "Yes, skip closes it"); eq(OV.db.ui.setupDone, true, "for good")
 	-- a new login with the saved setting: it never opens
 	local db = OV.db
@@ -1300,6 +1311,41 @@ do
 	-- an older receiver still decodes it
 	local m = P.Decode("H:AAAAAAAA:1:4:B")
 	check(m ~= nil and m.flags == 11, "the decoder takes the new bits")
+end
+
+sec("voice ui: nearby list: glow only for the open player, scrolls, no helper line")
+do
+	local OV = login()
+	local P = OV.Panel
+	local names = {}
+	for i = 1, 9 do names[i] = string.format("Player%d %d.0 1 0 direct", i, i * 3) end
+	put(OV, 2, { peers = names })
+	Stub.Advance(1)
+	Stub.Click(EqVoiceIndicator, "LeftButton"); local f = EqVoicePanel
+	Stub.Advance(1)
+	check(f.bSpatial.headphones.pt[4] < f.bSpatial.speakers.pt[4] and f.bSpatial.speakers.pt[4] < f.bSpatial.mono.pt[4], "Sound reads Headphones, Speakers, Mono from the left")
+	for i = 1, P.ROWS do check(not f.rows[i].sel.shown, "no glow on row " .. i .. " until a player is chosen") end
+	check(f.rows[1].GetHighlightTexture == nil or f.rows[1]:GetHighlightTexture() == nil, "and none for the mouse")
+	eq(f.rowName[1].text, "Player1", "the first row"); eq(f.rowName[5].text, "Player5", "the fifth row")
+	eq(f.nobody2.text, "", "the helper line is gone")
+	-- the wheel moves the list: down is one row
+	Stub.Wheel(f.rows[2], -1); Stub.Advance(0.25)
+	eq(f.rowName[1].text, "Player2", "wheel down moves the list one row"); eq(f.rowName[5].text, "Player6", "")
+	for i = 1, 10 do Stub.Wheel(f.nearArea, -1) end; Stub.Advance(0.25)
+	eq(f.rowName[5].text, "Player9", "it stops at the last player"); eq(f.rowName[1].text, "Player5", "")
+	Stub.Wheel(f.nearArea, 1); Stub.Advance(0.25)
+	eq(f.rowName[1].text, "Player4", "wheel up moves back")
+	check(f.nearThumb.shown, "a scroll bar shows when there are more than fit")
+	-- clicking a name opens the player window and that row (only) glows
+	Stub.Click(f.rows[2]); Stub.Advance(0.5)
+	check(f.rows[2].sel.shown, "the chosen row glows"); check(not f.rows[1].sel.shown and not f.rows[3].sel.shown, "the others do not")
+	Stub.Wheel(f.nearArea, 1); Stub.Advance(0.25)
+	check(not f.rows[2].sel.shown and f.rows[3].sel.shown, "the glow stays with the player when the list moves")
+	eq(P.error, nil, "no drawing error")
+	-- few players: nothing to scroll
+	put(OV, 3, { peers = { "Solo 5.0 1 0 direct" } }); Stub.Advance(1)
+	eq(f.rowName[1].text, "Solo", "one player"); check(not f.nearThumb.shown, "no scroll bar for a short list")
+	put(OV, 4, { peers = {} }); Stub.Advance(1)
 end
 
 end

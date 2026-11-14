@@ -146,6 +146,7 @@ local function newFrame(name, kind, parent, template)
 	if f.kind == "Slider" then addSlider(f) end
 	if f.kind == "EditBox" then addEditBox(f) end
 	function f:EnableMouse(on) self.mouse = on end
+	function f:EnableMouseWheel(on) self.wheel = on end
 	function f:EnableKeyboard(on) self.keyboard = on end
 	function f:SetMovable(on) self.movable = on end
 	function f:SetClampedToScreen(on) self.clamped = on end
@@ -476,6 +477,12 @@ end
 function Stub.Click(f, button)
 	_G.this, _G.arg1 = f, button or "LeftButton"
 	if f.scripts.OnClick then f.scripts.OnClick() end
+end
+
+-- Turn the mouse wheel over a frame: dir is 1 (up) or -1 (down), as arg1 on the client.
+function Stub.Wheel(f, dir)
+	_G.this, _G.arg1 = f, dir
+	if f.wheel and f.scripts.OnMouseWheel then f.scripts.OnMouseWheel() end
 end
 
 -- Boot, log in and return the addon table.

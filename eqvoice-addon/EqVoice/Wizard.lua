@@ -20,7 +20,7 @@ local Wizard = {}
 OV.Wizard = Wizard
 
 Wizard.WIDTH     = 440
-Wizard.HEIGHT    = 400
+Wizard.HEIGHT    = 360
 Wizard.PAGES     = 7
 Wizard.START_AFTER_S = 8        -- seconds the app must have been running (and the player in the world) before the box appears
 Wizard.page      = 1
@@ -134,7 +134,7 @@ function Wizard.Build()
 	-- page 5: push to talk
 	local p4 = {}
 	p4[1] = newText(f, "GameFontHighlightSmall", 24, -66, 392, 40)
-	p4[1]:SetText("Open microphone sends your voice whenever you are not muted. Push to talk sends it only while you hold a key.")
+	p4[1]:SetText("Open microphone sends your voice whenever you are not muted.\nPush to talk sends it only while you hold a key.")
 	p4.open = newButton(f, "EqVoiceWizardOpen", "Open microphone", 180, 24, -116, function() OV.Panel.SetMode("open") end)
 	p4.ptt = newButton(f, "EqVoiceWizardPtt", "Push to talk", 180, 214, -116, function() OV.Panel.SetMode("ptt") end)
 	p4.keytext = newText(f, "GameFontNormal", 24, -166, 392, 14)
@@ -172,9 +172,8 @@ function Wizard.Build()
 	p6.hint:SetText("Later, change anything by clicking the microphone beside your name, or type /eqvoice or /eqvc. If something goes wrong, the Export Logs button there makes a zip you can drag into a chat.")
 	f.pages[7] = p6
 
-	f.bBack = newButton(f, "EqVoiceWizardBack", "Back", 90, 24, -362, function() Wizard.Go(Wizard.page - 1) end)
-	f.bSkip = newButton(f, "EqVoiceWizardSkip", "Skip", 110, 306, -326, function() Wizard.AskSkip() end)
-	f.bNext = newButton(f, "EqVoiceWizardNext", "Next", 110, 306, -362, function()
+	f.bBack = newButton(f, "EqVoiceWizardBack", "Back", 90, 24, -322, function() Wizard.Go(Wizard.page - 1) end)
+	f.bNext = newButton(f, "EqVoiceWizardNext", "Next", 110, 306, -322, function()
 		if Wizard.page >= Wizard.PAGES then Wizard.Finish(true) else Wizard.Go(Wizard.page + 1) end
 	end)
 
@@ -239,8 +238,8 @@ end
 -- Skip, or the x: are you sure? (Escape just closes it; the setup is still open on /eqvc setup.)
 function Wizard.AskSkip()
 	if not OV.Panel.Dialog then Wizard.Finish(false); return end
-	OV.Panel.Dialog({ text = "Are you sure you want to skip setup?",
-		buttons = { { "Yes, skip", function() Wizard.Finish(false) end }, { "No, go on" } } })
+	OV.Panel.Dialog({ text = "Are you sure you want to skip setup?", width = 300, height = 110,
+		buttons = { { "No" }, { "Yes", function() Wizard.Finish(false) end } } })
 end
 
 -- Close it. `finished` is the Finish button; any other way of closing it is the same as far as coming back is concerned.

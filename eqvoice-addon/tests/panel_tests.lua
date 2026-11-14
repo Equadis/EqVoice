@@ -144,7 +144,7 @@ do
 	-- who is near
 	m = with(8, "level=ok mode=open mute=0 deaf=0 tx=1 talk=0 vol=80 near=3 conn=2 key=F9 mic=ok",
 		{ peers = { "Alice 12.5 1 1 direct", "Bob 30.0 0 0 -", "Cy 41.0 1 0 relay", "Di 5.0 1 0 direct", "Ed 6.0 1 0 direct", "Fy 7.0 1 0 direct" } })
-	eq(m.nrows, 5, "five rows"); eq(m.extra, 1, "and a count of the rest")
+	eq(m.nrows, 6, "every player nearby is a row"); eq(m.extra, 1, "one more than the list shows: it scrolls")
 	eq(m.rows[1].info, "13 yd  speaking", "a speaking player: " .. m.rows[1].info)
 	eq(m.rows[2].info, "30 yd  connecting", "not yet connected")
 	eq(m.rows[3].info, "41 yd  relay", "through a relay")

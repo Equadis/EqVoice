@@ -44,7 +44,7 @@ Panel.REPLAY_S  = 0.3        -- seconds between the saved settings handed to the
 Panel.REMEMBER  = { mode = true, volume = true, input = true, gate = true, gatedb = true, key = true, micdev = true, spkdev = true, spatial = true }
 Panel.REPLAY_ORDER = { "micdev", "spkdev", "mode", "volume", "input", "spatial", "gate", "gatedb", "key" }
 Panel.SPATIAL_LABEL = { mono = "Mono", speakers = "Speakers", headphones = "Headphones" }
-Panel.SPATIAL_ORDER = { "mono", "speakers", "headphones" }
+Panel.SPATIAL_ORDER = { "headphones", "speakers", "mono" }
 Panel.CAPTURE_S = 10         -- seconds "press a key" waits
 Panel.ART       = "Interface\\AddOns\\EqVoice\\"     -- MicroUp, MicroDown, MicGlyph, MicSlash (.tga), drawn by tools/make_micro_art.py
 Panel.BTN_W     = 28                                   -- the size of the client's own micro buttons
@@ -210,7 +210,7 @@ function Panel.Model(now)
 	else m.badge, m.color = "MIC ON", COLORS.ok end
 	-- who is near
 	m.rows = {}
-	for i = 1, math.min(Panel.ROWS, S.npeers) do
+	for i = 1, S.npeers do
 		local p = S.peers[i]
 		local key = string.lower(p.name)
 		local muted = pick("pm:" .. key, (p.muted or S.muted[key]) and true or false, now)
@@ -222,11 +222,11 @@ function Panel.Model(now)
 		if p.path == "relay" then info = info .. "  relay" end
 		if muted then info = info .. "  muted" end
 		if blocked then info = info .. "  blocked" end
-		m.rows[i] = { name = p.name, info = info, live = p.connected, speaking = p.speaking, muted = muted, blocked = blocked, vol = vol,
+		m.rows[i] = { name = p.name, key = key, info = info, live = p.connected, speaking = p.speaking, muted = muted, blocked = blocked, vol = vol,
 			state = OV.Icons and OV.Icons.Resolve(p.name, now) or nil }
 	end
 	m.nrows = table.getn(m.rows)
-	m.extra = S.npeers - m.nrows
+	m.extra = math.max(0, m.nrows - Panel.ROWS)                                       -- more players than rows: the list scrolls
 	m.nmuted = S.nmuted
 	return m
 end
@@ -878,12 +878,15 @@ local function newRow(parent, i, y)
 	b:SetHeight(15)
 	b:SetPoint("TOPLEFT", parent, "TOPLEFT", 24, y)
 	b:RegisterForClicks("LeftButtonUp")
-	b:SetHighlightTexture(WHITE)
-	local hl = b:GetHighlightTexture()
-	if hl then
-		hl:SetVertexColor(THEME.accent[1], THEME.accent[2], THEME.accent[3], 0.25)
-		if hl.SetBlendMode then hl:SetBlendMode("ADD") end
-	end
+	b.sel = b:CreateTexture(nil, "BACKGROUND")                                -- the glow of the row whose player's settings are open (no glow just for the mouse)
+	b.sel:SetTexture(WHITE)
+	b.sel:SetVertexColor(THEME.accent[1], THEME.accent[2], THEME.accent[3], 0.25)
+	b.sel:SetWidth(432)
+	b.sel:SetHeight(15)
+	b.sel:SetPoint("TOPLEFT", b, "TOPLEFT", 0, 0)
+	b.sel:Hide()
+	b:EnableMouseWheel(true)
+	b:SetScript("OnMouseWheel", function() Panel.ScrollNearby((arg1 or 0) > 0 and -1 or 1) end)
 	b.icon = OV.Icons.New(b, 14)
 	b.nameText = b:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
 	styleText(b.nameText, 12)
@@ -976,8 +979,9 @@ function Panel.NewMeter(parent, x, y, w)
 	fill:SetHeight(8)
 	fill:SetWidth(1)
 	fill:SetPoint("TOPLEFT", parent, "TOPLEFT", x, y)
-	local meter = { bg = bg, fill = fill, w = w, pct = 0, shownPct = 0 }
+	local meter = { bg = bg, fill = fill, w = w, pct = 0, shownPct = 0, hidden = false }
 	local function draw()
+		if meter.hidden then return end
 		local pct = meter.shownPct
 		fill:SetWidth(math.max(1, w * pct / 100))
 		local c = (pct >= 92) and PC.bad or ((pct >= 75) and PC.warn or THEME.green)
@@ -993,7 +997,7 @@ function Panel.NewMeter(parent, x, y, w)
 	do                                                                           -- the reading comes ten or twenty times a second: ease between readings every frame
 		local ef = CreateFrame("Frame", nil, parent)
 		ef:SetScript("OnUpdate", function()
-			if meter.shownPct == meter.pct then return end
+			if meter.hidden or meter.shownPct == meter.pct then return end
 			local k = (meter.pct > meter.shownPct) and 0.04 or 0.14
 			meter.shownPct = meter.shownPct + (meter.pct - meter.shownPct) * (1 - math.exp(-(arg1 or 0.02) / k))
 			if math.abs(meter.pct - meter.shownPct) < 0.3 then meter.shownPct = meter.pct end
@@ -1001,8 +1005,8 @@ function Panel.NewMeter(parent, x, y, w)
 		end)
 		meter.frame = ef
 	end
-	function meter.Show() bg:Show(); if meter.pct > 0 then fill:Show() end end
-	function meter.Hide() bg:Hide(); fill:Hide() end
+	function meter.Show() meter.hidden = false; bg:Show(); draw() end
+	function meter.Hide() meter.hidden = true; bg:Hide(); fill:Hide() end
 	meter.Set(0)
 	return meter
 end
@@ -1240,14 +1244,17 @@ function Panel.Build()
 	local lab3 = newText(f, "GameFontHighlightSmall", 24, -458, 100, 14)
 	lab3:SetText("Sound")
 	f.bSpatial = {}
-	for i = 1, 3 do
-		local mode = Panel.SPATIAL_ORDER[i]
-		f.bSpatial[mode] = newButton(f, "EqVoicePanelSound" .. i, Panel.SPATIAL_LABEL[mode], (i == 3) and 114 or 100, 128 + (i - 1) * 102, -452, function() Panel.SetSpatial(mode) end, 26)
+	do
+		local widths, xs = { 114, 100, 100 }, { 128, 244, 346 }                  -- left to right: Headphones, Speakers, Mono
+		for i = 1, 3 do
+			local mode = Panel.SPATIAL_ORDER[i]
+			f.bSpatial[mode] = newButton(f, "EqVoicePanelSound" .. i, Panel.SPATIAL_LABEL[mode], widths[i], xs[i], -452, function() Panel.SetSpatial(mode) end, 26)
+		end
 	end
 
 	-- Nearby players, the overhead icons and the blocklist
 	heading(f, "Nearby", -502)
-	f.nearHint = newText(f, "GameFontDisableSmall", 104, -505, 130, 12)
+	f.nearHint = newText(f, "GameFontDisableSmall", 104, -505, 124, 12)
 	f.nearHint:SetText("click a name")
 	f.bOverhead = newButton(f, "EqVoicePanelOverhead", "Overhead icons: On", 132, 228, -500, function() Panel.SetOverhead(not Panel.OverheadOn()) end, 24)
 	f.bBlock = newButton(f, "EqVoicePanelBlock", "Blocklist", 88, 368, -500, function() Panel.ToggleBlocklist() end, 24)
@@ -1256,6 +1263,27 @@ function Panel.Build()
 		local row = newRow(f, i, -532 - (i - 1) * 16)
 		f.rows[i], f.rowName[i], f.rowInfo[i] = row, row.nameText, row.infoText
 	end
+	f.nearArea = CreateFrame("Frame", nil, f)                                -- the whole list area takes the wheel, rows or not
+	f.nearArea:SetWidth(440)
+	f.nearArea:SetHeight(84)
+	f.nearArea:SetPoint("TOPLEFT", f, "TOPLEFT", 20, -530)
+	f.nearArea:EnableMouse(true)
+	f.nearArea:EnableMouseWheel(true)
+	f.nearArea:SetScript("OnMouseWheel", function() Panel.ScrollNearby((arg1 or 0) > 0 and -1 or 1) end)
+	f.nearTrack = f:CreateTexture(nil, "ARTWORK")
+	f.nearTrack:SetTexture(WHITE)
+	f.nearTrack:SetVertexColor(THEME.track[1], THEME.track[2], THEME.track[3], 1)
+	f.nearTrack:SetWidth(3)
+	f.nearTrack:SetHeight(Panel.ROWS * 16 - 2)
+	f.nearTrack:SetPoint("TOPLEFT", f, "TOPLEFT", 462, -532)
+	f.nearTrack:Hide()
+	f.nearThumb = f:CreateTexture(nil, "OVERLAY")
+	f.nearThumb:SetTexture(WHITE)
+	f.nearThumb:SetVertexColor(THEME.accent[1], THEME.accent[2], THEME.accent[3], 1)
+	f.nearThumb:SetWidth(3)
+	f.nearThumb:SetHeight(20)
+	f.nearThumb:SetPoint("TOPLEFT", f, "TOPLEFT", 462, -532)
+	f.nearThumb:Hide()
 	f.nobody = newText(f, "GameFontHighlightSmall", 24, -536, 432, 14)
 	f.nobody2 = newText(f, "GameFontDisableSmall", 24, -554, 432, 12)
 	f.muteNote = newText(f, "GameFontDisableSmall", 24, -616, 432, 12)
@@ -1274,8 +1302,6 @@ function Panel.Dialog(opts)
 	local ok, err = pcall(function()
 		if not Panel.dialog then
 			local f = CreateFrame("Frame", "EqVoiceDialog", UIParent)
-			f:SetWidth(380)
-			f:SetHeight(170)
 			f:SetFrameStrata("FULLSCREEN_DIALOG")
 			f:SetFrameLevel(60)
 			f:EnableMouse(true)
@@ -1283,9 +1309,9 @@ function Panel.Dialog(opts)
 			paint(f, THEME.bg, THEME.edge)
 			f:SetPoint("CENTER", UIParent, "CENTER", 0, 60)
 			f:Hide()
-			f.text = newText(f, "GameFontHighlight", 24, -22, 332, 64, "CENTER")
+			f.text = newText(f, "GameFontHighlight", 20, -20, 340, 40, "CENTER")
 			f.btn = {}
-			for i = 1, 2 do f.btn[i] = newButton(f, "EqVoiceDialogButton" .. i, "", 120, 24, -124, function() end, 28) end
+			for i = 1, 2 do f.btn[i] = newButton(f, "EqVoiceDialogButton" .. i, "", 90, 24, -124, function() end, 26) end
 			f.cb = newButton(f, "EqVoiceDialogCheck", "", 18, 24, -96, function() end, 18)
 			f.cb.mark = f.cb:CreateTexture(nil, "OVERLAY")
 			f.cb.mark:SetTexture(WHITE)
@@ -1297,15 +1323,25 @@ function Panel.Dialog(opts)
 			Panel.dialog = f
 		end
 		local f = Panel.dialog
+		local w, h = opts.width or 380, opts.height or 170
+		f:SetWidth(w)
+		f:SetHeight(h)
+		f.rbox.rad = nil                                                       -- (the rounded background is laid out again for the new size)
+		paint(f, THEME.bg, THEME.edge)
+		f.text:ClearAllPoints()
+		f.text:SetPoint("TOPLEFT", f, "TOPLEFT", 20, -20)
+		f.text:SetWidth(w - 40)
 		f.text:SetText(opts.text or "")
 		local nb = table.getn(opts.buttons)
+		local by = -(h - 42)
 		for i = 1, 2 do
 			local b = f.btn[i]
 			local spec = opts.buttons[i]
 			if spec then
 				b:ClearAllPoints()
-				b:SetPoint("TOPLEFT", f, "TOPLEFT", (nb == 1) and 130 or (24 + (i - 1) * 172), -124)
-				b:SetWidth((nb == 1) and 120 or 160)
+				if nb == 1 then b:SetPoint("TOPLEFT", f, "TOPLEFT", (w - 90) / 2, by)
+				elseif i == 1 then b:SetPoint("TOPLEFT", f, "TOPLEFT", (w - 200) / 2, by)
+				else b:SetPoint("TOPLEFT", f, "TOPLEFT", (w - 200) / 2 + 110, by) end             -- the last button is on the right
 				buttonText(b, spec[1])
 				b:SetScript("OnClick", safe(function() f:Hide(); if spec[2] then spec[2](f.cb.checked) end end))
 				b:Show()
@@ -1316,6 +1352,10 @@ function Panel.Dialog(opts)
 		f.cb.checked = false
 		f.cb.mark:Hide()
 		if opts.check then
+			f.cb:ClearAllPoints()
+			f.cb:SetPoint("TOPLEFT", f, "TOPLEFT", 24, by + 30)
+			f.cbText:ClearAllPoints()
+			f.cbText:SetPoint("TOPLEFT", f, "TOPLEFT", 48, by + 27)
 			f.cb:SetScript("OnClick", safe(function()
 				f.cb.checked = not f.cb.checked
 				if f.cb.checked then f.cb.mark:Show() else f.cb.mark:Hide() end
@@ -1349,6 +1389,20 @@ function Panel.CheckDeafWarning(now)
 		if Panel.dialog.cb.checked and OV.db and OV.db.ui then OV.db.ui.deafNoWarn = true end
 		Panel.dialog:Hide()
 	end))
+end
+
+Panel.nearOffset = 0
+
+-- The nearby list, a few rows at a time: the mouse wheel moves what is drawn (a ScrollFrame is not used: it hid the whole window on this client once).
+function Panel.ScrollNearby(delta)
+	local m = Panel.model
+	local most = math.max(0, (m and m.nrows or 0) - Panel.ROWS)
+	local v = OV.clamp(Panel.nearOffset + delta, 0, most)
+	if v ~= Panel.nearOffset then
+		Panel.nearOffset = v
+		Panel.dirty = true
+		if Panel.frame and m then Panel.Refresh() end
+	end
 end
 
 function Panel.OverheadOn()
@@ -1756,8 +1810,10 @@ local function applyModel(f, m)
 	for i = 1, table.getn(list) do setEnabled(list[i], m.alive) end
 	for mode, b in pairs(f.bSpatial) do setEnabled(b, m.alive) end
 	f.sIn.Enable(m.alive); f.sVol.Enable(m.alive)
+	Panel.nearOffset = OV.clamp(Panel.nearOffset, 0, math.max(0, m.nrows - Panel.ROWS))
+	local playerOpen = Panel.player and Panel.player:IsShown() and Panel.playerWho
 	for i = 1, Panel.ROWS do
-		local r = m.rows[i]
+		local r = m.rows[Panel.nearOffset + i]
 		local row = f.rows[i]
 		if r then
 			f.rowName[i]:SetText(r.name)
@@ -1765,24 +1821,31 @@ local function applyModel(f, m)
 			f.rowInfo[i]:SetText(r.info)
 			setColor(f.rowInfo[i], (r.muted or r.blocked) and PC.bad or (r.speaking and PC.talk or THEME.muted))
 			row.who, row.state, row.muted = r.name, r.state, r.muted
+			if playerOpen and r.key == playerOpen then row.sel:Show() else row.sel:Hide() end
 			OV.Icons.Set(row.icon, OV.Icons.Enabled() and r.state or nil)
 			if row.icon.state then OV.Icons.PlaceAfter(row.icon, row.nameText, 120) end        -- the icon is to the right of the name
 		else
 			f.rowName[i]:SetText("")
 			f.rowInfo[i]:SetText("")
 			row.who, row.state, row.muted = nil, nil, nil
+			row.sel:Hide()
 			OV.Icons.Set(row.icon, nil)
 		end
 	end
 	f.nobody2:SetText("")
-	if m.nrows == 0 then
-		f.nobody:SetText(m.alive and "Nobody in range is using EqVoice." or "")
-		f.nobody2:SetText(m.alive and "Players near you who have EqVoice appear here." or "")
-	elseif m.extra > 0 then
-		f.nobody:SetText("")
-		f.rowInfo[Panel.ROWS]:SetText(m.rows[Panel.ROWS].info .. "  (+" .. m.extra .. " more)")
+	f.nobody:SetText((m.nrows == 0 and m.alive) and "Nobody in range is using EqVoice." or "")
+	if m.extra > 0 then                                                          -- more players than rows: a thin bar says where in the list you are
+		local most = m.extra
+		f.nearTrack:Show()
+		local th = math.max(10, math.floor((Panel.ROWS * 16 - 2) * Panel.ROWS / m.nrows))
+		f.nearThumb:SetHeight(th)
+		f.nearThumb:ClearAllPoints()
+		f.nearThumb:SetPoint("TOPLEFT", f, "TOPLEFT", 462, -532 - math.floor((Panel.ROWS * 16 - 2 - th) * Panel.nearOffset / most))
+		f.nearThumb:Show()
+		f.nearHint:SetText(string.format("%d-%d of %d: scroll", Panel.nearOffset + 1, math.min(m.nrows, Panel.nearOffset + Panel.ROWS), m.nrows))
 	else
-		f.nobody:SetText("")
+		f.nearTrack:Hide(); f.nearThumb:Hide()
+		f.nearHint:SetText("click a name")
 	end
 	buttonText(f.bBlock, m.nmuted > 0 and string.format("Blocklist (%d)", m.nmuted) or "Blocklist")
 	f.muteNote:SetText("")
