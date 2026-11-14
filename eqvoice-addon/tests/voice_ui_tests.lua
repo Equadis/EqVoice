@@ -117,10 +117,10 @@ do
 	put(OV, 1)
 	local m = P.Model(Stub.now)
 	eq(m.sp, "headphones", "the sound mode from the app (headphones by default)"); eq(m.gate, "auto", "gate from the app"); eq(m.gdb, -48, "the manual bar")
-	eq(m.dkeep, false, "not deafened with the microphone open"); eq(m.mt, false, "no microphone test")
-	put(OV, 2, { fields = "level=ok mode=ptt mute=0 deaf=1 dk=1 sp=speakers mt=1 tx=0 talk=0 vol=100 near=0 conn=0 key=Mouse_4 mic=ok gate=manual gdb=-52" })
+	eq(m.mt, false, "no microphone test")
+	put(OV, 2, { fields = "level=ok mode=ptt mute=0 deaf=1 sp=speakers mt=1 tx=0 talk=0 vol=100 near=0 conn=0 key=Mouse_4 mic=ok gate=manual gdb=-52" })
 	m = P.Model(Stub.now)
-	eq(m.sp, "speakers", "a new sound mode"); eq(m.dkeep, true, "the other deafen"); eq(m.mt, true, "the test running"); eq(m.gate, "manual", "a new gate"); eq(m.gdb, -52, "a new bar"); eq(m.key, "Mouse 4", "the key")
+	eq(m.sp, "speakers", "a new sound mode"); eq(m.mt, true, "the test running"); eq(m.gate, "manual", "a new gate"); eq(m.gdb, -52, "a new bar"); eq(m.key, "Mouse 4", "the key")
 	put(OV, 3, { fields = "level=ok mode=open mute=0 deaf=0 tx=1 talk=0 vol=100 near=0 conn=0 key=F9 mic=ok sp=nonsense gate=nonsense" })
 	m = P.Model(Stub.now)
 	eq(m.sp, "headphones", "an unknown sound mode is not shown as real"); eq(m.gate, "auto", "nor an unknown gate")
@@ -167,7 +167,6 @@ do
 	s("sound speakers"); eq(lastSent(OV), "spatial speakers", "/eqvc sound speakers")
 	s("sound MONO"); eq(lastSent(OV), "spatial mono", "upper case works")
 	s("sound wat"); check(chatHas("usage: /eqvc sound"), "an unknown sound mode explains itself")
-	s("deafen mic"); eq(lastSent(OV), "deafen 2", "/eqvc deafen mic: deafened, microphone open")
 	s("deafen"); eq(lastSent(OV), "deafen 1", "/eqvc deafen: deafened, microphone closed")
 	s("undeafen"); eq(lastSent(OV), "deafen 0", "/eqvc undeafen")
 	s("mictest"); eq(lastSent(OV), "mictest 1", "/eqvc mictest")
@@ -224,7 +223,7 @@ do
 	-- the sensitivity: ONE bar (the live meter and the noise gate together), and three buttons for the mode
 	eq(f.meter, f.sGate, "the meter is the gate's bar: there is no second one")
 	eq(f.bGAuto.highlight, true, "the gate is on Auto"); eq(f.bGManual.highlight, false, "not Manual"); eq(f.bGOff.highlight, false, "not Off")
-	check(f.bGManual.pt[4] < f.bGAuto.pt[4] and f.bGAuto.pt[4] < f.bGOff.pt[4], "the modes read Manual, Auto, Off from the left")
+	check(f.bGAuto.pt[4] < f.bGManual.pt[4] and f.bGManual.pt[4] < f.bGOff.pt[4], "the modes read Auto, Manual, Off from the left")
 	eq(f.sGate.mode, "auto", "the bar knows its mode"); eq(f.sGate.enabled, false, "and in automatic mode the handle cannot be dragged")
 	Stub.Click(f.bGManual); Stub.Advance(0.25)
 	eq(lastSent(OV), "gate manual", "Manual goes to manual"); eq(f.bGManual.highlight, true, "and lights"); eq(f.sGate.thr, -48, "the handle is at the bar")
@@ -503,16 +502,36 @@ do
 	-- the two deafens and the microphone test: what the buttons say
 	Stub.Click(EqVoiceIndicator, "LeftButton")
 	local f = EqVoicePanel
-	put(OV, 2, { fields = "level=ok mode=open mute=0 deaf=1 dk=0 tx=0 talk=0 vol=100 near=0 conn=0 key=F9 mic=ok gate=auto gdb=-48" })
-	eq(f.bDeaf.text, "Undeafen", "deafened"); eq(f.bDeaf.highlight, true, "Deafen is lit"); eq(f.bMute.highlight, true, "and the microphone button too: a normal deafen closes the microphone")
-	eq(f.bDeafKeep.highlight, false, "the other deafen is not")
-	put(OV, 3, { fields = "level=ok mode=open mute=0 deaf=1 dk=1 tx=1 talk=0 vol=100 near=0 conn=0 key=F9 mic=ok gate=auto gdb=-48" })
-	eq(f.bDeafKeep.highlight, true, "the other deafen (hear nobody, still heard) is lit"); eq(f.bDeaf.highlight, false, "Deafen is not"); eq(f.bMute.highlight, false, "and the microphone button is not: the microphone is open")
-	Stub.Click(f.bDeafKeep); eq(lastSent(OV), "deafen 0", "the arrow again undeafens")
-	put(OV, 4, { fields = "level=ok mode=open mute=0 deaf=0 dk=0 tx=1 talk=0 vol=100 near=0 conn=0 key=F9 mic=ok gate=auto gdb=-48" })
-	Stub.Click(f.bDeafKeep); eq(lastSent(OV), "deafen 2", "the arrow deafens with the microphone left open")
-	put(OV, 5, { fields = "level=ok mode=open mute=0 deaf=0 dk=0 tx=1 talk=0 vol=100 near=0 conn=0 key=F9 mic=ok gate=auto gdb=-48" })
-	Stub.Click(f.bDeaf); eq(lastSent(OV), "deafen 1", "Deafen closes the microphone too")
+	put(OV, 2, { fields = "level=ok mode=open mute=1 deaf=1 tx=0 talk=0 vol=100 near=0 conn=0 key=F9 mic=ok gate=auto gdb=-48" })
+	eq(f.bDeaf.text, "Undeafen", "deafened"); eq(f.bDeaf.highlight, true, "Deafen is lit"); eq(f.bMute.highlight, true, "and so is the microphone button: deafening mutes the microphone")
+	check(f.bDeafKeep == nil, "there is one Deafen button, no second arrow")
+	check(OV.Panel.dialog == nil or not OV.Panel.dialog.shown, "deafened and muted: nothing to warn about")
+	Stub.Click(f.bDeaf); eq(lastSent(OV), "deafen 0", "Undeafen")
+	put(OV, 4, { fields = "level=ok mode=open mute=0 deaf=0 tx=1 talk=0 vol=100 near=0 conn=0 key=F9 mic=ok gate=auto gdb=-48" })
+	Stub.Click(f.bDeaf); eq(lastSent(OV), "deafen 1", "Deafen")
+	Stub.Advance(0.25)
+	check(OV.Panel.dialog == nil or not OV.Panel.dialog.shown, "no warning while the app has not yet answered (the microphone is about to be muted)")
+	put(OV, 5, { fields = "level=ok mode=open mute=1 deaf=1 tx=0 talk=0 vol=100 near=0 conn=0 key=F9 mic=ok gate=auto gdb=-48" })
+	Stub.Advance(4)
+	check(OV.Panel.dialog == nil or not OV.Panel.dialog.shown, "deafened with the microphone muted: still nothing")
+	-- you unmute while deafened: they hear you, and a window in the middle of the screen says so
+	put(OV, 6, { fields = "level=ok mode=open mute=0 deaf=1 tx=1 talk=0 vol=100 near=0 conn=0 key=F9 mic=ok gate=auto gdb=-48" })
+	Stub.Advance(1)
+	local dlg = OV.Panel.dialog
+	check(dlg ~= nil and dlg.shown, "the warning is up"); eq(dlg.text.text, "You are deafened but still sending your voice to nearby players.", "in these words")
+	eq(dlg.btn[1].text, "Okay", "with an Okay button"); eq(dlg.cbText.text, "Don't show again", "and a box"); eq(dlg.cb.shown, true, "")
+	Stub.Click(dlg.btn[1]); eq(dlg.shown, false, "Okay closes it")
+	Stub.Advance(2); eq(dlg.shown, false, "and it is not shown again for the same deafen")
+	eq(OV.db.ui.deafNoWarn, nil, "(the box was not ticked: it will come back next time)")
+	put(OV, 7, { fields = "level=ok mode=open mute=1 deaf=1 tx=0 talk=0 vol=100 near=0 conn=0 key=F9 mic=ok gate=auto gdb=-48" }); Stub.Advance(1)
+	put(OV, 8, { fields = "level=ok mode=open mute=0 deaf=1 tx=1 talk=0 vol=100 near=0 conn=0 key=F9 mic=ok gate=auto gdb=-48" }); Stub.Advance(1)
+	check(dlg.shown, "muted and unmuted again while deafened: warned again")
+	Stub.Click(dlg.cb); eq(dlg.cb.checked, true, "ticked"); Stub.Click(dlg.btn[1])
+	eq(OV.db.ui.deafNoWarn, true, "Don't show again is kept")
+	put(OV, 9, { fields = "level=ok mode=open mute=1 deaf=1 tx=0 talk=0 vol=100 near=0 conn=0 key=F9 mic=ok gate=auto gdb=-48" }); Stub.Advance(1)
+	put(OV, 10, { fields = "level=ok mode=open mute=0 deaf=1 tx=1 talk=0 vol=100 near=0 conn=0 key=F9 mic=ok gate=auto gdb=-48" }); Stub.Advance(1)
+	eq(dlg.shown, false, "and it stays away")
+	put(OV, 11, { fields = "level=ok mode=open mute=0 deaf=0 tx=1 talk=0 vol=100 near=0 conn=0 key=F9 mic=ok gate=auto gdb=-48" })
 	-- the test
 	put(OV, 6, { fields = "level=ok mode=open mute=0 deaf=0 tx=0 talk=0 vol=100 near=0 conn=0 key=F9 mic=ok gate=auto gdb=-48 mt=0" })
 	eq(f.bTestMic.text, "Test Microphone", "the test button"); eq(f.bTestMic.highlight, false, "")
@@ -530,6 +549,39 @@ do
 	put(OV, 9, { fields = "level=ok mode=open mute=0 deaf=0 tx=1 talk=0 vl=1 vol=100 near=0 conn=0 key=F9 mic=ok gate=auto gdb=-48 gl=-35 gt=-52 go=1" })
 	eq(f.sGate.loud, false, "an ordinary voice: amber and green again")
 	eq(P.error, nil, "no drawing error")
+end
+
+-- ===================================================================== the setup box (0.4.2)
+sec("voice ui: the setup box holds your microphone closed, words and order, Skip above Next")
+do
+	local OV = login()
+	put(OV, 1)
+	OV.Wizard.Show(1)
+	local f = EqVoiceWizard
+	Stub.Advance(0.5)
+	local ctl = Stub.fs["eqvoice-ctl-Me.txt"] or ""
+	check(string.find(ctl, " hold 1", 1, true), "while the setup is open the app is told to keep your microphone closed: nobody hears you set it up")
+	local n1 = table.getn(sent_all(OV))
+	Stub.Advance(7)
+	check(table.getn(sent_all(OV)) > n1, "and it is told again every few seconds (the app lets go by itself ten seconds after the last word)")
+	check(f.bSkip.pt[5] > f.bNext.pt[5], "Skip is above Next")
+	check(f.bSkip.pt[4] == f.bNext.pt[4], "on the same side")
+	check(string.find(f.pages[1][1].text, "EqVoice adds opt-in proximity voice chat to WoW.", 1, true) == 1, "page 1")
+	OV.Wizard.Go(2); eq(f.pages[2][1].text, "Select input device", "page 2")
+	OV.Wizard.Go(3); eq(f.pages[3][1].text, "Select output device", "page 3")
+	OV.Wizard.Go(4); eq(f.pages[4][1].text, "EqVoice features directional audio. Headphones are recommended.", "page 4")
+	check(f.pages[4].headphones.pt[5] > f.pages[4].speakers.pt[5] and f.pages[4].speakers.pt[5] > f.pages[4].mono.pt[5], "Headphones, Speakers, Mono: in that order from the top")
+	local Wz = OV.Wizard
+	put(OV, 2)
+	Wz.Show(1)
+	Stub.Click(f.bSkip); Stub.Click(OV.Panel.dialog.btn[2])
+	eq(f.shown, true, "No, go on: still open")
+	Stub.Click(f.bSkip); Stub.Click(OV.Panel.dialog.btn[1])
+	check(string.find(Stub.fs["eqvoice-ctl-Me.txt"] or "", " hold 0", 1, true), "closing the box lets the microphone go")
+	-- the x asks too
+	Wz.Show(1); Stub.Click(f.bClose or f.closeBtn or EqVoiceWizardClose)
+	check(OV.Panel.dialog.shown and OV.Panel.dialog.text.text == "Are you sure you want to skip setup?", "the x asks the same question")
+	eq(OV.Panel.error, nil, "no drawing error")
 end
 
 -- ===================================================================== changing the key
@@ -699,7 +751,8 @@ do
 	pa.nameText:SetText("Alice"); Stub.Advance(0.5)
 	eq(I.plates[1].icon.state, "s", "but the plates keep working")
 	check(OV.started and OV.Panel.error == nil, "and nothing else was disturbed")
-	eq(Stub.fs["eqvoice-ctl-Me.txt"], nil, "(and no command was sent by any of this)")
+	local ctl = Stub.fs["eqvoice-ctl-Me.txt"] or ""
+	check(not string.find(ctl, " mode ") and not string.find(ctl, " mute ") and not string.find(ctl, " pmute ") and not string.find(ctl, " gate "), "(and no setting was changed by any of this: only the setup box keeping the microphone closed)")
 end
 
 sec("voice ui: the icon sits after the words wherever they are aligned, on the text the player sees, and a click opens the panel")
@@ -1069,8 +1122,10 @@ do
 	-- push to talk
 	Stub.Click(f.bNext)
 	eq(f.title.text, "Push to talk", ""); app()
-	eq(f.pages[5].keytext.text, "Push-to-talk key: F9", "it shows the key that is bound now")
-	Stub.Click(f.pages[5].ptt); eq(lastSent(OV), "mode ptt", "push to talk")
+	eq(f.pages[5].keytext.text, "Toggle mute key: F9", "with an open microphone the key mutes and unmutes: it is called that")
+	eq(f.pages[5].key.text, "Change hotkey binding", "and the button says what it does")
+	Stub.Click(f.pages[5].ptt); eq(lastSent(OV), "mode ptt", "push to talk"); Stub.Advance(0.25)
+	eq(f.pages[5].keytext.text, "Push-to-talk key: F9", "with push to talk it is the push-to-talk key")
 	Stub.Click(f.pages[5].open); eq(lastSent(OV), "mode open", "open microphone")
 	Stub.Click(f.pages[5].key); Stub.Advance(0.25)
 	check(P.capturing, "the key button listens for the next key"); check(string.find(f.pages[5].keytext.text, "Press the key", 1, true), f.pages[5].keytext.text)
@@ -1121,7 +1176,11 @@ do
 	local f = EqVoiceWizard
 	check(f and f.shown, "it opened")
 	Stub.Click(f.bSkip)
-	eq(f.shown, false, "Skip closes it"); eq(OV.db.ui.setupDone, true, "for good")
+	local dg = OV.Panel.dialog
+	check(dg and dg.shown and dg.text.text == "Are you sure you want to skip setup?", "Skip asks first")
+	Stub.Click(dg.btn[2]); eq(f.shown, true, "No, go on: the setup stays open")
+	Stub.Click(f.bSkip); Stub.Click(dg.btn[1])
+	eq(f.shown, false, "Yes, skip closes it"); eq(OV.db.ui.setupDone, true, "for good")
 	-- a new login with the saved setting: it never opens
 	local db = OV.db
 	local OV2 = Stub.Login({ db = db, fileApi = "WriteCustomFile", classic = true })

@@ -81,7 +81,7 @@ def test_block_stops_your_microphone_going_to_that_player_and_unblock_gives_it_b
     run(go(), 120)
 
 
-def test_deafen_closes_the_microphone_too_and_gives_back_your_own_mute_the_other_deafen_keeps_it_open(tmp_path):
+def test_deafen_mutes_the_microphone_itself_you_can_unmute_while_deafened_and_undeafening_gives_back_your_old_mute(tmp_path):
     async def go():
         async with Scene(tmp_path) as sc:
             a = await sc.add("Alice", at=(0, 0))
@@ -90,28 +90,48 @@ def test_deafen_closes_the_microphone_too_and_gives_back_your_own_mute_the_other
             a._on_ui({"cmd": "set_mode", "mode": "open"})
             await until(lambda: a.tx_enabled, 5, "transmitting")
             send(game, ("deafen", "1"))
-            await until(lambda: a.cfg.audio.deafened and not a.tx_enabled, 5, "deafened: the microphone is closed with it")
-            await until(lambda: pa.named("tx") and pa.named("tx")[-1]["enabled"] is False and pa.named("deafen")[-1]["value"] is True, 5, "the page is told: line closed, hearing off")
-            await until(lambda: read_status(game).fields["deaf"] == "1" and read_status(game).fields["dk"] == "0", 5, "the game is told: normal deafen")
+            await until(lambda: a.cfg.audio.deafened and a.cfg.audio.muted and not a.tx_enabled, 5, "deafened: the microphone is muted with it")
+            await until(lambda: pa.named("tx") and pa.named("tx")[-1]["enabled"] is False and pa.named("deafen")[-1]["value"] is True, 5, "the page: line closed, hearing off")
+            await until(lambda: read_status(game).fields["deaf"] == "1" and read_status(game).fields["mute"] == "1", 5, "the game is told: both")
+            send(game, ("mute", "0"))                                   # you unmute while deafened
+            await until(lambda: a.tx_enabled and a.cfg.audio.deafened, 5, "still deafened, and now they hear you")
+            assert pa.named("deafen")[-1]["value"] is True, "you still hear nobody"
+            await until(lambda: read_status(game).fields["deaf"] == "1" and read_status(game).fields["mute"] == "0", 5, "the game sees deafened with the microphone on (that is when it warns)")
             send(game, ("deafen", "0"))
-            await until(lambda: not a.cfg.audio.deafened and a.tx_enabled, 5, "undeafened: transmitting again")
-            send(game, ("deafen", "2"))
-            await until(lambda: a.cfg.audio.deafened and a.cfg.audio.deaf_keep_mic, 5, "the other deafen")
-            assert a.tx_enabled, "the microphone stays open: they still hear you"
-            await until(lambda: pa.named("deafen")[-1]["value"] is True and pa.named("tx")[-1]["enabled"] is True, 5, "you hear nobody, and the line stays open")
-            await until(lambda: read_status(game).fields["deaf"] == "1" and read_status(game).fields["dk"] == "1", 5, "the game is told which deafen")
-            send(game, ("deafen", "1"))
-            await until(lambda: not a.cfg.audio.deaf_keep_mic and not a.tx_enabled, 5, "switching to the normal deafen closes the microphone")
-            send(game, ("deafen", "0"))
-            # a microphone you had muted yourself stays muted through a deafen and after it
+            await until(lambda: not a.cfg.audio.deafened and a.tx_enabled, 5, "undeafened: the mute you had before (none) is back")
+            # a microphone you had muted yourself is muted again after a deafen
             send(game, ("mute", "1"))
             await until(lambda: a.cfg.audio.muted and not a.tx_enabled, 5, "muted")
-            send(game, ("deafen", "2"))
-            await until(lambda: a.cfg.audio.deafened, 5, "deafened, microphone open")
-            assert not a.tx_enabled, "but it was muted already: the deafen does not open it"
+            send(game, ("deafen", "1"))
+            await until(lambda: a.cfg.audio.deafened, 5, "deafened")
             send(game, ("deafen", "0"))
             await until(lambda: not a.cfg.audio.deafened, 5, "undeafened")
             assert a.cfg.audio.muted and not a.tx_enabled, "your own mute is exactly as you left it"
+            send(game, ("deafen", "1"), ("deafen", "1"))
+            await asyncio.sleep(0.5)
+            send(game, ("deafen", "0"))
+            await until(lambda: not a.cfg.audio.deafened, 5, "")
+            assert a.cfg.audio.muted, "deafening twice does not forget the mute you started from"
+    run(go(), 90)
+
+
+def test_the_setup_box_holds_the_microphone_closed_for_ten_seconds_at_a_time_and_lets_go_when_told(tmp_path):
+    async def go():
+        async with Scene(tmp_path) as sc:
+            a = await sc.add("Alice", at=(0, 0))
+            pa, game = sc.pages["Alice"], sc.games["Alice"]
+            await until(lambda: a.ui_control is not None, 10, "panel files")
+            a._on_ui({"cmd": "set_mode", "mode": "open"})
+            await until(lambda: a.tx_enabled, 5, "transmitting")
+            send(game, ("hold", "1"))
+            await until(lambda: not a.tx_enabled, 5, "the setup is open: nothing is transmitted")
+            assert a.cfg.audio.muted is False, "and nothing was muted: it is a hold, not a setting"
+            send(game, ("hold", "0"))
+            await until(lambda: a.tx_enabled, 5, "the setup closed: transmitting again")
+            send(game, ("hold", "1"))
+            await until(lambda: not a.tx_enabled, 5, "held again")
+            a.hold_until = a.clock() - 1                                 # the game stopped talking (it crashed, or was closed): the hold runs out by itself
+            await until(lambda: a.tx_enabled, 5, "ten seconds with no word and the microphone is free again: it can never stay stuck closed")
     run(go(), 90)
 
 
@@ -206,7 +226,7 @@ def test_the_direction_file_from_the_game_is_handed_to_the_page_as_it_changes_an
 
 def test_the_new_settings_have_defaults_and_old_config_files_get_them(tmp_path):
     cfg = Config.load(tmp_path / "x")
-    assert cfg.audio.spatial == "headphones" and cfg.audio.block_list == [] and cfg.audio.player_volume == {} and cfg.audio.deaf_keep_mic is False
+    assert cfg.audio.spatial == "headphones" and cfg.audio.block_list == [] and cfg.audio.player_volume == {} and cfg.audio.deaf_prev_muted is False
     (tmp_path / "old").mkdir()
     (tmp_path / "old" / "config.json").write_text(json.dumps({"audio": {"mode": "ptt", "peer_volume": {"a": 1.0}}}), encoding="utf-8")
     old = Config.load(tmp_path / "old")

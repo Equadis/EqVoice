@@ -216,6 +216,7 @@ class App:
                 self.peers.volumes[str(_n).strip().lower()] = max(0.0, min(2.0, float(_v)))
             except (TypeError, ValueError):
                 pass
+        self.hold_until = -100.0                        # the microphone is held closed until then (the setup renews it)
         self.mic_test = False                           # the microphone test: you hear yourself, nothing is sent (until it is stopped)
         self.bearings: dict = {}                        # lower-case name -> degrees from straight ahead (the game's direction file)
         self._dir_sig = None                            # (path, mtime_ns) of the direction file as last read
@@ -408,8 +409,9 @@ class App:
         a = self.cfg.audio
         if self.mic_test:
             return False                                # the microphone test: nothing leaves this PC
-        deaf = bool(a.deafened) and not bool(a.get("deaf_keep_mic", False))        # (deafened with the microphone kept open still transmits)
-        return (not a.muted) and (not deaf) and (a.mode == "open" or self.ptt_down)
+        if self.clock() < self.hold_until:
+            return False                                # the first-time setup is open: nobody hears it (renewed every few seconds by the game)
+        return (not a.muted) and (a.mode == "open" or self.ptt_down)         # (deafening mutes the microphone: see the deafen command)
 
     def _apply_voice(self) -> None:
         tx = self.tx_enabled
@@ -423,6 +425,7 @@ class App:
             if self.last_deaf is not None:
                 self._cue("deafen" if d else "undeafen")
             self.last_deaf = d
+            self.last_muted = bool(self.cfg.audio.muted)                 # (the mute that comes or goes with a deafen is part of its blip)
             self.media({"cmd": "deafen", "value": d})
         st = (not tx, d)
         if st != self.last_state:
@@ -719,7 +722,7 @@ class App:
         a = self.cfg.audio
         talking = self.tx_enabled and float(self.mic.get("level") or 0.0) > 0.05
         return {"level": summary["level"], "mode": a.mode, "mute": int(bool(a.muted)), "deaf": int(bool(a.deafened)),
-                "dk": int(bool(a.deafened) and bool(a.get("deaf_keep_mic", False))), "sp": self._spatial(), "mt": int(self.mic_test),
+                "sp": self._spatial(), "mt": int(self.mic_test),
                 "tx": int(self.tx_enabled), "talk": int(talking), "vl": self._self_voice_level(), "vol": int(round(float(a.master_volume) * 100)), "ing": int(round(self._input_gain() * 100)),
                 "near": self.peers.nearby_count(), "conn": self.peers.counts()["CONNECTED"], "key": a.ptt_label or "?",
                 "game": int(view.status == "live"), "hub": int(self.signalling.state == "registered"),
@@ -856,8 +859,10 @@ class App:
                 msg = {"cmd": "mute_player", "name": who, "value": flag == "1"} if flag in ("0", "1") else None
             elif cmd == "mute" and arg in ("0", "1"):
                 msg = {"cmd": cmd, "value": arg == "1"}
-            elif cmd == "deafen" and arg in ("0", "1", "2"):                    # 2: deafened with the microphone kept open
-                msg = {"cmd": "deafen", "value": arg != "0", "keep_mic": arg == "2"}
+            elif cmd == "deafen" and arg in ("0", "1"):
+                msg = {"cmd": "deafen", "value": arg == "1"}
+            elif cmd == "hold" and arg in ("0", "1"):                           # the setup box is open: the microphone stays closed to everyone
+                self.hold_until = self.clock() + 10.0 if arg == "1" else -100.0
             elif cmd == "pblock" and " " in arg.strip():
                 who, _, flag = arg.strip().rpartition(" ")
                 msg = {"cmd": "block_player", "name": who, "value": flag == "1"} if flag in ("0", "1") else None
@@ -1494,9 +1499,15 @@ class App:
         elif cmd == "mute":
             a.muted = bool(m.get("value"))
         elif cmd == "deafen":
-            a.deafened = bool(m.get("value"))
-            a.deaf_keep_mic = bool(a.deafened and m.get("keep_mic"))
-            trace("deafen", on=bool(a.deafened), microphone="open" if a.deaf_keep_mic else "closed")
+            on = bool(m.get("value"))
+            if on != bool(a.deafened):
+                if on:
+                    a.deaf_prev_muted = bool(a.muted)           # deafening mutes the microphone too ...
+                    a.muted = True
+                else:
+                    a.muted = bool(a.get("deaf_prev_muted", False))      # ... and undeafening gives back the mute state you had
+                a.deafened = on
+                trace("deafen", on=on, microphone_muted=bool(a.muted))
         elif cmd == "spatial" and m.get("value") in self.SPATIAL_MODES:
             a.spatial = m["value"]
             trace("spatial", mode=a.spatial)

@@ -57,7 +57,7 @@ DEFAULTS = {
         "block_list": [],         # players who never hear YOU: your microphone is not sent to them (lower-case character names)
         "player_volume": {},      # lower-case character name -> 0.0 .. 2.0: how loud that one player is for you (1.0 = as everyone else)
         "spatial": "headphones",  # where voices are heard from: mono | speakers | headphones
-        "deaf_keep_mic": False,   # deafened, but your microphone stays open: you hear nobody, they still hear you
+        "deaf_prev_muted": False, # whether your microphone was muted before you deafened (undeafening gives that back)
         "cues": True,             # a short blip when you mute, unmute, deafen or undeafen (including with the key, in the game)
         "peer_volume": {},
     },

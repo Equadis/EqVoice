@@ -149,7 +149,6 @@ function Panel.Model(now)
 	m.deaf = pick("deaf", f.deaf == "1", now)
 	m.vol  = pick("vol", tonumber(f.vol) or 100, now)
 	m.input = pick("ing", tonumber(f.ing) or 100, now)
-	m.dkeep = pick("dk", f.dk == "1", now)                                         -- deafened with the microphone left open
 	m.sp   = pick("sp", Panel.SPATIAL_LABEL[f.sp or ""] and f.sp or "headphones", now)
 	m.mt   = pick("mt", f.mt == "1", now)                                          -- the microphone test is running
 	m.gate = pick("gate", Panel.GATE_LABEL[f.gate or ""] and f.gate or "auto", now)
@@ -194,7 +193,7 @@ function Panel.Model(now)
 		m.text = (S.headline ~= "" and S.headline) or "EqVoice"
 		if S.nmore > 0 then m.text = m.text .. "  (" .. S.nmore .. " more problem" .. (S.nmore == 1 and "" or "s") .. ": see the EqVoice window)" end
 		m.hint = nil
-		if m.deaf and m.dkeep then m.text = m.text .. " Deafened: you hear nobody; they can still hear you."
+		if m.deaf and not m.mute then m.text = m.text .. " Deafened: you hear nobody, but your microphone is on."
 		elseif m.deaf then m.text = m.text .. " Deafened: you hear nobody and nobody hears you."
 		elseif m.mt then m.text = m.text .. " Testing your microphone: nobody hears you."
 		elseif m.mute then m.text = m.text .. " Muted: nobody hears you." end
@@ -202,7 +201,6 @@ function Panel.Model(now)
 	-- the indicator
 	if not alive then m.badge, m.color = "NO APP", COLORS.off
 	elseif m.level == "bad" then m.badge, m.color = "ERROR", COLORS.bad
-	elseif m.deaf and m.dkeep then m.badge, m.color = "DEAF", COLORS.warn
 	elseif m.deaf then m.badge, m.color = "DEAF", COLORS.bad
 	elseif m.mt then m.badge, m.color = "TEST", COLORS.warn
 	elseif m.mute then m.badge, m.color = "MUTED", COLORS.bad
@@ -355,16 +353,11 @@ function Panel.SetMute(on)
 	return Panel.Command("mute", on and "1" or "0", "mute", on and true or false)
 end
 
--- Deafen: you hear nobody, and your microphone closes with it (your own mute setting is not touched, so undeafening gives it back).
+-- Deafen: you hear nobody, and the app mutes your microphone with it. Undeafening gives your mute back as it was. (You can unmute while deafened:
+-- then people near you still hear you, and a warning says so.)
 function Panel.SetDeaf(on)
-	Panel.pending.dk = { value = false, untilT = OV.Now() + Panel.PENDING_S }
+	if on then Panel.pending.mute = { value = true, untilT = OV.Now() + Panel.PENDING_S } end
 	return Panel.Command("deafen", on and "1" or "0", "deaf", on and true or false)
-end
-
--- The other deafen: you hear nobody, but your microphone stays as it was and they still hear you.
-function Panel.SetDeafKeep(on)
-	Panel.pending.dk = { value = on and true or false, untilT = OV.Now() + Panel.PENDING_S }
-	return Panel.Command("deafen", on and "2" or "0", "deaf", on and true or false)
 end
 
 -- Where voices are heard from: mono, speakers or headphones.
@@ -530,7 +523,7 @@ local FONT_DIR = Panel.ART .. "fonts\\ggsans-"
 local FONT = FONT_DIR .. "Medium.ttf"             -- gg sans, as Discord draws it: Medium for text, Semibold for labels and buttons, Bold for titles
 local FONT_REG = FONT_DIR .. "Regular.ttf"
 local FONT_SEMI = FONT_DIR .. "Semibold.ttf"
-local FONT_TITLE = FONT_DIR .. "Bold.ttf"
+local FONT_TITLE = "Fonts\\FRIZQT__.TTF"                 -- the game's own Friz Quadrata: titles and section headings (EqVoice, Microphone, Speaker, Nearby ...)
 local FLAT, BACKDROP, BOX_BACKDROP, SLIDER_BACKDROP = nil, nil, nil, nil       -- (square backdrops are gone: every shape is drawn by newBox, rounded)
 
 local function setColor(fs, c)
@@ -689,7 +682,7 @@ local function newDropdown(parent, name, text, w, x, y, onclick, h)
 end
 
 local TEXT_STYLE = {                       -- the client's font objects, by the look they were asked for: size and colour
-	GameFontNormalLarge = { 22, "text", FONT_TITLE }, GameFontNormal = { 14, "accent", FONT_SEMI }, GameFontNormalSmall = { 12, "muted", FONT_REG },
+	GameFontNormalLarge = { 22, "text", FONT_TITLE }, GameFontNormal = { 14, "accent", FONT_TITLE }, GameFontNormalSmall = { 12, "muted", FONT_REG },
 	GameFontHighlight = { 14, "text" }, GameFontHighlightSmall = { 12, "text" },
 	GameFontDisable = { 13, "muted", FONT_REG }, GameFontDisableSmall = { 11, "muted", FONT_REG },
 }
@@ -983,14 +976,30 @@ function Panel.NewMeter(parent, x, y, w)
 	fill:SetHeight(8)
 	fill:SetWidth(1)
 	fill:SetPoint("TOPLEFT", parent, "TOPLEFT", x, y)
-	local meter = { bg = bg, fill = fill, w = w, pct = 0 }
-	function meter.Set(pct)
-		pct = OV.clamp(pct or 0, 0, 100)
-		meter.pct = pct
+	local meter = { bg = bg, fill = fill, w = w, pct = 0, shownPct = 0 }
+	local function draw()
+		local pct = meter.shownPct
 		fill:SetWidth(math.max(1, w * pct / 100))
 		local c = (pct >= 92) and PC.bad or ((pct >= 75) and PC.warn or THEME.green)
 		fill:SetVertexColor(c[1], c[2], c[3], 1)
-		if pct <= 0 then fill:Hide() else fill:Show() end
+		if pct <= 0.5 then fill:Hide() else fill:Show() end
+	end
+	function meter.Set(pct)
+		pct = OV.clamp(pct or 0, 0, 100)
+		meter.pct = pct
+		if pct <= 0 then meter.shownPct = 0 end
+		draw()
+	end
+	do                                                                           -- the reading comes ten or twenty times a second: ease between readings every frame
+		local ef = CreateFrame("Frame", nil, parent)
+		ef:SetScript("OnUpdate", function()
+			if meter.shownPct == meter.pct then return end
+			local k = (meter.pct > meter.shownPct) and 0.04 or 0.14
+			meter.shownPct = meter.shownPct + (meter.pct - meter.shownPct) * (1 - math.exp(-(arg1 or 0.02) / k))
+			if math.abs(meter.pct - meter.shownPct) < 0.3 then meter.shownPct = meter.pct end
+			draw()
+		end)
+		meter.frame = ef
 	end
 	function meter.Show() bg:Show(); if meter.pct > 0 then fill:Show() end end
 	function meter.Hide() bg:Hide(); fill:Hide() end
@@ -1031,7 +1040,13 @@ function Panel.NewGateBar(parent, x, y, w, h, commit)
 	bar.amberDim = segBox(THEME.amberDim, "ARTWORK")                          -- laid over its left part: the part below the bar
 	bar.amber = segBox(THEME.amber, "OVERLAY")                                -- the live signal below the bar
 	bar.green = segBox(THEME.green, "OVERLAY")                                -- and above it
-	bar.handle = t:CreateTexture(nil, "OVERLAY")
+	local hf = CreateFrame("Frame", nil, t)                                    -- the handle lives on a frame above the bar's own: always over the two colours
+	hf:SetWidth(4)
+	hf:SetHeight(h + 8)
+	hf:SetPoint("TOPLEFT", t, "TOPLEFT", 0, 0)
+	if hf.SetFrameLevel and t.GetFrameLevel then hf:SetFrameLevel((t:GetFrameLevel() or 1) + 4) end
+	bar.handleFrame = hf
+	bar.handle = hf:CreateTexture(nil, "OVERLAY")
 	bar.handle:SetTexture(WHITE)
 	bar.handle:SetVertexColor(0.96, 0.96, 1.0, 1)
 	bar.handle:Hide()
@@ -1061,8 +1076,10 @@ function Panel.NewGateBar(parent, x, y, w, h, commit)
 			seg(bar.amberDim, 1, math.min(w - 1, tx + 2))                           -- (the two colours meet under the handle, which is four wide)
 			seg(bar.amber, 1, math.min(lx, tx + 2))
 			if lx > tx then seg(bar.green, tx - 2, lx) else bar.green.Hide() end
+			bar.handleFrame:ClearAllPoints()
+			bar.handleFrame:SetPoint("TOPLEFT", t, "TOPLEFT", tx - 2, 4)
 			bar.handle:ClearAllPoints()
-			bar.handle:SetPoint("TOPLEFT", t, "TOPLEFT", tx - 2, 4)
+			bar.handle:SetPoint("TOPLEFT", bar.handleFrame, "TOPLEFT", 0, 0)
 			bar.handle:SetWidth(4)
 			bar.handle:SetHeight(h + 8)
 			local hc = (bar.mode == "manual") and { 0.96, 0.96, 1.0 } or THEME.muted
@@ -1175,24 +1192,11 @@ function Panel.Build()
 		sl:SetPoint("LEFT", f.bMute, "LEFT", 9, 0)
 		f.bMute.slash = sl
 	end
-	f.bDeaf = newButton(f, "EqVoicePanelDeafen", "Deafen", 80, 368, -36, function()
+	f.bDeaf = newButton(f, "EqVoicePanelDeafen", "Deafen", 100, 368, -36, function()
 		local m = Panel.Model(OV.Now())
-		Panel.SetDeaf(not (m.deaf and not m.dkeep))
+		Panel.SetDeaf(not m.deaf)
 	end, 30)
 	buttonIcon(f.bDeaf, "VoiceDeafened.tga")
-	f.bDeafKeep = newButton(f, "EqVoicePanelDeafenKeep", "", 20, 448, -36, function()           -- the other deafen: you hear nobody, they still hear you
-		local m = Panel.Model(OV.Now())
-		Panel.SetDeafKeep(not (m.deaf and m.dkeep))
-	end, 30)
-	do
-		local g = f.bDeafKeep:CreateTexture(nil, "OVERLAY")
-		g:SetTexture(Panel.ART .. "IconRight.tga")
-		g:SetWidth(10)
-		g:SetHeight(10)
-		g:SetPoint("CENTER", f.bDeafKeep, "CENTER", 0, 0)
-		g:SetVertexColor(THEME.text[1], THEME.text[2], THEME.text[3], 1)
-		f.bDeafKeep.icon = g
-	end
 
 	-- Microphone: device, boost, mode and key, calibrate, the one sensitivity bar, the test
 	heading(f, "Microphone", -92)
@@ -1211,8 +1215,8 @@ function Panel.Build()
 
 	local sens = newText(f, "GameFontHighlightSmall", 24, -222, 260, 14)
 	sens:SetText("Input sensitivity")
-	f.bGManual = newButton(f, "EqVoicePanelGateManual", "Manual", 60, 292, -218, function() Panel.SetGate("manual") end, 22)
-	f.bGAuto = newButton(f, "EqVoicePanelGateAuto", "Auto", 52, 354, -218, function() Panel.SetGate("auto") end, 22)
+	f.bGAuto = newButton(f, "EqVoicePanelGateAuto", "Auto", 52, 292, -218, function() Panel.SetGate("auto") end, 22)
+	f.bGManual = newButton(f, "EqVoicePanelGateManual", "Manual", 60, 346, -218, function() Panel.SetGate("manual") end, 22)
 	f.bGOff = newButton(f, "EqVoicePanelGateOff", "Off", 48, 408, -218, function() Panel.SetGate("off") end, 22)
 	f.sGate = Panel.NewGateBar(f, 24, -246, 432, 22, function(v)           -- moving the handle means you want it where you put it: manual
 		local m = Panel.Model(OV.Now())
@@ -1262,6 +1266,89 @@ function Panel.Build()
 	f:SetScript("OnShow", function() Panel.dirty = true end)
 	Panel.frame = f
 	return f
+end
+
+-- A small window in the middle of the screen: text, buttons and (optionally) a "don't show again" box.
+--   opts = { text = "...", buttons = { { "Okay", function() end }, ... }, check = { "Don't show again", function(on) end } }
+function Panel.Dialog(opts)
+	local ok, err = pcall(function()
+		if not Panel.dialog then
+			local f = CreateFrame("Frame", "EqVoiceDialog", UIParent)
+			f:SetWidth(380)
+			f:SetHeight(170)
+			f:SetFrameStrata("FULLSCREEN_DIALOG")
+			f:SetFrameLevel(60)
+			f:EnableMouse(true)
+			f:SetClampedToScreen(true)
+			paint(f, THEME.bg, THEME.edge)
+			f:SetPoint("CENTER", UIParent, "CENTER", 0, 60)
+			f:Hide()
+			f.text = newText(f, "GameFontHighlight", 24, -22, 332, 64, "CENTER")
+			f.btn = {}
+			for i = 1, 2 do f.btn[i] = newButton(f, "EqVoiceDialogButton" .. i, "", 120, 24, -124, function() end, 28) end
+			f.cb = newButton(f, "EqVoiceDialogCheck", "", 18, 24, -96, function() end, 18)
+			f.cb.mark = f.cb:CreateTexture(nil, "OVERLAY")
+			f.cb.mark:SetTexture(WHITE)
+			f.cb.mark:SetWidth(10)
+			f.cb.mark:SetHeight(10)
+			f.cb.mark:SetPoint("CENTER", f.cb, "CENTER", 0, 0)
+			f.cb.mark:SetVertexColor(THEME.accent[1], THEME.accent[2], THEME.accent[3], 1)
+			f.cbText = newText(f, "GameFontHighlightSmall", 48, -99, 300, 14)
+			Panel.dialog = f
+		end
+		local f = Panel.dialog
+		f.text:SetText(opts.text or "")
+		local nb = table.getn(opts.buttons)
+		for i = 1, 2 do
+			local b = f.btn[i]
+			local spec = opts.buttons[i]
+			if spec then
+				b:ClearAllPoints()
+				b:SetPoint("TOPLEFT", f, "TOPLEFT", (nb == 1) and 130 or (24 + (i - 1) * 172), -124)
+				b:SetWidth((nb == 1) and 120 or 160)
+				buttonText(b, spec[1])
+				b:SetScript("OnClick", safe(function() f:Hide(); if spec[2] then spec[2](f.cb.checked) end end))
+				b:Show()
+			else
+				b:Hide()
+			end
+		end
+		f.cb.checked = false
+		f.cb.mark:Hide()
+		if opts.check then
+			f.cb:SetScript("OnClick", safe(function()
+				f.cb.checked = not f.cb.checked
+				if f.cb.checked then f.cb.mark:Show() else f.cb.mark:Hide() end
+			end))
+			f.cbText:SetText(opts.check[1])
+			f.cb:Show(); f.cbText:Show()
+		else
+			f.cb:Hide(); f.cbText:Hide()
+		end
+		f:Show()
+	end)
+	if not ok then fail(err) end
+end
+
+-- Deafened, and yet your microphone is on (you unmuted it): say so once per deafen, unless asked not to. It looks at what the app says,
+-- not at a click that has not been answered yet.
+function Panel.CheckDeafWarning(now)
+	local f = OV.Status.fields
+	local both = OV.Status.Alive(now) and f.deaf == "1" and f.mute == "0" and not Panel.pending.deaf and not Panel.pending.mute
+	if not both then
+		if f.deaf ~= "1" or f.mute == "1" then Panel.deafWarned = false end
+		return
+	end
+	if Panel.deafWarned then return end
+	Panel.deafWarned = true
+	if OV.db and OV.db.ui and OV.db.ui.deafNoWarn then return end
+	Panel.Dialog({ text = "You are deafened but still sending your voice to nearby players.",
+		buttons = { { "Okay" } },
+		check = { "Don't show again", function(on) end } })
+	Panel.dialog.btn[1]:SetScript("OnClick", safe(function()
+		if Panel.dialog.cb.checked and OV.db and OV.db.ui then OV.db.ui.deafNoWarn = true end
+		Panel.dialog:Hide()
+	end))
 end
 
 function Panel.OverheadOn()
@@ -1633,18 +1720,11 @@ local function applyModel(f, m)
 	f.dot:SetVertexColor(dc[1], dc[2], dc[3], 1)
 	setSelected(f.bOpen, m.mode == "open")
 	setSelected(f.bPtt, m.mode == "ptt")
-	-- mute and deafen: a normal deafen closes the microphone too, so both buttons go red; the other deafen leaves the microphone as it was
-	local micShut = m.mute or (m.deaf and not m.dkeep)
+	-- mute and deafen: deafening mutes the microphone, so both go red; unmuting while deafened turns only the microphone back
 	buttonText(f.bMute, m.mute and "Unmute" or "Mute")
-	buttonText(f.bDeaf, (m.deaf and not m.dkeep) and "Undeafen" or "Deafen")
-	setSelected(f.bMute, micShut, true)
-	setSelected(f.bDeaf, m.deaf and not m.dkeep, true)
-	setSelected(f.bDeafKeep, m.deaf and m.dkeep, false)                           -- gold: deafened, still heard
-	if m.deaf and m.dkeep then
-		f.bDeafKeep.icon:SetVertexColor(THEME.dark[1], THEME.dark[2], THEME.dark[3], 1)
-	else
-		f.bDeafKeep.icon:SetVertexColor(THEME.text[1], THEME.text[2], THEME.text[3], 1)
-	end
+	buttonText(f.bDeaf, m.deaf and "Undeafen" or "Deafen")
+	setSelected(f.bMute, m.mute, true)
+	setSelected(f.bDeaf, m.deaf, true)
 	-- the key: what it does depends on the mode (hold to talk, or press to mute and unmute)
 	if m.capturing then
 		buttonText(f.bKey, "Press a key...")
@@ -1672,7 +1752,7 @@ local function applyModel(f, m)
 	buttonText(f.bSpkDev, short(m.spkName))
 	buttonText(f.bOverhead, "Overhead icons: " .. (Panel.OverheadOn() and "On" or "Off"))
 	setSelected(f.bOverhead, Panel.OverheadOn())
-	local list = { f.bOpen, f.bPtt, f.bMute, f.bDeaf, f.bDeafKeep, f.bKey, f.bSetup, f.bGManual, f.bGAuto, f.bGOff, f.bMicDev, f.bSpkDev, f.bReport, f.bTestMic }
+	local list = { f.bOpen, f.bPtt, f.bMute, f.bDeaf, f.bKey, f.bSetup, f.bGManual, f.bGAuto, f.bGOff, f.bMicDev, f.bSpkDev, f.bReport, f.bTestMic }
 	for i = 1, table.getn(list) do setEnabled(list[i], m.alive) end
 	for mode, b in pairs(f.bSpatial) do setEnabled(b, m.alive) end
 	f.sIn.Enable(m.alive); f.sVol.Enable(m.alive)
@@ -1869,6 +1949,8 @@ function Panel.Refresh()
 	if Panel.indicator then applyIndicator(Panel.indicator, m) end
 	if Panel.frame and Panel.frame:IsShown() then applyModel(Panel.frame, m) end
 	if Panel.player and Panel.player:IsShown() then applyPlayer(Panel.player, m, now) end
+	local okW, errW = pcall(Panel.CheckDeafWarning, now)
+	if not okW then fail(errW) end
 	if Panel.blocklist and Panel.blocklist:IsShown() then applyBlocklist(Panel.blocklist, now) end
 	if Panel.picker and Panel.picker:IsShown() and Panel.picker.kind then
 		Panel.picker.lists[Panel.picker.kind].Refresh(m)
@@ -1976,7 +2058,7 @@ end
 local function helpText()
 	OV.Print("/vc  /eqvc  /eqvoice   open or close the voice panel")
 	OV.Print("/eqvc open     open mic: you transmit all the time (the key then mutes and unmutes)        /eqvc ptt   push to talk (hold the key)")
-	OV.Print("/eqvc mute, unmute, deafen, deafen mic, undeafen      /eqvc vol 0-100   how loud everyone is      /eqvc input 0-200   microphone boost")
+	OV.Print("/eqvc mute, unmute, deafen, undeafen      /eqvc vol 0-100   how loud everyone is      /eqvc input 0-200   microphone boost")
 	OV.Print("/eqvc setup   the whole first-time setup again      /eqvc calibrate   only the microphone calibration (silent, talk, shout)")
 	OV.Print("/eqvc mictest   hear your own microphone (nobody else does) until you run it again      /eqvc key   change the key")
 	OV.Print("/eqvc sound mono, speakers or headphones   where voices are heard from      /eqvc overhead on or off   icons over players' heads")
@@ -2052,10 +2134,8 @@ function Panel.Slash(msg)
 		printMuted()
 	elseif cmd == "blocklist" or cmd == "blocked" or cmd == "block" then
 		Panel.ToggleBlocklist()
-	elseif cmd == "deafen" and w[2] == "mic" then
-		if Panel.SetDeafKeep(true) then OV.Print("deafened, microphone open: you hear nobody; they still hear you") end
 	elseif cmd == "deafen" then
-		if Panel.SetDeaf(true) then OV.Print("deafened: you hear nobody and your microphone is closed") end
+		if Panel.SetDeaf(true) then OV.Print("deafened: you hear nobody, and your microphone is muted (you can unmute it)") end
 	elseif cmd == "undeafen" then
 		if Panel.SetDeaf(false) then OV.Print("undeafened") end
 	elseif cmd == "key" then
