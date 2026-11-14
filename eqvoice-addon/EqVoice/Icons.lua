@@ -416,38 +416,8 @@ local function setQuiet(p, on, now)
 	if p.frame.EnableMouse then p.frame:EnableMouse(not on) end        -- a quiet plate is not in the way of a click on the world
 end
 
--- A name of our own on a plate whose own name another addon (ECO) has taken away without drawing one.
-local function setLabel(p, text, kind, like)
-	if not text or text == "" then
-		if p.label then p.label:Hide(); p.labelOn = false end
-		return
-	end
-	if not p.label then
-		p.label = p.frame:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
-		p.label:SetPoint("CENTER", p.frame, "CENTER", 0, 0)
-	end
-	-- the player's own nameplate font, never EqVoice's: the one ECO gave this plate, or else the client's own
-	for k = 1, 2 do
-		local src = (k == 1) and like or p.name
-		if src and src.GetFont and p.label.SetFont then
-			local ok, font, size, flags = pcall(src.GetFont, src)
-			if ok and font and size then
-				if p.labelFont ~= font or p.labelSize ~= size then
-					p.label:SetFont(font, size, flags)
-					p.labelFont, p.labelSize = font, size
-				end
-				break
-			end
-		end
-	end
-	if kind == "npc" then p.label:SetTextColor(0.6, 1.0, 0.4) else p.label:SetTextColor(0.5, 0.66, 1.0) end
-	p.label:SetText(text)
-	p.label:Show()
-	p.labelOn = true
-end
-
 -- Every plate on screen, while EqVoice is the reason friendly plates are on: the friendly ones are made quiet. ECO draws plates itself:
--- its plates are left to it, and one it chose not to draw (friendly players switched off in ECO) gets a name from here so nobody goes nameless.
+-- its plates are left to it. EqVoice never draws a name of its own on a plate: the player's own nameplates, in their own font, only get an icon above.
 local function quietPass(now)
 	findPlates()
 	local np = eco("nameplates")
@@ -458,11 +428,8 @@ local function quietPass(now)
 			local ep = np and np.plates and np.plates[p.frame] or nil
 			if ep then
 				setQuiet(p, false, now)
-				local undrawn = kind and ep.overlay and not visible(ep.overlay)
-				setLabel(p, undrawn and p.name:GetText() or nil, kind, ep.name)
 			else
 				setQuiet(p, kind ~= nil, now)
-				setLabel(p, nil)
 			end
 		end
 	end
@@ -473,7 +440,6 @@ local function release(now)
 	Icons.forced = false
 	for i = 1, table.getn(Icons.plates) do
 		setQuiet(Icons.plates[i], false, now)
-		setLabel(Icons.plates[i], nil)
 	end
 	if not FRIENDNAMEPLATES_ON and type(HideFriendNameplates) == "function" then HideFriendNameplates() end
 end
@@ -500,7 +466,6 @@ local function ensurePlates(now, on)
 			Icons.forced = false
 			for i = 1, table.getn(Icons.plates) do
 				setQuiet(Icons.plates[i], false, now)
-				setLabel(Icons.plates[i], nil)
 			end
 		end
 		return
@@ -516,10 +481,8 @@ local function ensurePlates(now, on)
 	end
 end
 
--- The name text of a plate that the player sees: our own label when we had to draw one, ECO's when ECO styles this plate (it hides
--- the client's), else the client's.
+-- The name text of a plate that the player sees: ECO's when ECO styles this plate (it hides the client's), else the client's.
 local function plateText(p)
-	if p.labelOn and p.label then return p.label end
 	local np = eco("nameplates")
 	local plate = np and np.plates and np.plates[p.frame] or nil
 	if plate and plate.name and plate.name.GetText then return plate.name end

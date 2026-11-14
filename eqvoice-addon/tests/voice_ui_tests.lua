@@ -489,6 +489,7 @@ do
 	eq(pw.bar.alpha, 1, "an enemy's plate is left exactly as it was")
 	check(I.plates[1].icon ~= nil and I.plates[1].icon.state == "s", "and the voice icon is over Alice's name")
 	eq(I.plates[1].icon.tex.pt[1], "BOTTOM", "above it")
+	check(I.plates[1].label == nil and I.plates[1].labelOn == nil, "EqVoice draws no name of its own on a plate: the player's nameplate and font are left alone")
 	I.SetOverhead(false); Stub.Advance(1)
 	eq(OV.db.ui.overhead, false, "the switch is kept"); eq(Stub.friendPlates, false, "off: friendly plates are put back"); eq(pa.bar.alpha, 1, "and their art"); eq(I.plates[1].icon.state, nil, "and no icon over heads")
 	I.SetOverhead(true); Stub.Advance(1)
