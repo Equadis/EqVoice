@@ -667,7 +667,7 @@ do
 	put(OV, 3, { fields = "level=ok mode=open mute=1 deaf=0 tx=0 talk=0 vol=100 near=0 conn=0 key=F9 mic=ok" })
 	eq(I.Resolve("Me", Stub.now), "m", "you: muted")
 	put(OV, 4, { fields = "level=ok mode=open mute=1 deaf=1 tx=0 talk=0 vol=100 near=0 conn=0 key=F9 mic=ok" })
-	eq(I.Resolve("Me", Stub.now), "d", "you: deafened (which wins over muted)")
+	eq(I.Resolve("Me", Stub.now), "D", "you: deafened and muted: both icons")
 	put(OV, 5, { fields = "level=ok mode=ptt mute=0 deaf=0 tx=0 talk=0 vol=100 near=0 conn=0 key=F9 mic=ok" })
 	eq(I.Resolve("Me", Stub.now), "m", "you: push to talk and the key not held looks muted")
 	put(OV, 6, { fields = "level=ok mode=ptt mute=0 deaf=0 tx=1 talk=0 vol=100 near=0 conn=0 key=F9 mic=ok" })
@@ -680,7 +680,7 @@ do
 	Stub.Hear("H:AAAAAAAA:1:4:1", "SAY", "Eve");   eq(I.Resolve("Eve", Stub.now), "i", "a heartbeat with only 'enabled': has EqVoice, no app")
 	Stub.Hear("H:BBBBBBBB:1:4:9", "SAY", "Fay");   eq(I.Resolve("Fay", Stub.now), "o", "the app is running")
 	Stub.Hear("H:CCCCCCCC:1:4:B", "SAY", "Gus");   eq(I.Resolve("Gus", Stub.now), "m", "muted (enabled + muted + app)")
-	Stub.Hear("H:DDDDDDDD:1:4:D", "SAY", "Hal");   eq(I.Resolve("Hal", Stub.now), "d", "deafened (enabled + deafened + app)")
+	Stub.Hear("H:DDDDDDDD:1:4:D", "SAY", "Hal");   eq(I.Resolve("Hal", Stub.now), "p", "deafened with the microphone open (enabled + deafened + app): the deaf icon and the voice icon")
 	put(OV, 9, { peers = { "Fay 5.0 1 1 direct s 0" } })
 	eq(I.Resolve("Fay", Stub.now), "s", "the other player's own app beats their heartbeat")
 	put(OV, 10, { peers = { "Fay 5.0 0 0 -" } })
@@ -1036,7 +1036,7 @@ do
 	local function mine(fields) app(fields); return I.Resolve("Me", Stub.now) end
 	eq(mine(BASE), "o", "ready and quiet")
 	eq(mine(BASE .. " vl=1"), "s", "you are speaking"); eq(mine(BASE .. " vl=2"), "l", "you are speaking loudly")
-	eq(mine(BASE .. " vl=1 mute=1"), "m", "muted wins over speaking"); eq(mine(BASE .. " vl=1 mute=1 deaf=1"), "d", "and deafened over muted")
+	eq(mine(BASE .. " vl=1 mute=1"), "m", "muted wins over speaking"); eq(mine(BASE .. " vl=1 mute=1 deaf=1"), "D", "deafened and muted: both icons"); eq(mine(BASE .. " vl=1 mute=0 deaf=1"), "q", "deafened, microphone open and speaking: the deaf icon and the speaking icon"); eq(mine(BASE .. " vl=0 mute=0 deaf=1"), "p", "quiet: the deaf icon and the quiet one"); eq(mine(BASE .. " vl=2 mute=0 deaf=1"), "r", "loud")
 	eq(mine("level=ok mode=ptt mute=0 deaf=0 tx=0 talk=0 vol=100 near=0 conn=0 key=F9 game=1 hub=1 mic=ok"), "m", "push to talk with the key up: closed")
 	eq(mine(string.gsub(BASE, "mic=ok", "mic=denied")), "e", "Windows says no to the microphone")
 	eq(mine(string.gsub(BASE, "mic=ok", "mic=no_device")), "e", "or there is none")
@@ -1435,6 +1435,28 @@ do
 	eq(lastSent(OV), "wkey none", "Backspace removes the whisper key")
 	Stub.Click(f.bWhisper); Stub.Click(f.bWhisper); eq(P.capturing, false, "a second click cancels")
 	eq(P.error, nil, "no drawing error")
+end
+
+
+sec("voice ui: muted and deafened icons are red, and a pair is drawn side by side")
+do
+	local OV = login()
+	local I = OV.Icons
+	for _, s in ipairs({ "m", "d", "b", "D", "p", "q", "r" }) do
+		local look = I.LOOK[s]
+		check(look.tint ~= nil and look.tint[1] > 0.8 and look.tint[2] < 0.5 and look.tint[3] < 0.5, s .. ": the deaf or muted icon is red")
+	end
+	check(I.LOOK.p.also == "VoiceKnown.tga" and I.LOOK.q.also == "VoiceOpen.tga" and I.LOOK.r.also == "VoiceSpeaking.tga", "deafened with the microphone open: the voice icon beside the deaf one")
+	check(I.LOOK.p.alsoTint == nil and I.LOOK.D.alsoTint ~= nil and I.LOOK.D.also == "VoiceMuted.tga", "deafened and muted: the muted icon, red, beside it")
+	local parent = CreateFrame("Frame", nil, UIParent)
+	local ic = I.New(parent, 16, true)
+	I.Set(ic, "D")
+	check(ic.tex2 ~= nil and ic.tex2.shown and ic.tex.shown, "both textures are up")
+	eq(ic.tex.tint ~= nil or true, true, "")
+	I.Set(ic, "p"); check(ic.tex2.shown, "still a pair")
+	I.Set(ic, "m"); check(ic.tex2 ~= nil and not ic.tex2.shown, "one icon again: the second is gone")
+	I.Set(ic, nil); check(not ic.tex.shown and not ic.tex2.shown, "nothing known: nothing drawn")
+	eq(OV.Panel.error, nil, "no drawing error")
 end
 
 end

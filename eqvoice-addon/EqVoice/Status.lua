@@ -35,7 +35,7 @@ Status.defaults = { ["in"] = "", out = "" }     -- what the system default devic
 Status.blocked = {}              -- lower-case name -> true: the players who do not hear you
 Status.nblocked = 0
 Status.MAX_MUTED = 60
-Status.STATES    = "solmd-"
+Status.STATES    = "solmdDpqr-"
 Status.MAX_MORE  = 4
 
 Status.lastPoll   = -100

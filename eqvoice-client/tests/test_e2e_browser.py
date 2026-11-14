@@ -414,7 +414,7 @@ def test_what_each_player_is_doing_is_shared_over_the_voice_connection(tmp_path)
             assert vs(a, "Bobby") in ("o", "s"), "and Bobby is unaffected"
             assert stat(a, "Bobby", "muted", None) is False, "before deafening, Bobby's voice is playing on Alice's side"
             a._on_ui({"cmd": "deafen", "value": True})
-            await until(lambda: vs(b, "Alice") == "d", 15, "Alice deafens: Bobby's side shows deafened")
+            await until(lambda: vs(b, "Alice") == "D", 15, "Alice deafens: Bobby's side shows deafened and muted")
             await until(lambda: stat(a, "Bobby", "muted", None) is True, 10, "and on Alice's side every voice's output is muted: all incoming sound stops")
             assert stat(b, "Alice", "muted", None) is False, "while Bobby still hears Alice (deafen is only about what Alice hears)"
             a._on_ui({"cmd": "deafen", "value": False})

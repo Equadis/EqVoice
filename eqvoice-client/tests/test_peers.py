@@ -802,11 +802,13 @@ def test_the_voice_connection_carries_what_the_other_player_is_doing():
     r.m.on_media(HIGH, ep, {"type": "vstate", "mute": True, "deaf": False})
     assert r.m.voice_state(p) == "m", "muted wins over a tail of audio still arriving"
     r.m.on_media(HIGH, ep, {"type": "vstate", "mute": True, "deaf": True})
-    assert r.m.voice_state(p) == "d", "deafened wins over muted"
+    assert r.m.voice_state(p) == "D", "deafened and muted: both icons"
     snap = [s for s in r.m.snapshot() if s["name"] == HIGHN][0]
-    assert snap["vstate"] == "d" and snap["muted_by_me"] is False
+    assert snap["vstate"] == "D" and snap["muted_by_me"] is False
     r.m.on_media(HIGH, ep + 1, {"type": "vstate", "mute": False, "deaf": False})
-    assert r.m.voice_state(p) == "d", "a report from an earlier connection is ignored"
+    assert r.m.voice_state(p) == "D", "a report from an earlier connection is ignored"
+    r.m.on_media(HIGH, ep, {"type": "vstate", "mute": False, "deaf": True})
+    assert r.m.voice_state(p) == "q", "deafened but unmuted: the deaf icon and the voice icon (here: voice is arriving)"
     r.lose(HIGHN)
     r.tick(3.0)
     assert r.m.voice_state(p) == "-", "out of range: nothing is claimed"

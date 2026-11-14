@@ -9,6 +9,8 @@
 --                            either way, and from outside it looks the same   VoiceMuted.tga
 --   b  muted by you          the same, a little dimmer: you put them on your blocklist
 --   d  deafened              headphones with a slash (deafened also means muted)   VoiceDeafened.tga
+--   D  deafened and muted    both icons, side by side;  p q r: deafened with the microphone open: the deaf icon and the quiet, speaking or loud voice icon
+--   (muted and deafened are drawn red)
 --   i  has EqVoice           the plain speaker, dimmed: they are known to have it, but nothing more is known (not connected to them yet,
 --                            or their app is not running)
 --
@@ -59,9 +61,14 @@ Icons.LOOK = {
 	o = { file = "VoiceKnown.tga",    word = "using EqVoice, not talking" },                    -- vol_low
 	s = { file = "VoiceOpen.tga",     word = "speaking" },                                                 -- vol_mid
 	l = { file = "VoiceSpeaking.tga", word = "speaking loudly" },                                          -- vol_high
-	m = { file = "VoiceMuted.tga",    word = "muted" },
-	b = { file = "VoiceMuted.tga",    word = "muted by you", dim = 0.7 },
-	d = { file = "VoiceDeafened.tga", word = "deafened" },
+	m = { file = "VoiceMuted.tga",    word = "muted", tint = Icons.RED },
+	b = { file = "VoiceMuted.tga",    word = "muted by you", dim = 0.7, tint = Icons.RED },
+	d = { file = "VoiceDeafened.tga", word = "deafened", tint = Icons.RED },
+	-- two icons side by side: deafened and muted (D), or deafened with the microphone open: the deaf icon and the voice icon (quiet p, speaking q, loud r)
+	D = { file = "VoiceDeafened.tga", word = "deafened and muted", tint = Icons.RED, also = "VoiceMuted.tga", alsoTint = Icons.RED },
+	p = { file = "VoiceDeafened.tga", word = "deafened, microphone open", tint = Icons.RED, also = "VoiceKnown.tga" },
+	q = { file = "VoiceDeafened.tga", word = "deafened, speaking", tint = Icons.RED, also = "VoiceOpen.tga" },
+	r = { file = "VoiceDeafened.tga", word = "deafened, speaking loudly", tint = Icons.RED, also = "VoiceSpeaking.tga" },
 	i = { file = "VoiceKnown.tga",    word = "has EqVoice", dim = 0.45 },
 	x = { file = "VoiceKnown.tga",    word = "EqVoice is not connected", tint = Icons.RED },
 	e = { file = "VoiceMuted.tga",    word = "your microphone cannot be used", tint = Icons.RED },
@@ -99,9 +106,14 @@ function Icons.SelfState(now)
 	if not m then return nil end
 	if not m.alive or m.disconnected then return "x" end
 	if m.micBad then return "e" end
-	if m.deaf then return "d" end
-	if m.mute then return "m" end
-	if m.mode == "ptt" and not m.tx then return "m" end
+	local closed = m.mute or (m.mode == "ptt" and not m.tx)
+	if m.deaf then                                                               -- deafened: with the microphone shut, both icons; open, the deaf one and the voice one
+		if closed then return "D" end
+		if m.voice >= 2 then return "r" end
+		if m.voice == 1 or m.talk then return "q" end
+		return "p"
+	end
+	if closed then return "m" end
 	if m.voice >= 2 then return "l" end
 	if m.voice == 1 or m.talk then return "s" end
 	return "o"
@@ -123,7 +135,7 @@ function Icons.Resolve(name, now)
 	local e = sid and nb.entries[sid] or nil
 	if e then
 		local fl = e.flags or 0
-		if hasBit(fl, OV.Proto.FLAG_DEAF) then return "d" end
+		if hasBit(fl, OV.Proto.FLAG_DEAF) then return hasBit(fl, OV.Proto.FLAG_MUTED) and "D" or "p" end
 		if hasBit(fl, OV.Proto.FLAG_MUTED) then return "m" end
 		if hasBit(fl, OV.Proto.FLAG_APP) then return "o" end
 		return "i"
@@ -147,7 +159,7 @@ end
 -- that player's settings; on your own (or one with no name) it opens the panel.
 function Icons.New(parent, size, clickable)
 	size = size or Icons.SIZE
-	local ic = { state = nil, size = size, who = nil }
+	local ic = { state = nil, size = size, who = nil, two = false }
 	if clickable then
 		local b = CreateFrame("Button", nil, parent)
 		b:SetWidth(size)
@@ -157,7 +169,9 @@ function Icons.New(parent, size, clickable)
 		b:RegisterForClicks("LeftButtonUp")
 		ic.btn = b
 		ic.tex = b:CreateTexture(nil, "OVERLAY")
-		ic.tex:SetAllPoints(b)
+		ic.tex:SetWidth(size)
+		ic.tex:SetHeight(size)
+		ic.tex:SetPoint("LEFT", b, "LEFT", 0, 0)
 		b:SetScript("OnClick", function()
 			local ok, err = pcall(function()
 				if not OV.Panel then return end
@@ -181,12 +195,35 @@ function Icons.Set(ic, state)
 	local look = state and Icons.LOOK[state]
 	if not look then
 		ic.tex:Hide()
+		if ic.tex2 then ic.tex2:Hide() end
 		if ic.btn then ic.btn:Hide() end
 		return
 	end
 	ic.tex:SetTexture(Icons.ART .. look.file)
 	if look.tint then ic.tex:SetVertexColor(look.tint[1], look.tint[2], look.tint[3]) else ic.tex:SetVertexColor(1, 1, 1) end
 	if ic.tex.SetAlpha then ic.tex:SetAlpha(look.dim or 1) end
+	-- the second icon of a pair, to the right of the first
+	local two = look.also ~= nil
+	if two then
+		if not ic.tex2 then
+			local owner = ic.btn or ic.tex:GetParent()
+			ic.tex2 = owner:CreateTexture(nil, "OVERLAY")
+			ic.tex2:SetWidth(ic.size)
+			ic.tex2:SetHeight(ic.size)
+			ic.tex2:SetPoint("LEFT", ic.tex, "RIGHT", 1, 0)
+		end
+		ic.tex2:SetTexture(Icons.ART .. look.also)
+		local c = look.alsoTint
+		if c then ic.tex2:SetVertexColor(c[1], c[2], c[3]) else ic.tex2:SetVertexColor(1, 1, 1) end
+		ic.tex2:Show()
+	elseif ic.tex2 then
+		ic.tex2:Hide()
+	end
+	if ic.two ~= two then
+		ic.two = two
+		ic.placedFor = nil                                                       -- (a pair is placed differently from one icon)
+		if ic.btn then ic.btn:SetWidth(two and (ic.size * 2 + 1) or ic.size) end
+	end
 	if ic.btn then ic.btn:Show() end
 	ic.tex:Show()
 end
@@ -240,7 +277,7 @@ end
 function Icons.PlaceAbove(ic, fs)
 	if ic.placedFor == fs and ic.placedJ == "ABOVE" then return end
 	ic.placedFor, ic.placedW, ic.placedJ = fs, nil, "ABOVE"
-	anchor(ic, "BOTTOM", fs, "TOP", 0, Icons.PLATE_GAP)
+	anchor(ic, "BOTTOM", fs, "TOP", ic.two and -((ic.size + 1) / 2) or 0, Icons.PLATE_GAP)        -- a pair is centred as a pair
 end
 Icons.PlaceRightOf = Icons.PlaceBeside
 Icons.PlaceAfter   = Icons.PlaceBeside

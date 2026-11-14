@@ -933,23 +933,28 @@ class PeerManager:
 
     def voice_state(self, p: Peer) -> str:
         """What the little icon beside this player's name should show, as one letter (the status file's ``state``):
-        d deafened, m muted (or push to talk with the key up), l a raised voice, s speaking, o connected and quiet, - nothing known.
+        D deafened and muted, p q r deafened with the microphone open (quiet, speaking, raised voice: the game draws the deaf icon and the voice
+        icon), d deafened (microphone state unknown), m muted (or push to talk with the key up), l a raised voice, s speaking, o connected and quiet,
+        - nothing known.
         Their own EqVoice says muted and deafened (instantly, over the voice connection); speaking and loud are what we hear, steadied by
         the page (a breath or a key click does not flip it). Until the page has ever reported, speaking is what packets are arriving."""
         if p.state != PS.CONNECTED:
             return "-"
-        if p.rdeaf:
-            return "d"
+        if p.rdeaf and p.rmute:
+            return "D"
         if p.rmute:
             return "m"
+        letter = "o"
         if p.vlevel_seen:
             if p.vlevel >= 2:
-                return "l"
-            if p.vlevel == 1:
-                return "s"
+                letter = "l"
+            elif p.vlevel == 1:
+                letter = "s"
         elif getattr(p, "audio_rx_on", False):
-            return "s"
-        return "o" if p.rmute is not None else "-"
+            letter = "s"
+        if p.rdeaf:
+            return {"o": "p", "s": "q", "l": "r"}[letter]            # deafened, but the microphone is open: they still hear nothing and you hear them
+        return letter if (p.rmute is not None or letter != "o") else "-"
 
     def snapshot(self) -> list:
         now = self.clock()

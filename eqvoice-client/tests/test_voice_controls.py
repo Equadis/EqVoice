@@ -211,8 +211,8 @@ def test_what_the_other_player_is_doing_reaches_the_game(tmp_path):
             await sc.pages["Alice"].ws.send_json({"t": "peer", "sid": p.sid, "ep": p.ep, "type": "vstate", "mute": True, "deaf": False})
             await until(lambda: read_status(game).peers[0]["state"] == "m", 5, "muted")
             await sc.pages["Alice"].ws.send_json({"t": "peer", "sid": p.sid, "ep": p.ep, "type": "vstate", "mute": True, "deaf": True})
-            await until(lambda: read_status(game).peers[0]["state"] == "d", 5, "deafened")
-            assert a.build_state()["peers"][0]["vstate"] == "d"
+            await until(lambda: read_status(game).peers[0]["state"] == "D", 5, "deafened and muted")
+            assert a.build_state()["peers"][0]["vstate"] == "D"
     run(go(), 90)
 
 
