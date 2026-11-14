@@ -53,6 +53,8 @@ def build_args(exe: Path, url: str, profile: Path, headless: bool = False, fake_
             "--disable-features=CalculateNativeWinOcclusion,Translate,MediaRouter,IntensiveWakeUpThrottling,TabFreeze,PageFreezing,msSleepingTabs,msEfficiencyMode",
             "--disable-background-timer-throttling", "--disable-renderer-backgrounding",
             "--disable-backgrounding-occluded-windows", "--window-size=560,860",
+            # created far off the screen: the window is only the voice engine, and it is never seen (not even for the moment before it is hidden)
+            "--window-position=-32000,-32000",
             # This window shows only EqVoice's own page, served from this PC, and it is useless without the microphone. A new browser profile
             # (a first launch, or a second copy of EqVoice) would otherwise wait for someone to find and click Edge's "Allow" bubble, with
             # the window saying only "starting the microphone": the single biggest wait a new player met. This answers the prompt with
