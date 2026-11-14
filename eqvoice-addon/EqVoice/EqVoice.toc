@@ -2,7 +2,7 @@
 ## Title: EqVoice
 ## Notes: Opt-in proximity voice chat companion. Sends a tiny presence heartbeat and shows the desktop client who is nearby.
 ## Author: EqVoice contributors
-## Version: 0.4.0
+## Version: 0.4.1
 ## SavedVariables: EqVoiceDB
 
 Util.lua

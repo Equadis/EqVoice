@@ -116,7 +116,7 @@ function Wizard.Build()
 	p3[1] = newText(f, "GameFontHighlightSmall", 24, -66, 392, 12)
 	p3[1]:SetText("Pick where you hear other players.")
 	p3.list = OV.Panel.NewDeviceList(f, "out", 24, -86, 392, function(kind, label, index) OV.Panel.SetDevice(kind, label, index) end)
-	p3[2] = newText(f, "GameFontDisableSmall", 24, -318, 392, 26)
+	p3[2] = newText(f, "GameFontDisableSmall", 24, -280, 392, 26)
 	p3[2]:SetText("Anything the game plays comes out of the same place. To hear yourself, use Test Microphone in the settings.")
 	f.pages[3] = p3
 
@@ -192,6 +192,12 @@ local function showPage(f, which)
 		for k, w in pairs(p) do
 			if type(w) == "table" and w.Show and w.Hide then
 				if i == which then w:Show() else w:Hide() end
+			elseif type(w) == "table" and w.valueText then                       -- a slider row: the slider (or its - and + buttons), its name and its number
+				local parts = { w.frame, w.down, w.up, w.valueText, w.nameText }
+				for j = 1, 5 do
+					local part = parts[j]
+					if part then if i == which then part:Show() else part:Hide() end end
+				end
 			end
 		end
 		if p.list then if i ~= which then p.list.Hide() end end

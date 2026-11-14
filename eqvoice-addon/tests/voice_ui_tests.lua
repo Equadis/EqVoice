@@ -1052,6 +1052,7 @@ do
 	check(string.find(f.pages[2].problem.text, "cannot be used", 1, true), "a microphone Windows refuses is explained in words: " .. f.pages[2].problem.text)
 	app()
 	eq(f.pages[2].problem.text, "", "and the words go when it works")
+	check(f.pages[6].sIn.frame.shown == false and f.pages[6].sOut.frame.shown == false and f.pages[6].sIn.nameText.shown == false, "the volume sliders of the later page are NOT drawn over this one")
 	-- the speakers page
 	Stub.Click(f.bNext)
 	eq(f.title.text, "Your speakers", "")

@@ -874,7 +874,7 @@ local function sliderRow(f, key, label, y, minv, maxv, step, textW, show, commit
 	name:SetText(label)
 	local value = newText(f, "GameFontHighlightSmall", at[5] or 262, y - 4, textW, 14)
 	local s = newSlider(f, key, at[3] or 100, y - 3, at[4] or 154, minv, maxv, step, function(v) value:SetText(show(v)) end, commit)
-	s.valueText, s.format = value, show
+	s.valueText, s.nameText, s.format = value, name, show
 	return s, value
 end
 
