@@ -549,7 +549,7 @@ def test_a_test_engine_that_was_asked_for_is_not_a_problem(tmp_path):
     run(go(), 30)
 
 
-def test_a_missing_microphone_is_a_warning_and_speakers_can_be_tested(tmp_path):
+def test_a_missing_microphone_is_a_warning(tmp_path):
     async def go():
         async with Scene(tmp_path) as sc:
             _clear_log()
@@ -560,13 +560,8 @@ def test_a_missing_microphone_is_a_warning_and_speakers_can_be_tested(tmp_path):
             await until(lambda: a.mic.get("label"), 3, "mic reported")
             assert a.build_state()["warnings"] == [], "a normal engine and a real microphone raise nothing"
             await pa.ws.send_json({"t": "ui", "cmd": "test_speakers"})
-            await until(lambda: pa.named("tone"), 3, "the page is told to play the tone")
-            await pa.ws.send_json({"t": "tone", "ok": True, "error": "", "sink": "Speakers (Realtek)"})
-            await until(lambda: a.build_state()["speaker_test"].get("ok") is True, 3, "the page answers")
-            assert 'TRACE desktop speaker_test played=yes speakers="Speakers (Realtek)"' in _log()
-            await pa.ws.send_json({"t": "tone", "ok": False, "error": "NotAllowedError", "sink": ""})
-            await until(lambda: a.build_state()["speaker_test"].get("ok") is False, 3, "a failure is reported too")
-            assert "played=no" in _log() and "NotAllowedError" in _log()
+            await asyncio.sleep(0.3)
+            assert pa.named("tone") == [], "there is no speaker test any more: the page is never asked to play the tone"
             await pa.ws.send_json({"t": "mic", "state": "no_device", "label": "Requested device not found", "level": 0, "tx": False, "pcs": 0})
             await until(lambda: a.build_state()["warnings"], 3, "no microphone is a warning")
             assert "nobody can hear you" in a.build_state()["warnings"][0]

@@ -11,10 +11,10 @@
 <header>
   <h1>EqVoice</h1>
   <div id="pills">
-    <span class="pill" id="pill-char" title="Character reported by the game">no character yet</span>
-    <span class="pill" id="pill-sig" title="Signalling server">signalling: …</span>
-    <span class="pill" id="pill-bridge" title="Addon bridge">bridge: …</span>
-    <span class="pill" id="pill-mic" title="Microphone">mic: …</span>
+    <span class="pill" id="pill-char">no character yet</span>
+    <span class="pill" id="pill-sig">signalling: …</span>
+    <span class="pill" id="pill-bridge">bridge: …</span>
+    <span class="pill" id="pill-mic">mic: …</span>
   </div>
 </header>
 
@@ -28,21 +28,21 @@
     <div class="row"><label>In use</label><span id="using-mic" class="muted small">-</span></div>
     <div class="row"><label for="sel-out">Speakers</label><select id="sel-out"></select></div>
     <div class="row"><label for="master-vol">Volume</label><input id="master-vol" type="range" min="0" max="100" value="100"></div>
-    <div class="row"><label for="inp-vol" title="How loud your microphone is before anything else: the setup below chooses it for you">Input volume</label>
+    <div class="row"><label for="inp-vol">Input volume</label>
       <input id="inp-vol" type="range" min="0" max="200" step="5" value="100"> <span id="inp-vol-n" class="muted small">100%</span></div>
-    <div class="row"><label>Setup</label><button id="btn-cal" type="button" title="Stay silent, talk, shout: it sets the noise gate and the input volume for you">Set up my microphone</button>
+    <div class="row"><label>Setup</label><button id="btn-cal" type="button">Calibrate</button>
       <span id="cal-note" class="muted small"></span></div>
-    <div class="row"><label for="sel-boost" title="How much louder a voice is when the person is right next to you: it eases away smoothly as they move off, to normal at 10 yards">Boost</label>
+    <div class="row"><label for="sel-boost">Boost</label>
       <select id="sel-boost"><option value="off">Off</option><option value="low">Low (1.4 x)</option><option value="normal">Normal (2 x)</option><option value="high">High (3 x)</option></select>
-      <label class="inline" title="Lifts quiet microphones and eases hot ones, so every voice is loud and clear at the same distance"><input type="checkbox" id="chk-level"> level out different microphones</label></div>
-    <div class="row"><label for="sel-gate" title="Keeps your room's noise, keyboard clacks and mouse clicks off the line: only a voice opens it">Noise gate</label>
+      <label class="inline"><input type="checkbox" id="chk-level"> level out different microphones</label></div>
+    <div class="row"><label for="sel-gate">Noise gate</label>
       <select id="sel-gate"><option value="auto">Automatic (follows your room)</option><option value="manual">Manual</option><option value="off">Off</option></select>
       <span id="gate-note" class="muted small"></span></div>
     <div class="row" id="gate-row"><label>Gate level</label>
-      <div class="gmeter" title="Your voice (the bar) against the level that opens the gate (the line)"><div id="gate-fill"></div><div id="gate-thr"></div></div>
-      <input id="rng-gate" type="range" min="-80" max="-20" step="1" value="-48" title="Manual: the level your voice must reach to open the gate. Further left is more sensitive.">
+      <div class="gmeter"><div id="gate-fill"></div><div id="gate-thr"></div></div>
+      <input id="rng-gate" type="range" min="-80" max="-20" step="1" value="-48">
       <span id="gate-db" class="muted small"></span></div>
-    <div class="row"><label for="sel-br" title="A cap on the voice you send and ask for: lower uses less internet">Voice quality</label>
+    <div class="row"><label for="sel-br">Voice quality</label>
       <select id="sel-br"><option value="16">Light, 16 kbps</option><option value="24">Normal, 24 kbps</option><option value="32">High, 32 kbps</option><option value="0">Browser default</option></select></div>
     <div class="row">
       <label>Transmit</label>
@@ -50,16 +50,14 @@
       <label class="inline"><input type="radio" name="mode" id="mode-ptt" value="ptt"> push to talk</label>
     </div>
     <div class="row">
-      <label id="lbl-key" title="With an open microphone this key mutes and unmutes you; with push to talk you hold it to speak">Key</label>
+      <label id="lbl-key">Key</label>
       <button id="btn-key" type="button">…</button>
       <span id="key-hint" class="muted"></span>
     </div>
     <div class="row buttons">
-      <button id="btn-talk" type="button" title="Hold to talk (works without the global key)">Hold to talk</button>
+      <button id="btn-talk" type="button">Hold to talk</button>
       <button id="btn-mute" type="button">Mute</button>
       <button id="btn-deafen" type="button">Deafen</button>
-      <button id="btn-speakers" type="button" title="Plays two rising notes through the speakers chosen above">Test speakers</button>
-      <span id="speaker-note" class="muted small"></span>
     </div>
     <p class="muted small" id="privacy">Voice is peer to peer: players near you can see your IP address. Set <code>relay_only</code> in the config (needs a TURN server) to hide it.</p>
     <div class="row"><label>Mic level</label><div class="meter"><div id="meter-fill"></div></div><span id="tx-ind" class="tx">idle</span></div>
@@ -108,8 +106,8 @@
   <section id="s-diag">
     <h2>Diagnostics</h2>
     <div class="row buttons">
-      <button id="diag-net" type="button" title="Can this PC reach the voice server? What kind of network is it?">Check my connection</button>
-      <button id="diag-report" type="button" title="Saves a zip of logs on your Desktop to send to whoever is helping you">Save report</button>
+      <button id="diag-net" type="button">Check my connection</button>
+      <button id="diag-report" type="button">Export Logs</button>
       <button id="diag-copy" type="button">Copy diagnostics</button>
       <button id="diag-clear" type="button">Clear log view</button>
       <button id="diag-quit" type="button">Quit</button>
@@ -124,7 +122,7 @@
     <h2 id="cal-title"></h2>
     <p id="cal-text"></p>
     <div id="cal-live" hidden>
-      <div class="gmeter calmeter" title="How loud your microphone hears you"><div id="cal-fill"></div></div>
+      <div class="gmeter calmeter"><div id="cal-fill"></div></div>
       <div id="cal-left" class="calleft"></div>
     </div>
     <div class="row buttons">

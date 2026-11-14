@@ -54,8 +54,10 @@ def test_the_batch_files_are_windows_batch_files(pack):
 
 
 def test_the_addon_in_the_pack_is_the_repositorys(pack):
-    for f in (ROOT / "eqvoice-addon" / "EqVoice").iterdir():
-        assert (pack / "addon" / "EqVoice" / f.name).read_bytes() == f.read_bytes(), f.name
+    base = ROOT / "eqvoice-addon" / "EqVoice"
+    for f in base.rglob("*"):
+        if f.is_file():
+            assert (pack / "addon" / "EqVoice" / f.relative_to(base)).read_bytes() == f.read_bytes(), f.name
 
 
 def test_run_finds_the_game_installs_the_addon_and_starts_the_client(pack, tmp_path, monkeypatch, capsys):

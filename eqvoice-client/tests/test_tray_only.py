@@ -44,9 +44,9 @@ def test_a_window_that_is_only_a_window_never_becomes_the_voice_engine(tmp_path)
             a = await sc.add("Alice", at=(0, 0), page=False)
             ui, engine = await add_pages(sc, a, "ui", "engine")
             assert [p.media for p in a.pages] == [False, True], "the window opened first, and still the engine is the engine"
-            a.media({"cmd": "tone"})
-            await until(lambda: engine.named("tone"), 5, "commands go to the engine")
-            assert ui.named("tone") == [] and not ui.cmds, "and never to the window"
+            a.media({"cmd": "cue", "kind": "mute"})
+            await until(lambda: engine.named("cue"), 5, "commands go to the engine")
+            assert ui.named("cue") == [] and not ui.cmds, "and never to the window"
             assert sorted(p["role"] for p in a.diag()["pages"]) == ["engine", "ui"], "the diagnostics say which page is which"
     run(go(), 60)
 

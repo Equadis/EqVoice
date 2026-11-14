@@ -54,6 +54,10 @@ DEFAULTS = {
         "gate_mode": "auto",      # the noise gate (it is the keyboard filter, with a bar): auto follows the room's noise, manual uses gate_db
         "gate_db": -48.0,         # manual mode: the level (dB, in the speech band) a voice must reach to open the gate; -80 (very sensitive) .. -20
         "mute_list": [],          # players whose voice you never hear (lower-case character names)
+        "block_list": [],         # players who never hear YOU: your microphone is not sent to them (lower-case character names)
+        "player_volume": {},      # lower-case character name -> 0.0 .. 2.0: how loud that one player is for you (1.0 = as everyone else)
+        "spatial": "headphones",  # where voices are heard from: mono | speakers | headphones
+        "deaf_keep_mic": False,   # deafened, but your microphone stays open: you hear nobody, they still hear you
         "cues": True,             # a short blip when you mute, unmute, deafen or undeafen (including with the key, in the game)
         "peer_volume": {},
     },
@@ -179,7 +183,7 @@ def _wrap(d):
 
 def _merge(base, over):
     for k, v in over.items():
-        if isinstance(v, dict) and isinstance(base.get(k), dict) and k not in ("peer_volume",):
+        if isinstance(v, dict) and isinstance(base.get(k), dict) and k not in ("peer_volume", "player_volume"):
             _merge(base[k], v)
         else:
             base[k] = v

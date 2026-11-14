@@ -24,10 +24,10 @@ MUTED = ["bobby", "carol"]
 
 def status_text(**kw):
     args = dict(seq=7, ts=1700000000, character="Me", fields=FIELDS, headline="Ready: Me on Realm. 2 players in range, 1 connected.",
-                more=[], peers=PEERS, muted=MUTED, devices=None)
+                more=[], peers=PEERS, muted=MUTED, devices=None, blocked=())
     args.update(kw)
     return build_status(args["seq"], args["ts"], args["character"], args["fields"], args["headline"], args["more"], args["peers"], args["muted"],
-                        args["devices"])
+                        args["devices"], args["blocked"])
 
 
 # ------------------------------------------------------------------- status
@@ -37,7 +37,7 @@ def test_status_round_trip():
     assert (got.seq, got.ts, got.character) == (7, 1700000000, "Me")
     assert got.fields["mode"] == "open" and got.fields["vol"] == "80" and got.fields["key"] == "F9"
     assert got.headline.startswith("Ready: Me on Realm") and got.more == ["No voice window is connected."]
-    assert got.peers[0] == {"name": "Alice", "dist": 12.5, "connected": True, "speaking": True, "path": "direct", "state": "s", "muted": False}
+    assert got.peers[0] == {"name": "Alice", "dist": 12.5, "connected": True, "speaking": True, "path": "direct", "state": "s", "muted": False, "blocked": False, "vol": 100}
     assert got.peers[1]["dist"] is None and got.peers[1]["connected"] is False
     assert got.peers[1]["state"] == "-" and got.peers[2]["state"] == "d" and got.peers[2]["muted"] is True
     assert got.muted == ["bobby", "carol"]
@@ -46,7 +46,7 @@ def test_status_round_trip():
 def test_a_player_row_from_an_older_app_has_no_state_and_is_still_read():
     text = "OVS1 7 1700000000 %04X Me\n" % crc16(b"S level=ok\nM hi\nP Alice 5.0 1 0 direct\n") + "S level=ok\nM hi\nP Alice 5.0 1 0 direct\n"
     got = parse_status(text)
-    assert got.peers == [{"name": "Alice", "dist": 5.0, "connected": True, "speaking": False, "path": "direct", "state": "-", "muted": False}]
+    assert got.peers == [{"name": "Alice", "dist": 5.0, "connected": True, "speaking": False, "path": "direct", "state": "-", "muted": False, "blocked": False, "vol": 100}]
 
 
 def test_a_state_letter_the_addon_does_not_know_becomes_unknown_and_the_mute_list_is_split_over_lines():
@@ -257,3 +257,46 @@ def test_python_reads_what_the_addon_writes(tmp_path):
     assert [(c, a) for _, c, a in got.commands] == [("mode", "ptt"), ("mute", "1"), ("volume", "75"), ("test", "1")]
     cids = [i for i, _, _ in got.commands]
     assert cids == sorted(set(cids)) and cids[0] >= 1700000000 * 100, "ids increase and start from the clock"
+
+
+def test_a_player_row_carries_whether_they_are_blocked_and_their_volume_and_the_block_list_and_defaults_are_read():
+    peers = [{"name": "Alice", "dist": 5.0, "connected": True, "speaking": False, "path": "direct", "state": "o", "muted": False, "blocked": True, "vol": 1.5},
+             {"name": "Bob", "dist": 9.0, "connected": True, "speaking": False, "path": "direct", "state": "o", "vol": 7.0}]
+    got = parse_status(status_text(peers=peers, blocked=["alice", "zed"], devices={"in": ["AT2020"], "out": ["Realtek"], "default": {"in": "AT2020", "out": "Realtek (R) Audio"}}))
+    assert got.peers[0]["blocked"] is True and got.peers[0]["vol"] == 150
+    assert got.peers[1]["blocked"] is False and got.peers[1]["vol"] == 200, "a volume is kept between 0 and 200%"
+    assert got.blocked == ["alice", "zed"]
+    assert got.devices == {"in": ["AT2020"], "out": ["Realtek"]} and got.defaults == {"in": "AT2020", "out": "Realtek (R) Audio"}
+
+
+@pytest.mark.parametrize("label,plain", [
+    ("Default - Microphone (2- AT2020USB+) (0909:001c)", "AT2020USB+"),
+    ("Microphone (Steam Streaming Microphone)", "Steam Streaming Microphone"),
+    ("Microphone (NexiGo N60 FHD Webcam Audio) (1d6c:0103)", "NexiGo N60 FHD Webcam Audio"),
+    ("Speakers (Realtek(R) Audio)", "Realtek(R) Audio"),
+    ("Communications - Line (2- USB AUDIO  CODEC) (08bb:29c2)", "USB AUDIO CODEC"),
+    ("CU34G2XP (4- NVIDIA High Definition Audio)", "CU34G2XP (NVIDIA High Definition Audio)"),
+    ("Realtek Digital Output (Realtek(R) Audio)", "Realtek Digital Output (Realtek(R) Audio)"),
+])
+def test_a_device_is_shown_by_its_own_name_without_the_kind_wrapped_round_it(label, plain):
+    from eqvoice_client.bridge.uifiles import clean_device_label
+    assert clean_device_label(label) == plain
+
+
+def test_the_systems_default_and_communications_entries_are_not_devices_of_their_own_and_the_default_names_what_it_is():
+    from eqvoice_client.bridge.uifiles import default_device_name, game_devices
+    devs = [{"id": "default", "label": "Default - Microphone (2- AT2020USB+) (0909:001c)"},
+            {"id": "communications", "label": "Communications - Microphone (2- AT2020USB+) (0909:001c)"},
+            {"id": "a", "label": "Microphone (2- AT2020USB+) (0909:001c)"},
+            {"id": "b", "label": "Microphone (Steam Streaming Microphone)"}]
+    assert game_devices(devs) == [("a", "AT2020USB+"), ("b", "Steam Streaming Microphone")]
+    assert default_device_name(devs) == "AT2020USB+"
+    assert game_devices([{"id": "x", "label": "Mic"}, {"id": "y", "label": "Mic"}]) == [("x", "Mic"), ("y", "Mic (2)")], "two of one name are told apart"
+
+
+def test_the_direction_file_is_read_as_degrees_from_straight_ahead_and_damage_is_left_out():
+    from eqvoice_client.bridge.uifiles import parse_direction
+    got = parse_direction("OVD1 3\nAlice 90\nBob -170\nCarol 190\nbad x\nDave 9999\n")
+    assert got["alice"] == 90 and got["bob"] == -170 and abs(got["carol"] - (-170)) < 1e-6, "an angle is brought into -180..180"
+    assert "bad" not in got and "dave" not in got
+    assert parse_direction("garbage") == {} and parse_direction("") == {}

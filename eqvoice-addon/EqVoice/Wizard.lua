@@ -21,7 +21,7 @@ OV.Wizard = Wizard
 
 Wizard.WIDTH     = 440
 Wizard.HEIGHT    = 360
-Wizard.PAGES     = 6
+Wizard.PAGES     = 7
 Wizard.START_AFTER_S = 8        -- seconds the app must have been running (and the player in the world) before the box appears
 Wizard.page      = 1
 Wizard.frame     = nil
@@ -30,7 +30,7 @@ Wizard.aliveSince = nil
 Wizard.error     = nil
 Wizard.checkAt   = nil          -- when the last page was reached: a check that is still red some seconds later says so
 
-local TITLES = { "Welcome to EqVoice", "Your microphone", "Your speakers", "Push to talk", "Voice options", "All set?" }
+local TITLES = { "Welcome to EqVoice", "Your microphone", "Your speakers", "How you hear", "Push to talk", "Calibrate", "All set?" }
 
 local function UI() return OV.Panel and OV.Panel.UI end
 
@@ -116,12 +116,22 @@ function Wizard.Build()
 	p3[1] = newText(f, "GameFontHighlightSmall", 24, -66, 392, 12)
 	p3[1]:SetText("Pick where you hear other players.")
 	p3.list = OV.Panel.NewDeviceList(f, "out", 24, -86, 392, function(kind, label, index) OV.Panel.SetDevice(kind, label, index) end)
-	p3.test = newButton(f, "EqVoiceWizardTest", "Play a test sound", 150, 24, -290, function() OV.Panel.Command("test", "1") end)
-	p3[2] = newText(f, "GameFontHighlightSmall", 24, -318, 392, 26)
-	p3[2]:SetText("You should hear two rising notes.")
+	p3[2] = newText(f, "GameFontDisableSmall", 24, -318, 392, 26)
+	p3[2]:SetText("Anything the game plays comes out of the same place. To hear yourself, use Test Microphone in the settings.")
 	f.pages[3] = p3
 
-	-- page 4: push to talk
+	-- page 4: how you hear: mono, speakers or headphones
+	local p4s = {}
+	p4s[1] = newText(f, "GameFontHighlightSmall", 24, -66, 392, 40)
+	p4s[1]:SetText("Voices can come from the side the player is on: someone to your right is heard in your right ear.")
+	p4s.mono = newButton(f, "EqVoiceWizardMono", "Mono", 392, 24, -116, function() OV.Panel.SetSpatial("mono") end, 30)
+	p4s.speakers = newButton(f, "EqVoiceWizardSpeakers", "Speakers", 392, 24, -154, function() OV.Panel.SetSpatial("speakers") end, 30)
+	p4s.headphones = newButton(f, "EqVoiceWizardHeadphones", "Headphones", 392, 24, -192, function() OV.Panel.SetSpatial("headphones") end, 30)
+	p4s[2] = newText(f, "GameFontDisableSmall", 24, -232, 392, 60)
+	p4s[2]:SetText("Mono: no sides, every voice in the middle.\nSpeakers: a gentle left and right, made for speakers in front of you.\nHeadphones: the full effect, including in front of and behind you.")
+	f.pages[4] = p4s
+
+	-- page 5: push to talk
 	local p4 = {}
 	p4[1] = newText(f, "GameFontHighlightSmall", 24, -66, 392, 40)
 	p4[1]:SetText("Open microphone sends your voice whenever you are not muted. Push to talk sends it only while you hold a key.")
@@ -132,22 +142,20 @@ function Wizard.Build()
 		if OV.Panel.capturing then OV.Panel.StopCapture("key not changed") else OV.Panel.CaptureKey() end
 	end)
 	p4[2] = newText(f, "GameFontDisableSmall", 24, -232, 392, 40)
-	f.pages[4] = p4
+	f.pages[5] = p4
 
-	-- page 5: options
+	-- page 6: calibrate (and the two volumes)
 	local p5 = {}
-	p5.sIn, p5.inText = ui.sliderRow(f, "WizIn", "Microphone volume", -80, 0, 200, 5, 50,
+	p5.sIn, p5.inText = ui.sliderRow(f, "WizIn", "Boost", -80, 0, 200, 1, 50,
 		function(v) return string.format("%d%%", v) end, function(v) OV.Panel.SetInput(v) end)
-	p5.sOut, p5.outText = ui.sliderRow(f, "WizOut", "Other players", -112, 0, 100, 5, 50,
+	p5.sOut, p5.outText = ui.sliderRow(f, "WizOut", "Other players", -112, 0, 100, 1, 50,
 		function(v) return string.format("%d%%", v) end, function(v) OV.Panel.SetVolume(v) end)
-	p5.mute = newButton(f, "EqVoiceWizardMute", "Mute", 120, 24, -150, function() OV.Panel.ToggleMute() end)
-	p5.deaf = newButton(f, "EqVoiceWizardDeaf", "Deafen", 120, 150, -150, function() OV.Panel.SetDeaf(not OV.Panel.Model(OV.Now()).deaf) end)
-	p5.setup = newButton(f, "EqVoiceWizardMicSetup", "Set up my microphone", 392, 24, -188, function() OV.Panel.StartSetup() end)
-	p5[1] = newText(f, "GameFontDisableSmall", 24, -216, 392, 50)
-	p5[1]:SetText("The microphone setup asks you to stay silent, talk and then shout (about 17 seconds) and sets the noise gate so that keyboard clicks and room noise stay off the line. You can do it later from the panel.")
-	f.pages[5] = p5
+	p5.setup = newButton(f, "EqVoiceWizardMicSetup", "Calibrate", 392, 24, -150, function() OV.Panel.StartSetup() end, 30)
+	p5[1] = newText(f, "GameFontDisableSmall", 24, -192, 392, 60)
+	p5[1]:SetText("Calibrate asks you to stay silent, talk and then shout (about 17 seconds) and sets the sensitivity so that keyboard clicks and room noise stay off the line. You can do it again later from the settings.")
+	f.pages[6] = p5
 
-	-- page 6: the check
+	-- page 7: the check
 	local p6 = {}
 	p6.rows = {}
 	for i = 1, 3 do
@@ -161,8 +169,8 @@ function Wizard.Build()
 	end
 	p6.summary = newText(f, "GameFontNormal", 24, -176, 392, 60)
 	p6.hint = newText(f, "GameFontDisableSmall", 24, -240, 392, 60)
-	p6.hint:SetText("Later, change anything by clicking the microphone beside your name, or type /eqvoice or /eqvc. If something goes wrong, the Save logs to send button there makes a zip you can drag into a chat.")
-	f.pages[6] = p6
+	p6.hint:SetText("Later, change anything by clicking the microphone beside your name, or type /eqvoice or /eqvc. If something goes wrong, the Export Logs button there makes a zip you can drag into a chat.")
+	f.pages[7] = p6
 
 	f.bBack = newButton(f, "EqVoiceWizardBack", "Back", 90, 24, -322, function() Wizard.Go(Wizard.page - 1) end)
 	f.bNext = newButton(f, "EqVoiceWizardNext", "Next", 110, 306, -322, function()
@@ -253,8 +261,12 @@ function Wizard.Refresh(m)
 	elseif n == 3 then
 		p.list.Refresh(m)
 	elseif n == 4 then
-		ui.buttonText(p.open, "Open microphone", (m.mode == "open") and OV.Panel.COLORS.ok or OV.Panel.COLORS.gold)
-		ui.buttonText(p.ptt, "Push to talk", (m.mode == "ptt") and OV.Panel.COLORS.ok or OV.Panel.COLORS.gold)
+		ui.setSelected(p.mono, m.sp == "mono")
+		ui.setSelected(p.speakers, m.sp == "speakers")
+		ui.setSelected(p.headphones, m.sp == "headphones")
+	elseif n == 5 then
+		ui.setSelected(p.open, m.mode == "open")
+		ui.setSelected(p.ptt, m.mode == "ptt")
 		if m.capturing then
 			p.keytext:SetText("Press the key you want to use...")
 			p.key:SetText("Press a key (Esc cancels)")
@@ -263,12 +275,10 @@ function Wizard.Refresh(m)
 			p.key:SetText("Change the key")
 		end
 		p[2]:SetText(m.mode == "ptt" and "Hold this key to talk." or "With an open microphone this key mutes and unmutes you.")
-	elseif n == 5 then
+	elseif n == 6 then
 		if not p.sIn.Busy() then p.sIn.Set(m.input); p.inText:SetText(string.format("%d%%", m.input)) end
 		if not p.sOut.Busy() then p.sOut.Set(m.vol); p.outText:SetText(string.format("%d%%", m.vol)) end
-		ui.buttonText(p.mute, m.mute and "Unmute" or "Mute", m.mute and OV.Panel.COLORS.bad or OV.Panel.COLORS.gold)
-		ui.buttonText(p.deaf, m.deaf and "Undeafen" or "Deafen", m.deaf and OV.Panel.COLORS.bad or OV.Panel.COLORS.gold)
-	elseif n == 6 then
+	elseif n == 7 then
 		local checks = Wizard.Checks(m, Wizard.checkAt and (OV.Now() - Wizard.checkAt) or 0)
 		local allYes = true
 		for i = 1, 3 do

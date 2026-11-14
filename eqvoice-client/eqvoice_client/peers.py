@@ -163,6 +163,9 @@ class Peer:
     gain: float = 0.0                     # what the page was last told
     gain_t: float = -1e9
     sent_dist: Optional[float] = None     # the distance the page was last told
+    az: Optional[float] = None            # where they are: degrees from straight ahead of you, clockwise (None: the game cannot say)
+    sent_az: Optional[float] = None       # ... as the page was last told
+    sent_az_ep: int = 0
     sent_gate: bool = False               # ... and whether it was told the voice may be heard at all
     hold_gain: float = 0.0                # volume to keep while a reading is briefly missing
     stats: dict = field(default_factory=dict)
@@ -207,6 +210,8 @@ class PeerManager:
         self.log_ips = False                   # put real addresses in the candidate lines (default: only their kind)
         self.setup_ms: list = []               # how long each successful connection took to set up (last 50)
         self.muted: set = set()                # name.lower() of the players whose voice you do not want to hear (the mute list)
+        self.blocked: set = set()              # name.lower() of the players who must not hear you: your microphone is never sent to them
+        self.volumes: dict = {}                # name.lower() -> 0.0 .. 2.0: how loud that one player is for you
 
     # ------------------------------------------------------------ the mute list
 
@@ -222,6 +227,60 @@ class PeerManager:
         p = self.peers.get(key)
         if p is not None and p.ep:
             self.host.media({"cmd": "peer_mute", "sid": p.sid, "ep": p.ep, "value": bool(on)})
+
+    # ------------------------------------------------------------ block, and one player's volume
+
+    def is_blocked(self, name: str) -> bool:
+        return str(name).lower() in self.blocked
+
+    def set_blocked(self, name: str, on: bool) -> None:
+        """Block: that player stops receiving your voice (the page is told to send them nothing, at once). You still hear them unless you
+        also mute them; the connection stays up, so taking the block off needs no new call."""
+        key = str(name).strip().lower()
+        if not key:
+            return
+        (self.blocked.add if on else self.blocked.discard)(key)
+        p = self.peers.get(key)
+        if p is not None and p.ep and p.state in (PS.CONNECTED, PS.OUT_OF_RANGE_GRACE):
+            self._send_gain(p, p.gain, int(1000 / self.cfg.gain_hz) + 50, gate=p.sent_gate)
+
+    def volume_of(self, name: str) -> float:
+        return float(self.volumes.get(str(name).lower(), 1.0))
+
+    def set_volume(self, name: str, value: float) -> None:
+        key = str(name).strip().lower()
+        if not key:
+            return
+        v = max(0.0, min(2.0, float(value)))
+        if abs(v - 1.0) < 0.005:
+            self.volumes.pop(key, None)
+        else:
+            self.volumes[key] = v
+        p = self.peers.get(key)
+        if p is not None and p.ep:
+            self.host.media({"cmd": "volume", "sid": p.sid, "value": round(v, 2)})
+
+    def _peer_prefs(self, p: Peer) -> None:
+        """Right after a voice connection is opened: this player's own volume (the page starts every voice at 100%)."""
+        v = self.volume_of(p.name)
+        if abs(v - 1.0) >= 0.005:
+            self.host.media({"cmd": "volume", "sid": p.sid, "value": round(v, 2)})
+
+    # ------------------------------------------------------------ where each voice comes from
+
+    def update_bearings(self, bearings: dict) -> None:
+        """``bearings``: lower-case name -> degrees from straight ahead, clockwise (the game's direction file). A player it does not list has
+        no direction (their voice is centred). The page is told when a direction moves by two degrees or more."""
+        for key, p in self.peers.items():
+            az = bearings.get(key)
+            p.az = az
+            if not p.ep or p.state not in (PS.CONNECTED, PS.OUT_OF_RANGE_GRACE, PS.CONNECTING):
+                continue
+            same_call = p.sent_az_ep == p.ep
+            if same_call and ((az is None and p.sent_az is None) or (az is not None and p.sent_az is not None and abs(((az - p.sent_az + 180.0) % 360.0) - 180.0) < 2.0)):
+                continue
+            p.sent_az, p.sent_az_ep = az, p.ep
+            self.host.media({"cmd": "dir", "sid": p.sid, "ep": p.ep, "az": None if az is None else round(az, 1)})
 
     # ------------------------------------------------------------- helpers
 
@@ -292,7 +351,8 @@ class PeerManager:
         We transmit to a peer for as long as they could hear us, which is the whole call range, not only where an ordinary voice carries."""
         p.gain, p.gain_t, p.sent_dist, p.sent_gate = value, self.clock(), p.dist, gate
         self.host.media({"cmd": "gain", "sid": p.sid, "ep": p.ep, "value": round(value, 3), "ms": ms, "gate": gate,
-                         "dist": None if p.dist is None else round(p.dist, 1), "send": gate and (value > 0 or self.cfg.wide)})
+                         "dist": None if p.dist is None else round(p.dist, 1),
+                         "send": gate and (value > 0 or self.cfg.wide) and not self.is_blocked(p.name)})
 
     def _fade_out(self, p: Peer) -> None:
         if p.gain > 0 or p.gain_t < 0 or p.sent_gate:
@@ -500,6 +560,7 @@ class PeerManager:
         p.near_since, p.out_since = self.clock(), None
         self._enter(p, PS.CONNECTING, "offer received")
         self.host.media({"cmd": "open", "sid": frm, "ep": ep, "initiator": False, "ice": self.ice_provider(), "mute": self.is_muted(p.name)})
+        self._peer_prefs(p)
         self.host.media({"cmd": "remote", "sid": frm, "ep": ep, "type": "offer", "sdp": data.get("sdp", "")})
         early, p.early_ice = p.early_ice, []
         for e, cand in early:
@@ -813,6 +874,7 @@ class PeerManager:
             self._begin_attempt(p)
             self._enter(p, PS.CONNECTING, "initiating")
             self.host.media({"cmd": "open", "sid": p.sid, "ep": p.ep, "initiator": True, "ice": self.ice_provider(), "mute": self.is_muted(p.name)})
+            self._peer_prefs(p)
 
     # ------------------------------------------------------------ reporting
 

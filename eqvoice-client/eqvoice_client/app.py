@@ -210,6 +210,15 @@ class App:
         self.peers.cfg.near_gain = self._boost_gain()
         self.peers.media_ready = False
         self.peers.muted = {str(n).strip().lower() for n in (cfg.audio.get("mute_list") or []) if str(n).strip()}
+        self.peers.blocked = {str(n).strip().lower() for n in (cfg.audio.get("block_list") or []) if str(n).strip()}
+        for _n, _v in dict(cfg.audio.get("player_volume") or {}).items():
+            try:
+                self.peers.volumes[str(_n).strip().lower()] = max(0.0, min(2.0, float(_v)))
+            except (TypeError, ValueError):
+                pass
+        self.mic_test = False                           # the microphone test: you hear yourself, nothing is sent (until it is stopped)
+        self.bearings: dict = {}                        # lower-case name -> degrees from straight ahead (the game's direction file)
+        self._dir_sig = None                            # (path, mtime_ns) of the direction file as last read
         self.peers.log_ips = bool((cfg.get("diagnostics") or {}).get("log_ips"))
         self.token = cfg.ui.token or secrets.token_hex(12)
         self.pages: list = []
@@ -255,7 +264,6 @@ class App:
         self._mic_sig = None                            # what the last "mic" trace line said
         self._dev_sig = None
         self._warned: set = set()                       # media_warning problems already traced
-        self.speaker_test: dict = {}                    # the page's answer to the last "Test speakers"
         self._log_cb = self._on_log_line
         if cfg.audio.ptt_code:
             k = vk_from_code(cfg.audio.ptt_code)
@@ -398,7 +406,10 @@ class App:
     @property
     def tx_enabled(self) -> bool:
         a = self.cfg.audio
-        return (not a.muted) and (not a.deafened) and (a.mode == "open" or self.ptt_down)
+        if self.mic_test:
+            return False                                # the microphone test: nothing leaves this PC
+        deaf = bool(a.deafened) and not bool(a.get("deaf_keep_mic", False))        # (deafened with the microphone kept open still transmits)
+        return (not a.muted) and (not deaf) and (a.mode == "open" or self.ptt_down)
 
     def _apply_voice(self) -> None:
         tx = self.tx_enabled
@@ -472,9 +483,27 @@ class App:
                     "processing": bool(a.processing), "volumes": dict(a.peer_volume), "master": float(a.master_volume),
                     "input_gain": self._input_gain(), "bitrate": self._bitrate_kbps(), "curve": self.peers.cfg.curve,
                     "keyboard": bool(a.get("keyboard_filter", True)), "auto_gain": bool(a.get("auto_gain", False)),
-                    "auto_level": bool(a.get("auto_level", True)), "gate_mode": self._gate_mode(), "gate_db": self._gate_db()})
+                    "auto_level": bool(a.get("auto_level", True)), "gate_mode": self._gate_mode(), "gate_db": self._gate_db(),
+                    "spatial": self._spatial()})
         self.last_tx = self.last_deaf = self.last_muted = self.last_state = None
         self._apply_voice()
+        if self.mic_test:
+            self.media({"cmd": "mic_test", "on": True})        # a new engine page: the test goes on until the player stops it
+
+    SPATIAL_MODES = ("mono", "speakers", "headphones")
+
+    def _spatial(self) -> str:
+        v = self.cfg.audio.get("spatial", "headphones")
+        return v if v in self.SPATIAL_MODES else "headphones"
+
+    def _set_mic_test(self, on: bool) -> None:
+        on = bool(on)
+        if on == self.mic_test:
+            return
+        self.mic_test = on
+        trace("mic_test", on=on)
+        self._apply_voice()                                    # the microphone is closed to everyone first ...
+        self.media({"cmd": "mic_test", "on": on})              # ... and then played back to you
 
     # -------------------------------------------------------------- identity
 
@@ -577,6 +606,7 @@ class App:
                 path = "relay" if "relay" in str(p.path) else "direct"
             rows.append({"name": p.name, "dist": p.dist, "connected": p.state == PS.CONNECTED,
                          "speaking": bool(getattr(p, "audio_rx_on", False)), "path": path, "muted": self.peers.is_muted(p.name),
+                         "blocked": self.peers.is_blocked(p.name), "vol": self.peers.volume_of(p.name),
                          "state": self.peers.voice_state(p)})
         return rows
 
@@ -651,30 +681,35 @@ class App:
     # ------------------------------------------------------------ the game's device pickers
 
     def _device_names(self, kind: str) -> list:
-        """The names of the microphones ("inputs") or speakers ("outputs") Windows has, as the game lists them (at most 8)."""
-        out = []
-        for i, d in enumerate((self.devices or {}).get(kind) or []):
-            out.append(str(d.get("label") or ("Microphone %d" if kind == "inputs" else "Speakers %d") % (i + 1)))
-        return out[:uifiles.MAX_DEVICES]
+        """The names of the microphones ("inputs") or speakers ("outputs") Windows has, as the game lists them: plain device names, without the
+        system's "Default" and "Communications" aliases (at most 8)."""
+        return [name for _, name in uifiles.game_devices((self.devices or {}).get(kind))]
 
     def _device_index(self, kind: str) -> int:
         """1.. for the chosen device's place in that list, 0 for the system default (or a device that is not there any more)."""
         chosen = self.cfg.audio.input if kind == "inputs" else self.cfg.audio.output
         if not chosen:
             return 0
-        for i, d in enumerate(((self.devices or {}).get(kind) or [])[:uifiles.MAX_DEVICES], 1):
-            if d.get("id") == chosen:
+        for i, (dev_id, _) in enumerate(uifiles.game_devices((self.devices or {}).get(kind)), 1):
+            if dev_id == chosen:
                 return i
         return 0
+
+    def _default_devices(self) -> dict:
+        """What the system default is now, by name ("" when the browser does not say)."""
+        return {"in": uifiles.default_device_name((self.devices or {}).get("inputs")),
+                "out": uifiles.default_device_name((self.devices or {}).get("outputs"))}
 
     def _device_command(self, kind: str, name: str):
         """The window's own command for 'use the device with this name' (the name the game was shown), or None if there is none such."""
         want = " ".join(str(name or "").split()).lower()
-        if want in ("", "default", "system default"):
-            return {"cmd": "set_input" if kind == "inputs" else "set_output", "id": ""}
-        for d, label in zip(((self.devices or {}).get(kind) or [])[:uifiles.MAX_DEVICES], self._device_names(kind)):
-            if uifiles._device_name(label).lower() == want:
-                return {"cmd": "set_input" if kind == "inputs" else "set_output", "id": str(d.get("id") or "")}
+        cmd = "set_input" if kind == "inputs" else "set_output"
+        if want in ("", "default", "system default") or want.startswith("system default ("):
+            return {"cmd": cmd, "id": ""}
+        cleaned = uifiles._device_name(uifiles.clean_device_label(name)).lower()      # (a name saved by an older version, with its wrapping)
+        for dev_id, label in uifiles.game_devices((self.devices or {}).get(kind)):
+            if uifiles._device_name(label).lower() in (want, cleaned):
+                return {"cmd": cmd, "id": dev_id}
         return None
 
     def _watching_level(self) -> bool:
@@ -684,6 +719,7 @@ class App:
         a = self.cfg.audio
         talking = self.tx_enabled and float(self.mic.get("level") or 0.0) > 0.05
         return {"level": summary["level"], "mode": a.mode, "mute": int(bool(a.muted)), "deaf": int(bool(a.deafened)),
+                "dk": int(bool(a.deafened) and bool(a.get("deaf_keep_mic", False))), "sp": self._spatial(), "mt": int(self.mic_test),
                 "tx": int(self.tx_enabled), "talk": int(talking), "vl": self._self_voice_level(), "vol": int(round(float(a.master_volume) * 100)), "ing": int(round(self._input_gain() * 100)),
                 "near": self.peers.nearby_count(), "conn": self.peers.counts()["CONNECTED"], "key": a.ptt_label or "?",
                 "game": int(view.status == "live"), "hub": int(self.signalling.state == "registered"),
@@ -742,9 +778,11 @@ class App:
         summary = self.status_summary(view)
         self.ui_status.min_interval_s = 0.2 if self._watching_level() else 0.4          # a meter wants five looks a second
         fields, peer_rows = self._ui_fields(view, summary), self._ui_peer_rows()
-        devices = {"in": self._device_names("inputs"), "out": self._device_names("outputs")}
-        self._status_args = (self.ident.character, fields, summary["text"], summary["more"], peer_rows, sorted(self.peers.muted), devices)
-        self.ui_status.write(self.ident.character, fields, summary["text"], summary["more"], peer_rows, muted=sorted(self.peers.muted), devices=devices)
+        devices = {"in": self._device_names("inputs"), "out": self._device_names("outputs"), "default": self._default_devices()}
+        self._status_args = (self.ident.character, fields, summary["text"], summary["more"], peer_rows, sorted(self.peers.muted), devices,
+                             sorted(self.peers.blocked))
+        self.ui_status.write(self.ident.character, fields, summary["text"], summary["more"], peer_rows, muted=sorted(self.peers.muted), devices=devices,
+                             blocked=sorted(self.peers.blocked))
 
     METER_S = 0.05                                      # while a meter is on screen the game is told twenty times a second (the tick is four)
 
@@ -752,22 +790,53 @@ class App:
         while True:
             try:
                 self._meter_push()
+                self._poll_direction()
             except Exception:                           # noqa: BLE001
                 log.exception("meter push failed")
             await asyncio.sleep(self.METER_S)
+
+    DIRECTION_STALE_S = 3.0                             # a direction file older than this says nothing (the game stopped, or the addon is an older one)
+
+    def _poll_direction(self) -> None:
+        """Where each nearby player is, relative to the way your character faces: the addon writes it ten times a second while anyone is near.
+        Read here (twenty times a second, only when the file changed) and handed to the page as it moves."""
+        target = self.inbox_target()
+        if target is None or self.ident is None:
+            return
+        path = uifiles.direction_path(target)
+        try:
+            st = path.stat()
+        except OSError:
+            if self.bearings:
+                self.bearings = {}
+                self.peers.update_bearings(self.bearings)
+            return
+        if time.time() - st.st_mtime > self.DIRECTION_STALE_S:
+            if self.bearings:
+                self.bearings = {}
+                self.peers.update_bearings(self.bearings)
+            return
+        sig = (str(path), st.st_mtime_ns, st.st_size)
+        if sig != self._dir_sig:
+            self._dir_sig = sig
+            try:
+                self.bearings = uifiles.parse_direction(path.read_text(encoding="utf-8", errors="replace"))
+            except OSError:
+                return
+        self.peers.update_bearings(self.bearings)
 
     def _meter_push(self) -> None:
         """The last full status again with only the meter's figures new: a bar that moves four times a second is a slideshow."""
         if self._status_args is None or self.ui_status is None or not self._watching_level():
             return
-        character, fields, text, more, peer_rows, muted, devices = self._status_args
+        character, fields, text, more, peer_rows, muted, devices, blocked = self._status_args
         if self.ident is None or character != self.ident.character:
             return
         fresh = {k: v for k, v in fields.items() if k not in ("gl", "gt", "go")}
         fresh["lvl"] = int(round(max(0.0, min(1.0, float(self.mic.get("level") or 0.0))) * 100))
         fresh.update(self._gate_meter())
         self.ui_status.min_interval_s = self.METER_S
-        self.ui_status.write(character, fresh, text, more, peer_rows, muted=muted, devices=devices)
+        self.ui_status.write(character, fresh, text, more, peer_rows, muted=muted, devices=devices, blocked=blocked)
 
     def _apply_control(self, cmds) -> None:
         """The game's panel speaks the same vocabulary as the window: each command becomes the window's own message."""
@@ -785,8 +854,23 @@ class App:
             elif cmd == "pmute" and " " in arg.strip():
                 who, _, flag = arg.strip().rpartition(" ")
                 msg = {"cmd": "mute_player", "name": who, "value": flag == "1"} if flag in ("0", "1") else None
-            elif cmd in ("mute", "deafen") and arg in ("0", "1"):
+            elif cmd == "mute" and arg in ("0", "1"):
                 msg = {"cmd": cmd, "value": arg == "1"}
+            elif cmd == "deafen" and arg in ("0", "1", "2"):                    # 2: deafened with the microphone kept open
+                msg = {"cmd": "deafen", "value": arg != "0", "keep_mic": arg == "2"}
+            elif cmd == "pblock" and " " in arg.strip():
+                who, _, flag = arg.strip().rpartition(" ")
+                msg = {"cmd": "block_player", "name": who, "value": flag == "1"} if flag in ("0", "1") else None
+            elif cmd == "pvol" and " " in arg.strip():
+                who, _, pct = arg.strip().rpartition(" ")
+                try:
+                    msg = {"cmd": "player_volume", "name": who, "value": max(0, min(200, int(float(pct)))) / 100.0}
+                except ValueError:
+                    msg = None
+            elif cmd == "spatial" and arg in self.SPATIAL_MODES:
+                msg = {"cmd": "spatial", "value": arg}
+            elif cmd == "mictest" and arg in ("0", "1"):
+                self._set_mic_test(arg == "1")
             elif cmd == "volume":
                 try:
                     msg = {"cmd": "master_volume", "value": max(0, min(100, int(float(arg)))) / 100.0}
@@ -807,8 +891,6 @@ class App:
                 msg = self._device_command("inputs" if cmd == "micdev" else "outputs", arg)
             elif cmd == "watch":
                 self.level_watch_until = self.clock() + 3.0 if arg == "1" else -100.0
-            elif cmd == "test":
-                msg = {"cmd": "test_speakers"}
             elif cmd == "report":                                               # the panel's "Save logs" button
                 asyncio.ensure_future(self._save_report())
             self.ui_commands += 1
@@ -1126,7 +1208,7 @@ class App:
                       "muted_players": sorted(self.peers.muted), "cues": bool(v.get("cues", True))},
             "audio": {"input": v.input, "output": v.output},
             "devices": self.devices, "mic": self.mic,
-            "warnings": [t for _, t in self.media_warnings()], "speaker_test": self.speaker_test,
+            "warnings": [t for _, t in self.media_warnings()],
             "status": self.status_summary(view),
             "peers": self.peers.snapshot(),
             "proximity": {"say_radius": self.cfg.proximity.say_radius, "full_radius": self.cfg.proximity.full_radius,
@@ -1167,7 +1249,7 @@ class App:
             "mic": self.mic, "devices": self.devices,
             "peers": self.peers.snapshot(),
             "pages": [{"ua": p.ua, "media": p.media, "automation": p.webdriver, "role": p.role} for p in self.pages],
-            "warnings": [t for _, t in self.media_warnings()], "speaker_test": self.speaker_test,
+            "warnings": [t for _, t in self.media_warnings()],
             "log": RING.tail(200),
         }
 
@@ -1341,10 +1423,13 @@ class App:
                 self._mic_sig = sig
                 trace("mic", state=sig[0], label=sig[1] or "-", fake=self._fake_label(sig[1]))
                 self._check_media()
-        elif t == "tone":
-            self.speaker_test = {"ok": bool(m.get("ok")), "error": str(m.get("error") or "")[:120], "sink": str(m.get("sink") or "")[:80],
-                                 "at": time.time()}
-            trace("speaker_test", played=bool(m.get("ok")), speakers=m.get("sink") or "system default", error=self.speaker_test["error"] or None)
+        elif t == "mictest":
+            if not m.get("ok") or not m.get("on"):
+                if self.mic_test and not m.get("ok"):
+                    log.warning("the microphone test could not start: %s", str(m.get("error") or "?")[:160])
+                    trace("mic_test_failed", error=str(m.get("error") or "?")[:160])
+                    self.mic_test = False
+                    self._apply_voice()
         elif t == "gate":
             if not m.get("ok"):
                 self.gate_error = str(m.get("error") or "unknown")[:160]
@@ -1410,6 +1495,28 @@ class App:
             a.muted = bool(m.get("value"))
         elif cmd == "deafen":
             a.deafened = bool(m.get("value"))
+            a.deaf_keep_mic = bool(a.deafened and m.get("keep_mic"))
+            trace("deafen", on=bool(a.deafened), microphone="open" if a.deaf_keep_mic else "closed")
+        elif cmd == "spatial" and m.get("value") in self.SPATIAL_MODES:
+            a.spatial = m["value"]
+            trace("spatial", mode=a.spatial)
+            self.media({"cmd": "spatial", "value": a.spatial})
+        elif cmd == "mic_test":
+            self._set_mic_test(bool(m.get("value")))
+        elif cmd in ("block_player", "player_volume"):
+            name = str(m.get("name") or "").strip()
+            if 1 <= len(name) <= 24 and not re.search(r"[\x00-\x20\x7f=|]", name):
+                if cmd == "block_player":
+                    self.peers.set_blocked(name, bool(m.get("value")))
+                    a.block_list = sorted(self.peers.blocked)
+                    trace("block_player", name=name, blocked=bool(m.get("value")), listed=len(self.peers.blocked))
+                else:
+                    try:
+                        self.peers.set_volume(name, float(m.get("value")))
+                    except (TypeError, ValueError):
+                        pass
+                    a.player_volume = dict(self.peers.volumes)
+                    trace("player_volume", name=name, volume=round(self.peers.volume_of(name), 2))
         elif cmd == "ptt_key":
             if "code" in m:
                 k = vk_from_code(str(m["code"]), m.get("key"))
@@ -1501,10 +1608,6 @@ class App:
             asyncio.ensure_future(self._run_netcheck())
         elif cmd == "save_report":
             asyncio.ensure_future(self._save_report())
-        elif cmd == "test_speakers":
-            self.speaker_test = {}
-            trace("speaker_test_requested", speakers=a.output or "system default")
-            self.media({"cmd": "tone"})
         elif cmd == "quit":
             log.info("quit requested from the UI")
             self._quit.set()

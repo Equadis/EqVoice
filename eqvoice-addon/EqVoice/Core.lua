@@ -439,6 +439,25 @@ function OV.Slash(msg)
 		OV.Bridge.optical, OV.Bridge.file = OV.db.optical, OV.db.file
 		OV.PublishBridge(now, true)
 		status()
+	elseif cmd == "dir" then
+		if w[2] == "flip" then
+			OV.db.dirFlip = not OV.db.dirFlip and true or nil
+			OV.Print("voice direction: left and right " .. (OV.db.dirFlip and "swapped" or "as the game gives them"))
+		else
+			local D = OV.Direction
+			local facing = D and D.Facing()
+			local pn, pw = nil, nil
+			if D then pn, pw = D.Position("player") end
+			local tn, tw = nil, nil
+			if D and UnitExists and UnitExists("target") then tn, tw = D.Position("target") end
+			if not (facing and pn) then OV.Print("this client cannot say where you face or stand: voices will not have a direction")
+			elseif not tn then OV.Print(string.format("you face %d degrees (0 north, 90 west); target a player to see where they are", math.floor(facing * 180 / math.pi + 0.5)))
+			else
+				local d = D.Azimuth(pn, pw, facing, tn, tw, OV.db.dirFlip)
+				if not d then OV.Print("your target stands where you stand")
+				else OV.Print(string.format("your target is %d degrees to your %s (0 ahead, 90 beside you, 180 behind). Wrong side? /ev dir flip", math.floor(math.abs(d) + 0.5), d >= 0 and "RIGHT" or "LEFT")) end
+			end
+		end
 	elseif cmd == "trace" then
 		OV.db.chatTrace = (w[2] == "on") or nil
 		OV.Print("trace " .. (OV.db.chatTrace and "on: every boundary is narrated here and in the bridge file" or "off (the bridge file still carries it)"))
@@ -488,6 +507,7 @@ local function install()
 	SlashCmdList["EQVOICE"] = function(msg) OV.Slash(msg) end
 	SLASH_EQVOICEUI1 = "/eqvc"
 	SLASH_EQVOICEUI2 = "/eqvoice"
+	SLASH_EQVOICEUI3 = "/vc"
 	SlashCmdList["EQVOICEUI"] = function(msg) OV.Panel.Slash(msg) end
 end
 

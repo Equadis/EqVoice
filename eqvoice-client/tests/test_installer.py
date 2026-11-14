@@ -150,8 +150,8 @@ def test_the_real_addon_installs_completely(tmp_path):
     dst = wow / "Interface" / "AddOns" / "EqVoice"
     listed = [ln.strip() for ln in (ADDON / "EqVoice.toc").read_text(encoding="utf-8").splitlines() if ln.strip() and not ln.startswith("#")]
     assert listed and all((dst / f).exists() for f in listed)
-    assert r.files == len(list(ADDON.iterdir()))
-    assert {p.name for p in dst.iterdir()} == {p.name for p in ADDON.iterdir()}
+    assert r.files == len([p for p in ADDON.rglob('*') if p.is_file()])
+    assert {str(p.relative_to(dst)) for p in dst.rglob('*') if p.is_file()} == {str(p.relative_to(ADDON)) for p in ADDON.rglob('*') if p.is_file()}
 
 
 def test_classicapi_is_checked_for(tmp_path):

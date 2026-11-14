@@ -275,13 +275,16 @@ def install_addon(wow: Path, src: Optional[Path] = None) -> InstallResult:
     try:
         dst.mkdir(parents=True, exist_ok=True)
         wanted = set()
-        for f in sorted(src.iterdir()):
+        for f in sorted(src.rglob("*")):                       # (the files and the fonts folder)
             if not f.is_file():
                 continue
-            wanted.add(f.name)
+            rel = f.relative_to(src)
+            if len(rel.parts) == 1:
+                wanted.add(f.name)
             res.files += 1
             data = f.read_bytes()
-            target = dst / f.name
+            target = dst / rel
+            target.parent.mkdir(parents=True, exist_ok=True)
             if not target.exists() or target.read_bytes() != data:
                 target.write_bytes(data)
                 res.changed += 1

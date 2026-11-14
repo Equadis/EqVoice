@@ -29,10 +29,8 @@ OV.Panel = Panel
 Panel.ROWS      = 5          -- nearby players listed
 Panel.PENDING_S = 3          -- seconds a clicked value is shown before the app's answer is required
 Panel.WIDTH     = 480
-Panel.HEIGHT    = 586
-Panel.BOOST_ORDER = { "off", "low", "normal", "high" }                               -- the boost slider's four stops
-Panel.BOOST_LABEL = { off = "Off", low = "Low (x1.4)", normal = "Normal (x2)", high = "High (x3)" }   -- how much louder people are right next to you
-Panel.GATE_LABEL  = { off = "Off", auto = "Auto", manual = "Manual" }                -- the noise gate
+Panel.HEIGHT    = 642
+Panel.GATE_LABEL  = { off = "Off", auto = "Auto", manual = "Manual" }                -- the noise gate (shown in the order Manual, Auto, Off)
 Panel.GATE_NEXT   = { auto = "manual", manual = "off", off = "auto" }
 Panel.GATE_MIN, Panel.GATE_MAX, Panel.GATE_STEP = -80, -20, 2                         -- manual bar, dB
 Panel.SLIDER_SEND_S = 0.2    -- a slider that has rested this long sends its value
@@ -43,8 +41,10 @@ Panel.WATCH_S   = 1.5        -- how often a visible meter asks the app for the m
 Panel.REPLAY_S  = 0.3        -- seconds between the saved settings handed to the app (the command file keeps the last eight, so one at a time)
 -- What the game remembers and tells the app again whenever the app (re)appears, so that the settings in the game are the ones in force.
 -- Mute and deafen are not: they are a moment's choice, and starting a session deaf would only be a surprise.
-Panel.REMEMBER  = { mode = true, volume = true, input = true, boost = true, gate = true, gatedb = true, key = true, micdev = true, spkdev = true }
-Panel.REPLAY_ORDER = { "micdev", "spkdev", "mode", "volume", "input", "boost", "gate", "gatedb", "key" }
+Panel.REMEMBER  = { mode = true, volume = true, input = true, gate = true, gatedb = true, key = true, micdev = true, spkdev = true, spatial = true }
+Panel.REPLAY_ORDER = { "micdev", "spkdev", "mode", "volume", "input", "spatial", "gate", "gatedb", "key" }
+Panel.SPATIAL_LABEL = { mono = "Mono", speakers = "Speakers", headphones = "Headphones" }
+Panel.SPATIAL_ORDER = { "mono", "speakers", "headphones" }
 Panel.CAPTURE_S = 10         -- seconds "press a key" waits
 Panel.ART       = "Interface\\AddOns\\EqVoice\\"     -- MicroUp, MicroDown, MicGlyph, MicSlash (.tga), drawn by tools/make_micro_art.py
 Panel.BTN_W     = 28                                   -- the size of the client's own micro buttons
@@ -134,6 +134,11 @@ end
 local CAL_PHASES = { idle = true, quiet = true, normal = true, loud = true, done = true }
 local CAL_QUALITIES = { good = true, noisy = true, none = true }
 
+function Panel.DefaultName(name)
+	if name and name ~= "" then return "System default (" .. name .. ")" end
+	return "System default"
+end
+
 function Panel.Model(now)
 	local S = OV.Status
 	local f = S.fields
@@ -144,7 +149,9 @@ function Panel.Model(now)
 	m.deaf = pick("deaf", f.deaf == "1", now)
 	m.vol  = pick("vol", tonumber(f.vol) or 100, now)
 	m.input = pick("ing", tonumber(f.ing) or 100, now)
-	m.boost = pick("boost", Panel.BOOST_LABEL[f.boost or ""] and f.boost or "normal", now)
+	m.dkeep = pick("dk", f.dk == "1", now)                                         -- deafened with the microphone left open
+	m.sp   = pick("sp", Panel.SPATIAL_LABEL[f.sp or ""] and f.sp or "headphones", now)
+	m.mt   = pick("mt", f.mt == "1", now)                                          -- the microphone test is running
 	m.gate = pick("gate", Panel.GATE_LABEL[f.gate or ""] and f.gate or "auto", now)
 	m.gdb  = pick("gdb", tonumber(f.gdb) or -48, now)
 	m.key  = (string.gsub(f.key or "F9", "_", " "))
@@ -163,10 +170,12 @@ function Panel.Model(now)
 	m.devIn, m.devOut = S.devices["in"], S.devices.out                              -- the names Windows has, as the app lists them
 	m.din  = pick("din", tonumber(f.din) or 0, now)                                  -- which is in use: 0 the system's own, else its place in the list
 	m.dout = pick("dout", tonumber(f.dout) or 0, now)
-	m.micName = (m.din > 0 and m.devIn[m.din]) or "System default"
-	m.spkName = (m.dout > 0 and m.devOut[m.dout]) or "System default"
+	m.defIn, m.defOut = S.defaults["in"] or "", S.defaults.out or ""
+	m.micName = (m.din > 0 and m.devIn[m.din]) or Panel.DefaultName(m.defIn)
+	m.spkName = (m.dout > 0 and m.devOut[m.dout]) or Panel.DefaultName(m.defOut)
 	m.lvl  = tonumber(f.lvl) or 0                                                    -- the microphone's level, 0..100, while a meter is showing
 	m.rpt = f.rpt                                                                    -- the name of the log zip the app has just saved (for twenty-odd seconds)
+	m.loud = (m.voice == 2)                                                          -- your voice is loud enough to carry at yell distance
 	m.glive = tonumber(f.gl)                                                         -- dB of the signal the gate judges (while a meter is showing), nil if the app does not say
 	m.gthr  = tonumber(f.gt)                                                         -- the bar the gate holds it against now (the room-following bar in auto)
 	m.ghas  = (f.go ~= nil)                                                          -- the app runs a gate and says whether it is open
@@ -185,13 +194,17 @@ function Panel.Model(now)
 		m.text = (S.headline ~= "" and S.headline) or "EqVoice"
 		if S.nmore > 0 then m.text = m.text .. "  (" .. S.nmore .. " more problem" .. (S.nmore == 1 and "" or "s") .. ": see the EqVoice window)" end
 		m.hint = nil
-		if m.deaf then m.text = m.text .. " Deafened: you hear nobody and nobody hears you."
+		if m.deaf and m.dkeep then m.text = m.text .. " Deafened: you hear nobody; they can still hear you."
+		elseif m.deaf then m.text = m.text .. " Deafened: you hear nobody and nobody hears you."
+		elseif m.mt then m.text = m.text .. " Testing your microphone: nobody hears you."
 		elseif m.mute then m.text = m.text .. " Muted: nobody hears you." end
 	end
 	-- the indicator
 	if not alive then m.badge, m.color = "NO APP", COLORS.off
 	elseif m.level == "bad" then m.badge, m.color = "ERROR", COLORS.bad
+	elseif m.deaf and m.dkeep then m.badge, m.color = "DEAF", COLORS.warn
 	elseif m.deaf then m.badge, m.color = "DEAF", COLORS.bad
+	elseif m.mt then m.badge, m.color = "TEST", COLORS.warn
 	elseif m.mute then m.badge, m.color = "MUTED", COLORS.bad
 	elseif m.level == "warn" then m.badge, m.color = "CHECK", COLORS.warn
 	elseif m.talk then m.badge, m.color = "TALKING", COLORS.talk
@@ -203,12 +216,15 @@ function Panel.Model(now)
 		local p = S.peers[i]
 		local key = string.lower(p.name)
 		local muted = pick("pm:" .. key, (p.muted or S.muted[key]) and true or false, now)
+		local blocked = pick("pb:" .. key, (p.blocked or S.blocked[key]) and true or false, now)
+		local vol = pick("pv:" .. key, p.vol or 100, now)
 		local info = (p.dist and (string.format("%d yd", math.floor(p.dist + 0.5))) or "? yd")
 		if p.speaking then info = info .. "  speaking"
 		elseif not p.connected then info = info .. "  connecting" end
 		if p.path == "relay" then info = info .. "  relay" end
 		if muted then info = info .. "  muted" end
-		m.rows[i] = { name = p.name, info = info, live = p.connected, speaking = p.speaking, muted = muted,
+		if blocked then info = info .. "  blocked" end
+		m.rows[i] = { name = p.name, info = info, live = p.connected, speaking = p.speaking, muted = muted, blocked = blocked, vol = vol,
 			state = OV.Icons and OV.Icons.Resolve(p.name, now) or nil }
 	end
 	m.nrows = table.getn(m.rows)
@@ -291,7 +307,7 @@ local function differs(cmd, value, m)
 	if cmd == "mode" then return f.mode ~= value
 	elseif cmd == "volume" then return tonumber(f.vol) ~= tonumber(value)
 	elseif cmd == "input" then return tonumber(f.ing) ~= tonumber(value)
-	elseif cmd == "boost" then return f.boost ~= value
+	elseif cmd == "spatial" then return f.sp ~= value
 	elseif cmd == "gate" then return f.gate ~= value
 	elseif cmd == "gatedb" then return tonumber(f.gdb) ~= tonumber(value)
 	elseif cmd == "key" then                                     -- the game says BUTTON4, the app calls it Mouse 4
@@ -301,7 +317,7 @@ local function differs(cmd, value, m)
 		local list = (cmd == "micdev") and m.devIn or m.devOut
 		local at = (cmd == "micdev") and m.din or m.dout
 		local now = (at > 0 and list[at]) or "default"
-		if string.lower(value) == "default" then return at ~= 0 end
+		if string.lower(value) == "default" or string.find(string.lower(value), "^system default") then return at ~= 0 end
 		for i = 1, table.getn(list) do                                    -- a device that is not there now cannot be chosen: nothing to send
 			if string.lower(list[i]) == string.lower(value) then return now ~= list[i] end
 		end
@@ -339,25 +355,51 @@ function Panel.SetMute(on)
 	return Panel.Command("mute", on and "1" or "0", "mute", on and true or false)
 end
 
+-- Deafen: you hear nobody, and your microphone closes with it (your own mute setting is not touched, so undeafening gives it back).
 function Panel.SetDeaf(on)
+	Panel.pending.dk = { value = false, untilT = OV.Now() + Panel.PENDING_S }
 	return Panel.Command("deafen", on and "1" or "0", "deaf", on and true or false)
+end
+
+-- The other deafen: you hear nobody, but your microphone stays as it was and they still hear you.
+function Panel.SetDeafKeep(on)
+	Panel.pending.dk = { value = on and true or false, untilT = OV.Now() + Panel.PENDING_S }
+	return Panel.Command("deafen", on and "2" or "0", "deaf", on and true or false)
+end
+
+-- Where voices are heard from: mono, speakers or headphones.
+function Panel.SetSpatial(mode)
+	if not Panel.SPATIAL_LABEL[mode] then return false end
+	return Panel.Command("spatial", mode, "sp", mode)
+end
+
+-- The microphone test: you hear yourself, nobody else does. It goes on until it is stopped (closing the panel does not stop it).
+function Panel.SetMicTest(on)
+	return Panel.Command("mictest", on and "1" or "0", "mt", on and true or false)
+end
+
+-- One player: their own volume for you (0..200%, 100 = as everyone), whether you hear them (mute), whether they hear you (block).
+function Panel.SetPlayerVolume(name, v)
+	if type(name) ~= "string" or name == "" then return false end
+	v = OV.clamp(math.floor(v + 0.5), 0, 200)
+	return Panel.Command("pvol", string.lower(name) .. " " .. string.format("%d", v), "pv:" .. string.lower(name), v)
+end
+
+function Panel.SetPlayerBlock(name, on)
+	if type(name) ~= "string" or name == "" then return false end
+	return Panel.Command("pblock", string.lower(name) .. " " .. (on and "1" or "0"), "pb:" .. string.lower(name), on and true or false)
 end
 
 -- How loud everyone is for you, 0..100 in steps of 5.
 function Panel.SetVolume(v)
-	v = OV.clamp(math.floor(v / 5 + 0.5) * 5, 0, 100)
+	v = OV.clamp(math.floor(v + 0.5), 0, 100)
 	return Panel.Command("volume", string.format("%d", v), "vol", v)
 end
 
--- How loud your microphone is before the noise gate and everything else, 0..200 in steps of 5 (100 = as it comes).
+-- Microphone boost: how loud your microphone is before the noise gate and everything else, 0..200% continuously (100 = as it comes).
 function Panel.SetInput(v)
-	v = OV.clamp(math.floor(v / 5 + 0.5) * 5, 0, 200)
+	v = OV.clamp(math.floor(v + 0.5), 0, 200)
 	return Panel.Command("input", string.format("%d", v), "ing", v)
-end
-
-function Panel.SetBoost(b)
-	if not Panel.BOOST_LABEL[b] then return false end
-	return Panel.Command("boost", b, "boost", b)
 end
 
 function Panel.SetGate(mode)
@@ -484,8 +526,11 @@ local function safe(fn)
 end
 
 local WHITE = "Interface\\Buttons\\WHITE8X8"
-local FONT = "Fonts\\ARIALN.TTF"
-local FONT_TITLE = "Fonts\\FRIZQT__.TTF"
+local FONT_DIR = Panel.ART .. "fonts\\ggsans-"
+local FONT = FONT_DIR .. "Medium.ttf"             -- gg sans, as Discord draws it: Medium for text, Semibold for labels and buttons, Bold for titles
+local FONT_REG = FONT_DIR .. "Regular.ttf"
+local FONT_SEMI = FONT_DIR .. "Semibold.ttf"
+local FONT_TITLE = FONT_DIR .. "Bold.ttf"
 local FLAT, BACKDROP, BOX_BACKDROP, SLIDER_BACKDROP = nil, nil, nil, nil       -- (square backdrops are gone: every shape is drawn by newBox, rounded)
 
 local function setColor(fs, c)
@@ -612,7 +657,7 @@ local function newButton(parent, name, text, w, x, y, onclick, h)
 	b:SetPoint("TOPLEFT", parent, "TOPLEFT", x, y)
 	paint(b, THEME.btn)
 	local fs = b:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
-	styleText(fs, 12)
+	styleText(fs, 12, FONT_SEMI)
 	if fs.SetShadowOffset then fs:SetShadowOffset(0, 0) end                -- no shadow: dark letters on gold came out smeared
 	fs:SetPoint("CENTER", b, "CENTER", 0, 0)
 	setColor(fs, THEME.text)
@@ -644,9 +689,9 @@ local function newDropdown(parent, name, text, w, x, y, onclick, h)
 end
 
 local TEXT_STYLE = {                       -- the client's font objects, by the look they were asked for: size and colour
-	GameFontNormalLarge = { 22, "text", FONT_TITLE }, GameFontNormal = { 14, "accent", FONT_TITLE }, GameFontNormalSmall = { 12, "muted" },
+	GameFontNormalLarge = { 22, "text", FONT_TITLE }, GameFontNormal = { 14, "accent", FONT_SEMI }, GameFontNormalSmall = { 12, "muted", FONT_REG },
 	GameFontHighlight = { 14, "text" }, GameFontHighlightSmall = { 12, "text" },
-	GameFontDisable = { 13, "muted" }, GameFontDisableSmall = { 11, "muted" },
+	GameFontDisable = { 13, "muted", FONT_REG }, GameFontDisableSmall = { 11, "muted", FONT_REG },
 }
 
 local function newText(parent, font, x, y, w, h, justify)
@@ -860,17 +905,7 @@ local function newRow(parent, i, y)
 	b.infoText:SetHeight(14)
 	b.infoText:SetJustifyH("RIGHT")
 	b.who = nil
-	b:SetScript("OnClick", safe(function() if this.who then Panel.TogglePlayerMute(this.who) end end))
-	b:SetScript("OnEnter", safe(function()
-		if not this.who then return end
-		GameTooltip:SetOwner(this, "ANCHOR_RIGHT")
-		GameTooltip:SetText(this.who, 1, 1, 1)
-		local word = OV.Icons.Describe(this.state)
-		if word then GameTooltip:AddLine(word, 0.85, 0.85, 0.85, 1) end
-		GameTooltip:AddLine(this.muted and "Click: unmute this player." or "Click: mute this player (you will not hear them).", 0.6, 0.6, 0.6, 1)
-		GameTooltip:Show()
-	end))
-	b:SetScript("OnLeave", function() GameTooltip:Hide() end)
+	b:SetScript("OnClick", safe(function() if this.who then Panel.OpenPlayer(this.who) end end))          -- a click opens that player's settings
 	return b
 end
 
@@ -879,7 +914,7 @@ Panel.UI = { newButton = newButton, newText = newText, heading = heading, button
 	safe = safe, fail = fail, setColor = setColor, buttonText = buttonText, savePos = savePos, restorePos = restorePos,
 	BACKDROP = BACKDROP, BOX_BACKDROP = BOX_BACKDROP, SLIDER_BACKDROP = SLIDER_BACKDROP,
 	paint = paint, closeButton = closeButton, newDropdown = newDropdown, setEnabled = setEnabled, setSelected = setSelected, card = card,
-	THEME = THEME, WHITE = WHITE, FLAT = FLAT }
+	THEME = THEME, WHITE = WHITE, FLAT = FLAT, styleText = styleText, FONT = FONT, FONT_SEMI = FONT_SEMI, FONT_TITLE = FONT_TITLE }
 
 -- A list of the microphones (kind "in") or speakers ("out"), one row each with the chosen one ticked: "System default" first, then what Windows has.
 -- A click calls onPick(kind, name, index). Refresh(model) redraws it; the rows are only as many as there are devices.
@@ -907,13 +942,6 @@ function Panel.NewDeviceList(parent, kind, x, y, w, onPick)
 		b.text:SetJustifyH("LEFT")
 		b.index = i
 		b:SetScript("OnClick", safe(function() if this.label and onPick then onPick(kind, this.label, this.index) end end))
-		b:SetScript("OnEnter", safe(function()
-			if not this.full then return end
-			GameTooltip:SetOwner(this, "ANCHOR_RIGHT")
-			GameTooltip:SetText(this.full, 1, 1, 1)
-			GameTooltip:Show()
-		end))
-		b:SetScript("OnLeave", function() GameTooltip:Hide() end)
 		b:Hide()
 		list.rows[i + 1] = b
 	end
@@ -923,7 +951,7 @@ function Panel.NewDeviceList(parent, kind, x, y, w, onPick)
 		local n = table.getn(names)
 		for i = 0, Panel.DEVICE_ROWS do
 			local b = list.rows[i + 1]
-			local name = (i == 0) and "System default" or names[i]
+			local name = (i == 0) and Panel.DefaultName((kind == "in") and m.defIn or m.defOut) or names[i]
 			if name and i <= n then
 				b.label, b.full = (i == 0) and "default" or name, name
 				b.text:SetText(name)
@@ -984,7 +1012,7 @@ function Panel.DbToPct(db)
 end
 
 function Panel.NewGateBar(parent, x, y, w, h, commit)
-	local bar = { w = w, h = h, level = nil, shown = nil, thr = -48, mode = "auto", open = false, enabled = true, dragging = false, pct = 0,
+	local bar = { w = w, h = h, loud = false, level = nil, shown = nil, thr = -48, mode = "auto", open = false, enabled = true, dragging = false, pct = 0,
 		pendingValue = nil, restAt = 0 }
 	local t = CreateFrame("Frame", "EqVoiceGateBar", parent)
 	t:SetWidth(w)
@@ -1016,8 +1044,11 @@ function Panel.NewGateBar(parent, x, y, w, h, commit)
 	local function seg(b, x0, x1)
 		if x1 - x0 >= 1 then b.Layout(x0, -1, x1 - x0, h - 2, 3) else b.Hide() end
 	end
+	local LOUD = { 0.92, 0.27, 0.27 }
 	function bar.Draw()
 		local lx = bar.shown and px(bar.shown) or 1
+		bar.amber.SetColor(bar.loud and LOUD or THEME.amber)                      -- red: loud enough to be heard at yell distance
+		bar.green.SetColor(bar.loud and LOUD or THEME.green)
 		seg(bar.greenDim, 1, w - 1)
 		if bar.mode == "off" then
 			bar.amberDim.Hide()
@@ -1045,8 +1076,8 @@ function Panel.NewGateBar(parent, x, y, w, h, commit)
 		local e = bar.open and THEME.green or THEME.edge
 		setEdge(t, e)
 	end
-	function bar.Set(level, thr, mode, open)
-		bar.level, bar.mode, bar.open = level, mode or "auto", open and true or false
+	function bar.Set(level, thr, mode, open, loud)
+		bar.level, bar.mode, bar.open, bar.loud = level, mode or "auto", open and true or false, loud and true or false
 		if bar.shown == nil or level == nil then bar.shown = level end          -- the first reading (and silence) is drawn at once; the rest is eased in OnUpdate
 		if not bar.Busy() and thr then bar.thr = thr end
 		bar.pct = level and Panel.DbToPct(level) or 0
@@ -1115,11 +1146,11 @@ function Panel.Build()
 	paint(f, THEME.bg, THEME.edge)
 	restorePos(f, "panelPos", "CENTER", 0, 40)
 	f:Hide()
-	card(f, -84, -336)
-	card(f, -344, -436)
-	card(f, -444, -574)
+	card(f, -84, -346)
+	card(f, -354, -486)
+	card(f, -494, -630)
 
-	-- the header: name, connection status, mute and deafen
+	-- the header: name, connection status, mute and the two deafens
 	f.logo = f:CreateTexture(nil, "OVERLAY")
 	f.logo:SetTexture(Panel.ART .. "Logo.tga")
 	f.logo:SetWidth(30)
@@ -1133,8 +1164,8 @@ function Panel.Build()
 	f.dot:SetWidth(8)
 	f.dot:SetHeight(8)
 	f.dot:SetPoint("TOPLEFT", f, "TOPLEFT", 24, -45)
-	f.status = newText(f, "GameFontHighlightSmall", 38, -42, 236, 40)
-	f.bMute = newButton(f, "EqVoicePanelMute", "Mute", 92, 280, -36, function() Panel.ToggleMute() end, 30)
+	f.status = newText(f, "GameFontHighlightSmall", 38, -42, 232, 40)
+	f.bMute = newButton(f, "EqVoicePanelMute", "Mute", 88, 276, -36, function() Panel.ToggleMute() end, 30)
 	buttonIcon(f.bMute, "MicGlyph.tga")
 	do                                                                       -- the slash over the microphone: a second picture of the same size
 		local sl = f.bMute:CreateTexture(nil, "OVERLAY")
@@ -1144,18 +1175,31 @@ function Panel.Build()
 		sl:SetPoint("LEFT", f.bMute, "LEFT", 9, 0)
 		f.bMute.slash = sl
 	end
-	f.bDeaf = newButton(f, "EqVoicePanelDeafen", "Deafen", 92, 376, -36, function()
+	f.bDeaf = newButton(f, "EqVoicePanelDeafen", "Deafen", 80, 368, -36, function()
 		local m = Panel.Model(OV.Now())
-		Panel.SetDeaf(not m.deaf)
+		Panel.SetDeaf(not (m.deaf and not m.dkeep))
 	end, 30)
 	buttonIcon(f.bDeaf, "VoiceDeafened.tga")
+	f.bDeafKeep = newButton(f, "EqVoicePanelDeafenKeep", "", 20, 448, -36, function()           -- the other deafen: you hear nobody, they still hear you
+		local m = Panel.Model(OV.Now())
+		Panel.SetDeafKeep(not (m.deaf and m.dkeep))
+	end, 30)
+	do
+		local g = f.bDeafKeep:CreateTexture(nil, "OVERLAY")
+		g:SetTexture(Panel.ART .. "IconRight.tga")
+		g:SetWidth(10)
+		g:SetHeight(10)
+		g:SetPoint("CENTER", f.bDeafKeep, "CENTER", 0, 0)
+		g:SetVertexColor(THEME.text[1], THEME.text[2], THEME.text[3], 1)
+		f.bDeafKeep.icon = g
+	end
 
-	-- Microphone: device, volume, mode and key, setup, the one sensitivity bar, boost
+	-- Microphone: device, boost, mode and key, calibrate, the one sensitivity bar, the test
 	heading(f, "Microphone", -92)
 	local lab = newText(f, "GameFontHighlightSmall", 24, -122, 100, 14)
 	lab:SetText("Input device")
 	f.bMicDev = newDropdown(f, "EqVoicePanelMicDevice", "System default", 328, 128, -116, function() Panel.OpenPicker("in") end)
-	f.sIn, f.inText = sliderRow(f, "Input", "Input volume", -152, 0, 200, 5, 56,
+	f.sIn, f.inText = sliderRow(f, "Input", "Boost", -152, 0, 200, 1, 56,
 		function(v) return string.format("%d%%", v) end, function(v) Panel.SetInput(v) end, { 24, 100, 128, 258, 394 })
 	f.bOpen = newButton(f, "EqVoicePanelOpenMic", "Open mic", 108, 24, -182, function() Panel.SetMode("open") end, 28)
 	buttonIcon(f.bOpen, "MicGlyph.tga")
@@ -1163,30 +1207,12 @@ function Panel.Build()
 	f.bKey = newButton(f, "EqVoicePanelKey", "Keybind: F9", 108, 258, -182, function()
 		if Panel.capturing then Panel.StopCapture("key not changed") else Panel.CaptureKey() end
 	end, 28)
-	f.bKey:SetScript("OnEnter", safe(function()
-		hover(this, true)
-		local m = Panel.Model(OV.Now())
-		GameTooltip:SetOwner(this, "ANCHOR_RIGHT")
-		GameTooltip:SetText("Keybind: " .. m.key, 1, 1, 1)
-		GameTooltip:AddLine(m.mode == "ptt" and "Push to talk: hold this key to talk. Click to choose another key."
-			or "Open mic: pressing this key mutes and unmutes you. Click to choose another key.", 0.85, 0.85, 0.85, 1)
-		GameTooltip:Show()
-	end))
-	f.bKey:SetScript("OnLeave", function() hover(this, false); GameTooltip:Hide() end)
-	f.bSetup = newButton(f, "EqVoicePanelSetup", "Set up mic", 82, 374, -182, function() Panel.StartSetup() end, 28)
-	f.bSetup:SetScript("OnEnter", safe(function()
-		hover(this, true)
-		GameTooltip:SetOwner(this, "ANCHOR_RIGHT")
-		GameTooltip:SetText("Microphone setup", 1, 1, 1)
-		GameTooltip:AddLine("Stay silent, talk, then shout (about 17 seconds): sets the sensitivity and the volume for your voice.", 0.85, 0.85, 0.85, 1)
-		GameTooltip:Show()
-	end))
-	f.bSetup:SetScript("OnLeave", function() hover(this, false); GameTooltip:Hide() end)
+	f.bSetup = newButton(f, "EqVoicePanelSetup", "Calibrate", 82, 374, -182, function() Panel.StartSetup() end, 28)
 
 	local sens = newText(f, "GameFontHighlightSmall", 24, -222, 260, 14)
-	sens:SetText("Input sensitivity / live mic level")
-	f.bGAuto = newButton(f, "EqVoicePanelGateAuto", "Auto", 52, 292, -218, function() Panel.SetGate("auto") end, 22)
-	f.bGManual = newButton(f, "EqVoicePanelGateManual", "Manual", 60, 346, -218, function() Panel.SetGate("manual") end, 22)
+	sens:SetText("Input sensitivity")
+	f.bGManual = newButton(f, "EqVoicePanelGateManual", "Manual", 60, 292, -218, function() Panel.SetGate("manual") end, 22)
+	f.bGAuto = newButton(f, "EqVoicePanelGateAuto", "Auto", 52, 354, -218, function() Panel.SetGate("auto") end, 22)
 	f.bGOff = newButton(f, "EqVoicePanelGateOff", "Off", 48, 408, -218, function() Panel.SetGate("off") end, 22)
 	f.sGate = Panel.NewGateBar(f, 24, -246, 432, 22, function(v)           -- moving the handle means you want it where you put it: manual
 		local m = Panel.Model(OV.Now())
@@ -1194,57 +1220,147 @@ function Panel.Build()
 		Panel.SetGateDb(v)
 	end)
 	f.meter = f.sGate                                                      -- (the one bar is the meter: there is no second one)
-	f.sGate.frame:SetScript("OnEnter", safe(function()
-		GameTooltip:SetOwner(this, "ANCHOR_RIGHT")
-		GameTooltip:SetText("Input sensitivity", 1, 1, 1)
-		GameTooltip:AddLine("The bar is your microphone, live. Sound that rises above the handle (the green side) is sent; quieter sound (the amber side) is not.", 0.85, 0.85, 0.85, 1)
-		GameTooltip:AddLine("Auto follows the noise in your room. Manual: drag the handle. Off: everything is sent.", 0.6, 0.6, 0.6, 1)
-		GameTooltip:Show()
-	end))
-	f.sGate.frame:SetScript("OnLeave", function() GameTooltip:Hide() end)
 	f.gateNote = newText(f, "GameFontDisableSmall", 24, -296, 432, 12)
-	f.sBoost, f.boostText = sliderRow(f, "Boost", "Boost", -312, 0, 3, 1, 120,
-		function(v) return Panel.BOOST_LABEL[Panel.BOOST_ORDER[math.floor(v + 0.5) + 1] or "normal"] end,
-		function(v) Panel.SetBoost(Panel.BOOST_ORDER[math.floor(v + 0.5) + 1] or "normal") end, { 24, 100, 128, 200, 336 })
+	f.bTestMic = newButton(f, "EqVoicePanelTestMic", "Test Microphone", 432, 24, -316, function()
+		local m = Panel.Model(OV.Now())
+		Panel.SetMicTest(not m.mt)
+	end, 26)
 
-	-- Speaker
-	heading(f, "Speaker", -352)
-	local lab2 = newText(f, "GameFontHighlightSmall", 24, -382, 100, 14)
+	-- Speaker: device, volume, where voices are heard from
+	heading(f, "Speaker", -362)
+	local lab2 = newText(f, "GameFontHighlightSmall", 24, -392, 100, 14)
 	lab2:SetText("Output device")
-	f.bSpkDev = newDropdown(f, "EqVoicePanelSpeakerDevice", "System default", 328, 128, -376, function() Panel.OpenPicker("out") end)
-	f.sVol, f.volText = sliderRow(f, "Volume", "Output volume", -410, 0, 100, 5, 40,
-		function(v) return string.format("%d%%", v) end, function(v) Panel.SetVolume(v) end, { 24, 100, 128, 176, 312 })
-	f.bTest = newButton(f, "EqVoicePanelTest", "Test speakers", 104, 352, -406, function() Panel.Command("test", "1") end, 26)
-	buttonIcon(f.bTest, "VoiceSpeaking.tga")
+	f.bSpkDev = newDropdown(f, "EqVoicePanelSpeakerDevice", "System default", 328, 128, -386, function() Panel.OpenPicker("out") end)
+	f.sVol, f.volText = sliderRow(f, "Volume", "Output volume", -424, 0, 100, 1, 56,
+		function(v) return string.format("%d%%", v) end, function(v) Panel.SetVolume(v) end, { 24, 100, 128, 258, 394 })
+	local lab3 = newText(f, "GameFontHighlightSmall", 24, -458, 100, 14)
+	lab3:SetText("Sound")
+	f.bSpatial = {}
+	for i = 1, 3 do
+		local mode = Panel.SPATIAL_ORDER[i]
+		f.bSpatial[mode] = newButton(f, "EqVoicePanelSound" .. i, Panel.SPATIAL_LABEL[mode], (i == 3) and 114 or 100, 128 + (i - 1) * 102, -452, function() Panel.SetSpatial(mode) end, 26)
+	end
 
-	-- Nearby players and the blocklist
-	heading(f, "Nearby", -452)
-	f.nearHint = newText(f, "GameFontDisableSmall", 104, -455, 240, 12)
-	f.nearHint:SetText("click a name to mute them")
-	f.bBlock = newButton(f, "EqVoicePanelBlock", "Blocklist", 92, 364, -450, function() Panel.ToggleBlocklist() end, 24)
+	-- Nearby players, the overhead icons and the blocklist
+	heading(f, "Nearby", -502)
+	f.nearHint = newText(f, "GameFontDisableSmall", 104, -505, 130, 12)
+	f.nearHint:SetText("click a name")
+	f.bOverhead = newButton(f, "EqVoicePanelOverhead", "Overhead icons: On", 132, 228, -500, function() Panel.SetOverhead(not Panel.OverheadOn()) end, 24)
+	f.bBlock = newButton(f, "EqVoicePanelBlock", "Blocklist", 88, 368, -500, function() Panel.ToggleBlocklist() end, 24)
 	f.rows, f.rowName, f.rowInfo = {}, {}, {}
 	for i = 1, Panel.ROWS do
-		local row = newRow(f, i, -476 - (i - 1) * 16)
+		local row = newRow(f, i, -532 - (i - 1) * 16)
 		f.rows[i], f.rowName[i], f.rowInfo[i] = row, row.nameText, row.infoText
 	end
-	f.nobody = newText(f, "GameFontHighlightSmall", 24, -480, 432, 14)
-	f.nobody2 = newText(f, "GameFontDisableSmall", 24, -498, 432, 12)
-	f.muteNote = newText(f, "GameFontDisableSmall", 24, -560, 432, 12)
-	f.hint = newText(f, "GameFontDisableSmall", 24, -559, 300, 12)
-	f.bReport = newButton(f, "EqVoicePanelReport", "Save logs to send", 116, 340, -557, function() Panel.Command("report", "1") end, 17)
-	f.bReport:SetScript("OnEnter", safe(function()
-		hover(this, true)
-		GameTooltip:SetOwner(this, "ANCHOR_RIGHT")
-		GameTooltip:SetText("Save logs to send", 1, 1, 1)
-		GameTooltip:AddLine("Makes a zip of EqVoice's logs and shows it on your PC. Drag that one file into a chat to send it.", 0.85, 0.85, 0.85, 1)
-		GameTooltip:Show()
-	end))
-	f.bReport:SetScript("OnLeave", function() hover(this, false); GameTooltip:Hide() end)
+	f.nobody = newText(f, "GameFontHighlightSmall", 24, -536, 432, 14)
+	f.nobody2 = newText(f, "GameFontDisableSmall", 24, -554, 432, 12)
+	f.muteNote = newText(f, "GameFontDisableSmall", 24, -616, 432, 12)
+	f.hint = newText(f, "GameFontDisableSmall", 24, -614, 300, 12)
+	f.bReport = newButton(f, "EqVoicePanelReport", "Export Logs", 100, 356, -611, function() Panel.Command("report", "1") end, 17)
 
 	if UISpecialFrames then table.insert(UISpecialFrames, "EqVoicePanel") end
 	f:SetScript("OnShow", function() Panel.dirty = true end)
 	Panel.frame = f
 	return f
+end
+
+function Panel.OverheadOn()
+	return not (OV.db and OV.db.ui and OV.db.ui.overhead == false)
+end
+
+function Panel.SetOverhead(on)
+	if OV.Icons and OV.Icons.SetOverhead then OV.Icons.SetOverhead(on) end
+	Panel.dirty = true
+end
+
+-- ------------------------------------------------------------------ one player's settings
+
+-- The window a click on a player's speaker (or name) opens: their own volume for you, mute, block. It follows the app's answers.
+function Panel.BuildPlayer()
+	if Panel.player then return Panel.player end
+	if not CreateFrame or not UIParent then return nil end
+	local f = CreateFrame("Frame", "EqVoicePlayer", UIParent)
+	f:SetWidth(300)
+	f:SetHeight(192)
+	f:SetFrameStrata("DIALOG")
+	f:SetFrameLevel(10)
+	f:EnableMouse(true)
+	f:SetMovable(true)
+	f:SetClampedToScreen(true)
+	f:RegisterForDrag("LeftButton")
+	f:SetScript("OnDragStart", function() this:StartMoving() end)
+	f:SetScript("OnDragStop", safe(function() this:StopMovingOrSizing(); savePos(Panel.player, "playerPos") end))
+	paint(f, THEME.bg, THEME.edge)
+	restorePos(f, "playerPos", "CENTER", 300, 40)
+	f:Hide()
+	f.icon = OV.Icons.New(f, 24)
+	f.name = newText(f, "GameFontNormalLarge", 22, -14, 230, 26)
+	f.sub = newText(f, "GameFontDisableSmall", 22, -42, 256, 12)
+	closeButton(f, "EqVoicePlayerClose")
+	f.sVol, f.volText = sliderRow(f, "PlayerVol", "Volume", -70, 0, 200, 1, 50,
+		function(v) return string.format("%d%%", v) end, function(v) if Panel.playerWho then Panel.SetPlayerVolume(Panel.playerWho, v) end end,
+		{ 22, 56, 82, 148, 236 })
+	f.bReset = newButton(f, "EqVoicePlayerReset", "Reset to 100%", 110, 22, -100, function()
+		if Panel.playerWho then Panel.SetPlayerVolume(Panel.playerWho, 100) end
+	end, 22)
+	f.bMute = newButton(f, "EqVoicePlayerMute", "Mute", 124, 22, -134, function()
+		if Panel.playerWho then Panel.TogglePlayerMute(Panel.playerWho) end
+	end, 28)
+	buttonIcon(f.bMute, "MicSlash.tga")
+	f.bBlock = newButton(f, "EqVoicePlayerBlock", "Block", 124, 154, -134, function()
+		if Panel.playerWho then Panel.SetPlayerBlock(Panel.playerWho, not Panel.IsPlayerBlocked(Panel.playerWho, OV.Now())) end
+	end, 28)
+	f.note = newText(f, "GameFontDisableSmall", 22, -168, 256, 12)
+	f.note:SetText("Mute: you stop hearing them. Block: they stop hearing you.")
+	if UISpecialFrames then table.insert(UISpecialFrames, "EqVoicePlayer") end
+	f:SetScript("OnShow", function() Panel.dirty = true end)
+	Panel.player = f
+	return f
+end
+
+function Panel.IsPlayerBlocked(name, now)
+	local key = string.lower(name)
+	local v = pending("pb:" .. key, now)
+	if v ~= nil then return v end
+	return OV.Status.blocked[key] and true or false
+end
+
+function Panel.OpenPlayer(name)
+	if type(name) ~= "string" or name == "" then return end
+	local ok, err = pcall(Panel.BuildPlayer)
+	if not ok or not Panel.player then fail(err or "no player window"); OV.Print("The player settings could not be drawn."); return end
+	local f = Panel.player
+	if f:IsShown() and Panel.playerWho == string.lower(name) then f:Hide(); return end
+	Panel.playerWho, Panel.playerName = string.lower(name), name
+	f.sVol.pendingValue = nil
+	f:Show()
+	Panel.Refresh()
+end
+
+local function applyPlayer(f, m, now)
+	local key = Panel.playerWho
+	if not key then return end
+	local row = OV.Status.byName[key]
+	f.name:SetText(Panel.playerName or Panel.ShowName(key))
+	local state = OV.Icons and OV.Icons.Resolve(Panel.playerName or key, now) or nil
+	OV.Icons.Set(f.icon, state)
+	OV.Icons.PlaceBeside(f.icon, f.name)
+	local vol = pending("pv:" .. key, now)
+	if vol == nil then vol = (row and row.vol) or 100 end
+	if not f.sVol.Busy() then f.sVol.Set(vol); f.volText:SetText(string.format("%d%%", vol)) end
+	local muted, blocked = Panel.IsPlayerMuted(key, now), Panel.IsPlayerBlocked(key, now)
+	buttonText(f.bMute, muted and "Unmute" or "Mute")
+	buttonText(f.bBlock, blocked and "Unblock" or "Block")
+	setSelected(f.bMute, muted, true)
+	setSelected(f.bBlock, blocked, true)
+	if row then
+		f.sub:SetText(string.format("%s%s", row.dist and (string.format("%d yd away", math.floor(row.dist + 0.5))) or "out of range", row.connected and "" or "  (connecting)"))
+	else
+		f.sub:SetText("not near you now: these settings are kept")
+	end
+	local alive = m.alive
+	f.sVol.Enable(alive)
+	setEnabled(f.bReset, alive); setEnabled(f.bMute, alive); setEnabled(f.bBlock, alive)
 end
 
 -- The pop-up that lists the microphones or the speakers beside the panel: one click picks one.
@@ -1414,6 +1530,7 @@ function Panel.BuildBlocklist()
 	eb:SetMaxLetters(24)
 	eb:SetTextInsets(6, 6, 0, 0)
 	paint(eb, THEME.track, THEME.edge)
+	if eb.SetFont then eb:SetFont(FONT, 13) end
 	eb:SetScript("OnEscapePressed", function() this:ClearFocus() end)
 	eb:SetScript("OnEnterPressed", safe(function() Panel.BlockTyped() end))
 	f.input = eb
@@ -1503,7 +1620,7 @@ local function applyMeter(f, m)
 	local thr = (m.gate == "manual") and m.gdb or (m.gthr or m.gdb)
 	local live = m.glive                                                    -- an app that does not send the gate's level (an older one): its plain level, on the same track
 	if not live and m.lvl > 0 then live = Panel.DB_MIN + m.lvl / 100 * (Panel.DB_MAX - Panel.DB_MIN) end
-	f.sGate.Set(m.alive and live or nil, OV.clamp(thr, Panel.GATE_MIN, Panel.GATE_MAX), m.gate, m.alive and m.ghas and m.gopen)
+	f.sGate.Set(m.alive and live or nil, OV.clamp(thr, Panel.GATE_MIN, Panel.GATE_MAX), m.gate, m.alive and m.ghas and m.gopen, m.loud)
 	local note, noteColor = Panel.GateNote(m)
 	f.gateNote:SetText(note)
 	setColor(f.gateNote, noteColor)
@@ -1516,10 +1633,18 @@ local function applyModel(f, m)
 	f.dot:SetVertexColor(dc[1], dc[2], dc[3], 1)
 	setSelected(f.bOpen, m.mode == "open")
 	setSelected(f.bPtt, m.mode == "ptt")
+	-- mute and deafen: a normal deafen closes the microphone too, so both buttons go red; the other deafen leaves the microphone as it was
+	local micShut = m.mute or (m.deaf and not m.dkeep)
 	buttonText(f.bMute, m.mute and "Unmute" or "Mute")
-	buttonText(f.bDeaf, m.deaf and "Undeafen" or "Deafen")
-	setSelected(f.bMute, m.mute, true)
-	setSelected(f.bDeaf, m.deaf, true)
+	buttonText(f.bDeaf, (m.deaf and not m.dkeep) and "Undeafen" or "Deafen")
+	setSelected(f.bMute, micShut, true)
+	setSelected(f.bDeaf, m.deaf and not m.dkeep, true)
+	setSelected(f.bDeafKeep, m.deaf and m.dkeep, false)                           -- gold: deafened, still heard
+	if m.deaf and m.dkeep then
+		f.bDeafKeep.icon:SetVertexColor(THEME.dark[1], THEME.dark[2], THEME.dark[3], 1)
+	else
+		f.bDeafKeep.icon:SetVertexColor(THEME.text[1], THEME.text[2], THEME.text[3], 1)
+	end
 	-- the key: what it does depends on the mode (hold to talk, or press to mute and unmute)
 	if m.capturing then
 		buttonText(f.bKey, "Press a key...")
@@ -1531,29 +1656,34 @@ local function applyModel(f, m)
 	-- the sliders (a slider being dragged is left alone: the player's hand is what it shows)
 	if not f.sIn.Busy() then f.sIn.Set(m.input); f.inText:SetText(f.sIn.format(m.input)) end
 	if not f.sVol.Busy() then f.sVol.Set(m.vol); f.volText:SetText(f.sVol.format(m.vol)) end
-	local boostIdx = 2
-	for i = 1, table.getn(Panel.BOOST_ORDER) do if Panel.BOOST_ORDER[i] == m.boost then boostIdx = i - 1 end end
-	if not f.sBoost.Busy() then f.sBoost.Set(boostIdx); f.boostText:SetText(Panel.BOOST_LABEL[m.boost] or "Normal (x2)") end
-	-- the one bar: the live signal the gate judges, and the bar it is held against (manual: the player's setting; auto: the room-following bar)
+	-- the one bar, in the order Manual, Auto, Off
 	applyMeter(f, m)
 	f.sGate.Enable(m.alive and m.gate == "manual")
-	setSelected(f.bGAuto, m.gate == "auto")
 	setSelected(f.bGManual, m.gate == "manual")
+	setSelected(f.bGAuto, m.gate == "auto")
 	setSelected(f.bGOff, m.gate == "off")
+	-- the microphone test: red and "Stop Testing" while it runs (it runs on when this window is closed)
+	buttonText(f.bTestMic, m.mt and "Stop Testing" or "Test Microphone")
+	setSelected(f.bTestMic, m.mt, true)
+	-- where voices are heard from
+	for mode, b in pairs(f.bSpatial) do setSelected(b, m.sp == mode) end
 	local function short(s) return string.len(s) > 46 and (string.sub(s, 1, 45) .. "...") or s end
 	buttonText(f.bMicDev, short(m.micName))
 	buttonText(f.bSpkDev, short(m.spkName))
-	local list = { f.bOpen, f.bPtt, f.bMute, f.bDeaf, f.bKey, f.bTest, f.bSetup, f.bGAuto, f.bGManual, f.bGOff, f.bMicDev, f.bSpkDev, f.bReport }
+	buttonText(f.bOverhead, "Overhead icons: " .. (Panel.OverheadOn() and "On" or "Off"))
+	setSelected(f.bOverhead, Panel.OverheadOn())
+	local list = { f.bOpen, f.bPtt, f.bMute, f.bDeaf, f.bDeafKeep, f.bKey, f.bSetup, f.bGManual, f.bGAuto, f.bGOff, f.bMicDev, f.bSpkDev, f.bReport, f.bTestMic }
 	for i = 1, table.getn(list) do setEnabled(list[i], m.alive) end
-	f.sIn.Enable(m.alive); f.sVol.Enable(m.alive); f.sBoost.Enable(m.alive)
+	for mode, b in pairs(f.bSpatial) do setEnabled(b, m.alive) end
+	f.sIn.Enable(m.alive); f.sVol.Enable(m.alive)
 	for i = 1, Panel.ROWS do
 		local r = m.rows[i]
 		local row = f.rows[i]
 		if r then
 			f.rowName[i]:SetText(r.name)
-			setColor(f.rowName[i], r.muted and PC.bad or (r.live and THEME.text or THEME.muted))
+			setColor(f.rowName[i], (r.muted or r.blocked) and PC.bad or (r.live and THEME.text or THEME.muted))
 			f.rowInfo[i]:SetText(r.info)
-			setColor(f.rowInfo[i], r.muted and PC.bad or (r.speaking and PC.talk or THEME.muted))
+			setColor(f.rowInfo[i], (r.muted or r.blocked) and PC.bad or (r.speaking and PC.talk or THEME.muted))
 			row.who, row.state, row.muted = r.name, r.state, r.muted
 			OV.Icons.Set(row.icon, OV.Icons.Enabled() and r.state or nil)
 			if row.icon.state then OV.Icons.PlaceAfter(row.icon, row.nameText, 120) end        -- the icon is to the right of the name
@@ -1582,7 +1712,7 @@ local function applyModel(f, m)
 	else
 		setColor(f.hint, THEME.muted)
 		if m.alive and not m.cald then
-			f.hint:SetText("Tip: press Set up mic once, so the sensitivity fits your voice.")
+			f.hint:SetText("Tip: press Calibrate once, so the sensitivity fits your voice.")
 		else
 			f.hint:SetText("Noise suppression and echo cancellation are always on.")
 		end
@@ -1641,15 +1771,6 @@ function Panel.BuildIndicator()
 		this:StopMovingOrSizing()
 		savePos(Panel.indicator, "indicatorPos")
 	end))
-	b:SetScript("OnEnter", safe(function()
-		local m = Panel.Model(OV.Now())
-		GameTooltip:SetOwner(this, "ANCHOR_TOP")
-		GameTooltip:SetText("EqVoice: " .. m.badge, 1, 1, 1)
-		GameTooltip:AddLine(m.text, 0.85, 0.85, 0.85, 1)
-		GameTooltip:AddLine("Click: open the panel.  Right-click: mute.  Shift-drag: move.", 0.6, 0.6, 0.6, 1)
-		GameTooltip:Show()
-	end))
-	b:SetScript("OnLeave", function() GameTooltip:Hide() end)
 	Panel.indicator = b
 	return b
 end
@@ -1747,6 +1868,7 @@ function Panel.Refresh()
 	Panel.TrackSetup(m)
 	if Panel.indicator then applyIndicator(Panel.indicator, m) end
 	if Panel.frame and Panel.frame:IsShown() then applyModel(Panel.frame, m) end
+	if Panel.player and Panel.player:IsShown() then applyPlayer(Panel.player, m, now) end
 	if Panel.blocklist and Panel.blocklist:IsShown() then applyBlocklist(Panel.blocklist, now) end
 	if Panel.picker and Panel.picker:IsShown() and Panel.picker.kind then
 		Panel.picker.lists[Panel.picker.kind].Refresh(m)
@@ -1852,14 +1974,13 @@ end
 -- ------------------------------------------------------------------- commands
 
 local function helpText()
-	OV.Print("/eqvc          open or close the voice panel (also /eqvoice)")
+	OV.Print("/vc  /eqvc  /eqvoice   open or close the voice panel")
 	OV.Print("/eqvc open     open mic: you transmit all the time (the key then mutes and unmutes)        /eqvc ptt   push to talk (hold the key)")
-	OV.Print("/eqvc mute, unmute, deafen, undeafen      /eqvc vol 0-100   how loud everyone is      /eqvc input 0-200   how loud your microphone is")
-	OV.Print("/eqvc setup   the microphone setup (stay silent, talk, shout: it sets the noise gate and your microphone volume)")
-	OV.Print("/eqvc welcome   the first-time setup box again (microphone, speakers, push-to-talk key)")
-	OV.Print("/eqvc test   play the speaker test      /eqvc key   change the key")
+	OV.Print("/eqvc mute, unmute, deafen, deafen mic, undeafen      /eqvc vol 0-100   how loud everyone is      /eqvc input 0-200   microphone boost")
+	OV.Print("/eqvc setup   the whole first-time setup again      /eqvc calibrate   only the microphone calibration (silent, talk, shout)")
+	OV.Print("/eqvc mictest   hear your own microphone (nobody else does) until you run it again      /eqvc key   change the key")
+	OV.Print("/eqvc sound mono, speakers or headphones   where voices are heard from      /eqvc overhead on or off   icons over players' heads")
 	OV.Print("/eqvc mute <name>, unmute <name>, mute target   add or take someone off your blocklist      /eqvc muted   list it      /eqvc blocklist   open it")
-	OV.Print("/eqvc boost off, low, normal or high   how much louder people right next to you are")
 	OV.Print("/eqvc gate auto, manual or off   the noise gate      /eqvc gate -50   the manual bar in dB (-80 very sensitive .. -20)")
 	OV.Print("/eqvc icons on or off   the little voice icons beside player names (click one on a unit frame to open this panel)")
 	OV.Print("/eqvc status   what the app says          /eqvc show or hide   the small indicator      /eqvc reset   put the windows back")
@@ -1870,8 +1991,8 @@ local function printStatus()
 	local m = Panel.Model(now)
 	OV.Print(m.text)
 	if m.alive then
-		OV.Print(string.format("mic: %s (%s)   volume %d%%   input %d%%   boost %s   noise gate %s%s   near %d, connected %d%s%s", m.mode == "open" and "open (key " .. m.key .. " mutes)" or ("push to talk, key " .. m.key),
-			m.mic, m.vol, m.input, m.boost, m.gate, m.gate == "manual" and string.format(" (%d dB)", m.gdb) or "", m.near, m.conn, m.mute and "   MUTED" or "", m.deaf and "   DEAFENED" or ""))
+		OV.Print(string.format("mic: %s (%s)   volume %d%%   boost %d%%   sound %s   noise gate %s%s   near %d, connected %d%s%s", m.mode == "open" and "open (key " .. m.key .. " mutes)" or ("push to talk, key " .. m.key),
+			m.mic, m.vol, m.input, m.sp, m.gate, m.gate == "manual" and string.format(" (%d dB)", m.gdb) or "", m.near, m.conn, m.mute and "   MUTED" or "", m.deaf and "   DEAFENED" or ""))
 	elseif m.hint then
 		OV.Print(m.hint)
 	end
@@ -1931,36 +2052,43 @@ function Panel.Slash(msg)
 		printMuted()
 	elseif cmd == "blocklist" or cmd == "blocked" or cmd == "block" then
 		Panel.ToggleBlocklist()
+	elseif cmd == "deafen" and w[2] == "mic" then
+		if Panel.SetDeafKeep(true) then OV.Print("deafened, microphone open: you hear nobody; they still hear you") end
 	elseif cmd == "deafen" then
-		if Panel.SetDeaf(true) then OV.Print("deafened: you hear nobody and nobody hears you") end
+		if Panel.SetDeaf(true) then OV.Print("deafened: you hear nobody and your microphone is closed") end
 	elseif cmd == "undeafen" then
 		if Panel.SetDeaf(false) then OV.Print("undeafened") end
 	elseif cmd == "key" then
 		Panel.CaptureKey()
-	elseif cmd == "welcome" or cmd == "wizard" or cmd == "firstrun" then
-		if OV.Wizard then OV.Wizard.Show(1) else OV.Print("The setup box could not be drawn.") end
-	elseif cmd == "setup" or cmd == "calibrate" then
-		if Panel.StartSetup() then OV.Print("microphone setup: stay silent, then talk normally, then shout. About 17 seconds.") end
+	elseif cmd == "setup" or cmd == "welcome" or cmd == "wizard" or cmd == "firstrun" then
+		if OV.Wizard then OV.Wizard.Show(1) else OV.Print("The setup box could not be drawn.") end       -- the whole first-time setup again, from its first screen
+	elseif cmd == "calibrate" then
+		if Panel.StartSetup() then OV.Print("calibrating: stay silent, then talk normally, then shout. About 17 seconds.") end
+	elseif cmd == "mictest" or cmd == "testmic" then
+		local m = Panel.Model(OV.Now())
+		if Panel.SetMicTest(not m.mt) then OV.Print(m.mt and "microphone test stopped" or "testing your microphone: you hear yourself, nobody else does. /eqvc mictest stops it") end
+	elseif cmd == "sound" or cmd == "spatial" then
+		if w[2] and Panel.SPATIAL_LABEL[w[2]] then
+			if Panel.SetSpatial(w[2]) then OV.Print("sound: " .. Panel.SPATIAL_LABEL[w[2]]) end
+		else OV.Print("usage: /eqvc sound mono, speakers or headphones   (now " .. Panel.Model(OV.Now()).sp .. ")") end
+	elseif cmd == "overhead" then
+		if w[2] == "on" or w[2] == "off" then Panel.SetOverhead(w[2] == "on"); OV.Print("icons over players' heads: " .. w[2])
+		else OV.Print("usage: /eqvc overhead on or off   (now " .. (Panel.OverheadOn() and "on" or "off") .. ")") end
+	elseif cmd == "vol" and w[2] and w[3] and false then
+		return
 	elseif cmd == "vol" or cmd == "volume" then
 		local v = tonumber(w[2] or "")
 		if v then
-			if Panel.SetVolume(v) then OV.Print("volume " .. string.format("%d", OV.clamp(math.floor(v / 5 + 0.5) * 5, 0, 100)) .. "%") end
+			if Panel.SetVolume(v) then OV.Print("volume " .. string.format("%d", OV.clamp(math.floor(v + 0.5), 0, 100)) .. "%") end
 		else
 			OV.Print("usage: /eqvc vol 0-100   (now " .. string.format("%d", Panel.Model(OV.Now()).vol) .. "%)")
 		end
 	elseif cmd == "input" or cmd == "mic" then
 		local v = tonumber(w[2] or "")
 		if v then
-			if Panel.SetInput(v) then OV.Print("microphone volume " .. string.format("%d", OV.clamp(math.floor(v / 5 + 0.5) * 5, 0, 200)) .. "%") end
+			if Panel.SetInput(v) then OV.Print("microphone boost " .. string.format("%d", OV.clamp(math.floor(v + 0.5), 0, 200)) .. "%") end
 		else
 			OV.Print("usage: /eqvc input 0-200   (now " .. string.format("%d", Panel.Model(OV.Now()).input) .. "%, 100 = as your microphone gives it)")
-		end
-	elseif cmd == "boost" then
-		local want = w[2]
-		if want and Panel.BOOST_LABEL[want] then
-			if Panel.SetBoost(want) then OV.Print("boost: " .. Panel.BOOST_LABEL[want]) end
-		else
-			OV.Print("usage: /eqvc boost off, low, normal or high   (now " .. (Panel.Model(OV.Now()).boost) .. ")")
 		end
 	elseif cmd == "gate" then
 		local want = w[2]
@@ -1980,8 +2108,6 @@ function Panel.Slash(msg)
 		else
 			OV.Print("usage: /eqvc icons on or off   (now " .. (OV.Icons.Enabled() and "on" or "off") .. ")")
 		end
-	elseif cmd == "test" then
-		if Panel.Command("test", "1") then OV.Print("playing the speaker test: you should hear two rising notes") end
 	elseif cmd == "status" then
 		printStatus()
 	elseif cmd == "show" then

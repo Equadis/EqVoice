@@ -154,6 +154,10 @@ class Media {
     this.keyboard = true;           // keep keyboard clacks and other short noises off the microphone
     this.autoGain = false;          // the browser's automatic microphone level: off, so that a louder voice is heard as louder
     this.fxBroken = '';             // set when the chain went silent or could not be built: everything then plays plain
+    this.spatial = 'headphones';    // where voices are heard from: 'mono', 'speakers' or 'headphones' (VM.spatialFor)
+    this.micTest = false;           // the microphone test: you hear yourself, nobody else does
+    this.monitor = null;            // its nodes, while it runs
+    this.lrBuf = new Float32Array(256);
     this.fxBuf = new Float32Array(512);
     this.lvBuf = new Float32Array(1024);
     this.lastMicSent = '';
@@ -188,6 +192,7 @@ class Media {
         this.bitrate = normBitrate(c.bitrate);
         if (c.curve) this.curve = Object.assign({}, VM.DEFAULT_CURVE, c.curve);
         this.autoLevel = c.auto_level !== false;
+        if (c.spatial !== undefined) this.setSpatial(c.spatial);
         this.gateMode = c.gate_mode === 'manual' ? 'manual' : 'auto';
         if (isFinite(Number(c.gate_db))) this.gateDb = Number(c.gate_db);
         const kb = c.keyboard !== false;
@@ -204,9 +209,12 @@ class Media {
       case 'keyboard': this.keyboard = !!c.value; if (this.micTrack) await this.initMic(); break;
       case 'input': this.inputId = c.id || ''; await this.initMic(); break;
       case 'output': this.outputId = c.id || ''; this.applySinkAll(); break;
-      case 'tx': this.txEnabled = !!c.enabled; if (this.micTrack) this.micTrack.enabled = this.txEnabled; break;
+      case 'tx': this.txEnabled = !!c.enabled; this.applyTx(); break;
+      case 'spatial': this.setSpatial(c.value); break;
+      case 'dir': { const p = this.peers.get(c.sid); if (p && p.ep === c.ep) p.az = (c.az === null || c.az === undefined || !isFinite(Number(c.az))) ? null : Number(c.az); } break;
+      case 'mic_test': await this.setMicTest(!!c.on); break;
       case 'deafen': this.deafened = !!c.value; this.peers.forEach((p) => { p.audio.muted = this.deafened; }); break;
-      case 'volume': this.volumes[c.sid] = c.value; { const p = this.peers.get(c.sid); if (p) p.userVol = c.value; } break;
+      case 'volume': { const v = Math.max(0, Math.min(2, Number(c.value))); if (isFinite(v)) { this.volumes[c.sid] = v; const p = this.peers.get(c.sid); if (p) p.userVol = v; } } break;
       case 'master': this.master = Math.max(0, Math.min(1, Number(c.value))); break;
       case 'input_gain': await this.setInputGain(c.value); break;
       case 'calibrate': await this.startCalibration(c.plan); break;
@@ -226,7 +234,6 @@ class Media {
       case 'remote': await this.remote(c); break;
       case 'candidate': await this.candidate(c); break;
       case 'gain': this.setGain(c); break;
-      case 'tone': await this.tone(); break;
       case 'close': this.close(c.sid, c.ep); break;
       default: console.warn('unknown cmd', c);
     }
@@ -265,13 +272,14 @@ class Media {
       src.connect(this.analyser);
       this.micTrack = await this.buildSendTrack(this.devTrack);
       this.micStream = new MediaStream([this.micTrack]);
-      this.micTrack.enabled = this.txEnabled;
+      this.micTrack.enabled = this.txEnabled && !this.micTest;
       this.peers.forEach((p) => { if (p.sender && p.send) p.sender.replaceTrack(this.micTrack).catch(() => {}); });
       this.setMic('ok', this.devTrack.label || 'default');
     } catch (e) {
       const name = e && e.name;
       this.setMic(name === 'NotAllowedError' ? 'denied' : name === 'NotFoundError' ? 'no_device' : 'error', String(e && e.message || e));
     }
+    if (this.micTest) { this.dropMonitor(); await this.startMonitor(); }       // the microphone was reopened during the test: listen to the new one
     await this.sendDevices();
   }
 
@@ -495,7 +503,8 @@ class Media {
     const p = { sid: c.sid, ep: c.ep, pc, audio, raw, gain: 0, target: 0, step: 1, t0, userVol: this.volumes[c.sid] == null ? 1 : this.volumes[c.sid],
                 remoteSet: false, pending: [], sender: null, send: false, prev: { t: 0, rx: 0, tx: 0 },
                 stream: null, fx: null, route: 'none', outPeak: 0, silent: 0, lastRx: 0, maxbr: null, chainEnergy: 0, chainPeak: 0, lvMaxDb: -120,
-                loud: new VM.Loudness(), va: new VM.VoiceActivity(), vlevel: 0, loudT: performance.now(), dist: null, distS: null, gate: true, slew: 0.1, value: 0, refDb: null, levDb: 0, mute: !!c.mute };
+                loud: new VM.Loudness(), va: new VM.VoiceActivity(), vlevel: 0, loudT: performance.now(), dist: null, distS: null, gate: true, slew: 0.1, value: 0, refDb: null, levDb: 0, mute: !!c.mute,
+                az: null, azS: 0, dirW: 0, outL: 0, outR: 0 };
     this.peers.set(c.sid, p);
     // A small data channel beside the audio, the same on both ends (negotiated, id 1), carries what each side is doing: muted, deafened.
     try {
@@ -561,6 +570,73 @@ class Media {
     else await p.pc.addIceCandidate(c.candidate).catch((e) => console.warn('ice', e));
   }
 
+  // The one place the outgoing track is switched: on only when the app says transmit AND no microphone test is running.
+  applyTx() {
+    if (this.micTrack) this.micTrack.enabled = this.txEnabled && !this.micTest;
+  }
+
+  // ---- the microphone test: what the others would hear (after the volume and the noise gate), played to you and sent to nobody.
+  // It goes to the speakers by the shortest path the browser has (the audio context's own output, on the chosen device).
+  async startMonitor() {
+    const ctx = this.ensureCtx();
+    if (!ctx) throw new Error('no audio in this browser');
+    if (ctx.state !== 'running') await Promise.race([ctx.resume(), new Promise((r) => setTimeout(r, 1500))]);
+    if (!this.devTrack) throw new Error('no microphone');
+    let node = this.sendChain ? (this.sendChain.node || this.sendChain.inGain) : null, own = null;
+    if (!node) { own = ctx.createMediaStreamSource(new MediaStream([this.devTrack])); node = own; }      // (no volume change and no gate: the microphone as it is sent)
+    const mon = ctx.createGain();
+    node.connect(mon);
+    let el = null;
+    if (ctx.setSinkId) {
+      try { await ctx.setSinkId(this.outputId || ''); } catch (e) { console.warn('ctx.setSinkId', e); }
+      mon.connect(ctx.destination);
+    } else {
+      const dest = ctx.createMediaStreamDestination();
+      mon.connect(dest);
+      el = new Audio();
+      el.srcObject = dest.stream;
+      this.applySink(el);
+      await el.play();
+    }
+    this.monitor = { node, mon, own, el };
+  }
+
+  dropMonitor() {
+    const m = this.monitor;
+    this.monitor = null;
+    if (!m) return;
+    try { m.node.disconnect(m.mon); } catch (_) {}
+    try { m.mon.disconnect(); if (m.own) m.own.disconnect(); } catch (_) {}
+    if (m.el) { m.el.pause(); m.el.srcObject = null; }
+  }
+
+  async setMicTest(on) {
+    if (on === this.micTest) { send({ t: 'mictest', on: this.micTest, ok: true }); return; }
+    this.micTest = on;
+    this.applyTx();                                   // first: nothing leaves this PC from now on
+    if (!on) {
+      this.dropMonitor();
+      send({ t: 'mictest', on: false, ok: true });
+      return;
+    }
+    try {
+      await this.startMonitor();
+      send({ t: 'mictest', on: true, ok: true });
+    } catch (e) {
+      this.dropMonitor();
+      this.micTest = false;
+      this.applyTx();
+      send({ t: 'mictest', on: false, ok: false, error: String(e && e.message || e).slice(0, 160) });
+    }
+  }
+
+  setSpatial(v) {
+    const mode = VM.normSpatial(v);
+    if (mode === this.spatial) return;
+    this.spatial = mode;
+    this.peers.forEach((p) => this.applySpatial(p));
+  }
+
   sendState(p) {
     if (p.dc && p.dc.readyState === 'open') {
       try { p.dc.send(JSON.stringify({ t: 'state', mute: this.selfMute, deaf: this.selfDeaf })); } catch (_) { /* a closing channel */ }
@@ -624,6 +700,21 @@ class Media {
       }
       const dtl = Math.min(0.1, (now - p.loudT) / 1000);
       p.loudT = now;
+      if (p.fx) {                                            // where they are heard from: follow the direction the shortest way round, and fade it in and out
+        const kd = 1 - Math.exp(-dtl / VM.SPATIAL.azTau);
+        if (p.az !== null) p.azS = p.dirW < 0.01 ? p.az : p.azS + VM.azDelta(p.azS, p.az) * kd;
+        p.dirW += ((p.az === null ? 0 : 1) - p.dirW) * kd;
+        const s = VM.spatialFor(this.spatial, p.azS, p.distS);
+        p.fx.dirGain.gain.value = 1 + (s.gain - 1) * p.dirW;
+        p.fx.sp.pan.value = s.pan * p.dirW * (this.spatial === 'headphones' ? 0.6 : 1);
+        const hx = s.x * p.dirW, hz = s.z * p.dirW - (1 - p.dirW);
+        if (p.fx.hr.positionX) { p.fx.hr.positionX.value = hx; p.fx.hr.positionY.value = 0; p.fx.hr.positionZ.value = hz; }
+        else p.fx.hr.setPosition(hx, 0, hz);
+        p.fx.anL.getFloatTimeDomainData(this.lrBuf);          // what leaves for each ear (the loudest sample since the last report)
+        for (let i = 0; i < this.lrBuf.length; i++) { const a = Math.abs(this.lrBuf[i]); if (a > p.outL) p.outL = a; }
+        p.fx.anR.getFloatTimeDomainData(this.lrBuf);
+        for (let i = 0; i < this.lrBuf.length; i++) { const a = Math.abs(this.lrBuf[i]); if (a > p.outR) p.outR = a; }
+      }
       let target = p.target, step = p.step, smooth = false;
       if (p.dist !== null && p.dist !== undefined) {         // the page's own curve: a raised voice stays louder further out
         // the distance arrives a few times a second: follow it, so the volume (the boost most of all) changes continuously as you walk
@@ -677,9 +768,32 @@ class Media {
     lim.threshold.value = -10; lim.knee.value = 6; lim.ratio.value = 12; lim.attack.value = 0.003; lim.release.value = 0.12;
     const dest = ctx.createMediaStreamDestination();
     const an = ctx.createAnalyser(); an.fftSize = 512;
+    // where the voice is heard from: a gain (quieter behind, on speakers), then nothing (mono), a stereo pan (speakers) or an HRTF point (headphones)
+    const dirGain = ctx.createGain();
+    const sp = ctx.createStereoPanner();
+    const hr = ctx.createPanner();
+    hr.panningModel = 'HRTF'; hr.distanceModel = 'linear'; hr.rolloffFactor = 0; hr.refDistance = 1; hr.maxDistance = 10000;      // (the distance is ours: the curve, not the panner)
+    const out = ctx.createGain();
+    out.channelCount = 2; out.channelCountMode = 'explicit'; out.channelInterpretation = 'speakers';
+    const split = ctx.createChannelSplitter(2);
+    const anL = ctx.createAnalyser(); anL.fftSize = 256;
+    const anR = ctx.createAnalyser(); anR.fftSize = 256;
     src.connect(meter); src.connect(boost); boost.connect(lim);
-    lim.connect(dest); lim.connect(an);
-    p.fx = { src, meter, boost, lim, dest, an };
+    lim.connect(an); lim.connect(dirGain);
+    out.connect(dest); out.connect(split); split.connect(anL, 0); split.connect(anR, 1);
+    p.fx = { src, meter, boost, lim, dest, an, dirGain, sp, hr, out, anL, anR, mode: null };
+    this.applySpatial(p);
+  }
+
+  // Wire the direction stage for the mode in force: dirGain -> out, or through the stereo pan, or through the HRTF panner.
+  applySpatial(p) {
+    const fx = p.fx;
+    if (!fx || fx.mode === this.spatial) return;
+    try { fx.dirGain.disconnect(); fx.sp.disconnect(); fx.hr.disconnect(); } catch (_) {}
+    if (this.spatial === 'speakers') { fx.dirGain.connect(fx.sp); fx.sp.connect(fx.out); }
+    else if (this.spatial === 'headphones') { fx.dirGain.connect(fx.hr); fx.hr.connect(fx.sp); fx.sp.connect(fx.out); }      // the HRTF puts it in front or behind, the pan adds the side (an HRTF alone is subtle for speech)
+    else fx.dirGain.connect(fx.out);
+    fx.mode = this.spatial;
   }
 
   routeDirect(p) {
@@ -707,7 +821,7 @@ class Media {
 
   dropFx(p) {
     if (!p.fx) return;
-    try { p.fx.src.disconnect(); p.fx.boost.disconnect(); } catch (_) {}
+    try { p.fx.src.disconnect(); p.fx.boost.disconnect(); p.fx.lim.disconnect(); p.fx.dirGain.disconnect(); p.fx.sp.disconnect(); p.fx.hr.disconnect(); p.fx.out.disconnect(); } catch (_) {}
     p.fx = null;
   }
 
@@ -781,19 +895,6 @@ class Media {
 
   applySinkAll() { this.peers.forEach((p) => this.applySink(p.audio)); }
 
-  // Two rising notes through the same output the voices use: proves the speakers, apart from any peer.
-  async tone() {
-    const a = new Audio(toneWav([660, 880], 0.35));
-    a.volume = 0.6;
-    let err = '';
-    try {
-      if (a.setSinkId) await a.setSinkId(this.outputId || '');
-      await a.play();
-    } catch (e) { err = String(e && e.message || e); }
-    a.onended = () => URL.revokeObjectURL(a.src);
-    send({ t: 'tone', ok: !err, error: err, sink: a.sinkId || '' });
-  }
-
   // A short blip when you mute, unmute, deafen or undeafen (falling = off, rising = on), through the same speakers as the voices.
   cue(kind) {
     const notes = { mute: [620, 420], unmute: [420, 620], deafen: [520, 390, 280], undeafen: [280, 390, 520] }[kind];
@@ -845,8 +946,9 @@ class Media {
              fx: p.route, out: Math.round(p.outPeak * 10000) / 10000, maxbr: p.maxbr,
              loud: Math.round(p.loud.s * 100) / 100, lvl: p.loud.lv === null ? null : Math.round(p.loud.lv * 10) / 10,
              flat: Math.round(VM.flatFor(this.curve, p.loud.s) * 10) / 10, lev: Math.round(p.levDb * 10) / 10,
-             boost: p.fx ? Math.round(p.fx.boost.gain.value * 100) / 100 : 1 });
-      p.outPeak = 0; p.chainPeak = 0; p.lvMaxDb = -120;
+             boost: p.fx ? Math.round(p.fx.boost.gain.value * 100) / 100 : 1,
+             spatial: p.fx ? p.fx.mode : 'off', az: p.az === null ? null : Math.round(p.azS), outl: Math.round(p.outL * 10000) / 10000, outr: Math.round(p.outR * 10000) / 10000 });
+      p.outPeak = 0; p.chainPeak = 0; p.lvMaxDb = -120; p.outL = 0; p.outR = 0;
     }
   }
 }
@@ -1025,8 +1127,6 @@ function render() {
   const warn = $('engine-warn');
   warn.hidden = true;                                   // folded into the status bar above
   text($('using-mic'), mic.label ? mic.label : (mic.state === 'ok' ? 'default microphone' : '-'));
-  const sp = S.speaker_test || {};
-  text($('speaker-note'), sp.ok === undefined ? '' : sp.ok ? 'played two rising notes' + (sp.sink ? ' on ' + sp.sink : ' on the system default') : 'could not play: ' + (sp.error || '?'));
 
   const note = $('bridge-note');
   const gate = S.gate || {};
@@ -1138,7 +1238,6 @@ $('cal-done').onclick = () => calRender({ phase: 'idle' });
 $('sel-br').onchange = (e) => send({ t: 'ui', cmd: 'max_bitrate', value: Number(e.target.value) });
 $('btn-mute').onclick = () => send({ t: 'ui', cmd: 'mute', value: !(S.voice || {}).muted });
 $('btn-deafen').onclick = () => send({ t: 'ui', cmd: 'deafen', value: !(S.voice || {}).deafened });
-$('btn-speakers').onclick = () => send({ t: 'ui', cmd: 'test_speakers' });
 
 const talk = $('btn-talk');
 const talkDown = (e) => { e.preventDefault(); send({ t: 'ui', cmd: 'ptt_virtual', down: true }); };

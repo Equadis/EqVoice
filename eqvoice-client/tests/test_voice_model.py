@@ -255,3 +255,27 @@ def test_a_chatty_minute_changes_the_icon_only_a_handful_of_times():
     """)
     assert out["seconds"] > 50
     assert out["changes"] <= 2 * 12 + 4, "an utterance is up and down, a shout adds two: %r changes in %r s" % (out["changes"], out["seconds"])
+
+
+def test_where_a_voice_comes_from_depends_on_the_mode_and_the_direction_and_never_on_the_distance_curve():
+    out = run("""
+      const VM = window.VoiceModel, rows = {};
+      for (const mode of VM.SPATIAL_MODES)
+        for (const az of [0, 90, -90, 180, null]) rows[mode + ':' + az] = VM.spatialFor(mode, az, 20);
+      rows.near = VM.spatialFor('headphones', 90, 0.5); rows.mid = VM.spatialFor('headphones', 90, 2.5);
+      rows.delta = [VM.azDelta(170, -170), VM.azDelta(-170, 170), VM.azDelta(10, 20)];
+      rows.norm = [VM.normSpatial('speakers'), VM.normSpatial('x'), VM.normSpatial(undefined)];
+      done(rows);""")
+    for az in ("0", "90", "-90", "180", "null"):
+        m = out["mono:" + az]
+        assert m["pan"] == 0 and m["gain"] == 1 and m["x"] == 0, "mono has no sides whatever the direction (%s)" % az
+    assert out["speakers:90"]["pan"] > 0.7 and out["speakers:-90"]["pan"] < -0.7 and out["speakers:0"]["pan"] == 0, "right is right, left is left, ahead is the middle"
+    assert abs(out["speakers:90"]["pan"]) <= 0.8 + 1e-9, "speakers never pan hard to one side"
+    assert out["speakers:180"]["gain"] < out["speakers:0"]["gain"] == 1, "behind you is a little quieter on speakers (they cannot place it behind you)"
+    assert out["headphones:90"]["x"] == 1 and out["headphones:-90"]["x"] == -1 and out["headphones:0"]["z"] == -1, "headphones: right, left and ahead"
+    assert out["headphones:180"]["z"] == 1 and out["headphones:180"]["gain"] == 1, "headphones put a voice behind you, at full volume"
+    assert out["headphones:null"]["x"] == 0, "no direction known: the middle"
+    assert out["near"]["x"] == 0, "a player standing on you is centred (the direction flips as either of you shuffles)"
+    assert 0 < out["mid"]["x"] < 1, "and the direction comes in over the next few yards"
+    assert out["delta"][0] == 20 and out["delta"][1] == -20 and out["delta"][2] == 10, "directions turn the short way round"
+    assert out["norm"] == ["speakers", "headphones", "headphones"]

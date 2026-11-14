@@ -1,4 +1,4 @@
-# EqVoice Test Build 0.3.2: what it is and what it is not
+# EqVoice Test Build 0.4.0: what it is and what it is not
 
 Bottom line: the prototype is now a one-file installer, a tray-only background program and an in-game panel. Everything was tested in simulation and
 in the test suite; **none of the new in-game UI has been looked at in the real game yet**, and **no voice server is deployed**, so no stranger can
@@ -20,7 +20,7 @@ connect until one is.
 | Wish | State |
 |---|---|
 | Proximity voice with a distance curve | exists (proven in game, 2 characters and an internet friend) |
-| One-click installer, upgrade, uninstall | **new**: `EqVoice-Test-Setup-0.3.2.exe` (built; tested in a scratch folder and registry key, not on a real PC) |
+| One-click installer, upgrade, uninstall | **new**: `EqVoice-Test-Setup-0.4.0.exe` (built; tested in a scratch folder and registry key, not on a real PC) |
 | All settings in game, nothing on the desktop | **new**: no window at all; settings live in the addon (`EqVoiceDB.settings`) and are replayed to the program when it appears |
 | `/eqvoice`, `/eqvc`, click on the mic icon: one panel | exists, same code path |
 | First-run wizard | **new** (6 pages, never repeats, dismissible); unit-tested only |
@@ -52,7 +52,7 @@ eases down to nothing inside 10 yd of the speaker, and the range never exceeds t
 
 ## Installer
 
-`python tools/build_installer.py --hub-url wss://.../ws [--join-code CODE]` writes `dist/EqVoice-Test-Setup-0.3.2.exe` (about 25 MB). It needs
+`python tools/build_installer.py --hub-url wss://.../ws [--join-code CODE]` writes `dist/EqVoice-Test-Setup-0.4.0.exe` (about 25 MB). It needs
 the hub address; `--allow-no-hub` builds one that cannot connect, for trying the installer.
 
 The player double-clicks, picks the game folder only if it cannot be found, and is done. It copies the program to `%LOCALAPPDATA%\Programs\EqVoice`,
@@ -83,6 +83,32 @@ Opaque charcoal window, flat compact controls, one purple accent, four groups: a
 
 Not seen in the real game yet: the layout was checked in the test stub (no control overlaps or leaves the window), not on screen.
 
+## 0.4.0 (2026-11): what changed and how it works
+
+**Where each part lives.** Settings you click are in the addon (`Panel.lua`, `Wizard.lua`); the app (`eqvoice-client`) applies them and the hidden engine page
+(`ui/app.js`) does the audio. The hub (`eqvoice-signalling*`) is unchanged: nothing in this release needs a new hub or a new protocol version.
+
+| Feature | Addon | App | Engine |
+|---|---|---|---|
+| Click a speaker icon: that player's settings | `Icons.lua` click -> `Panel.OpenPlayer` | `pvol`, `pblock`, `pmute` commands; kept by name in `config.json` | `volume` (0-2, multiplies that one stream) |
+| **Block** | `pblock` | `Peers.set_blocked`: `gain` carries `send: false`, so the page stops sending the microphone to that player at once | `setSend(p, false)` (the track is replaced by nothing) |
+| Directional audio | `Direction.lua` writes `eqvoice-dir*.txt` (degrees from straight ahead, clockwise, ten times a second) | reads it, tells the page `dir` when it moves 2 degrees | a gain, a stereo pan and an HRTF panner per voice, `VM.spatialFor` |
+| Mono / Speakers / Headphones | panel + wizard page | `spatial` setting, replayed to a new engine | mono: no direction; speakers: pan up to 80% and quieter behind; headphones: HRTF front/back plus a pan |
+| Microphone test | `mictest` | `mic_test` closes `tx_enabled` first, is re-sent to a new engine, never touches your mute | the send chain's output is played to the chosen device; the outgoing track is off |
+| Two deafens | `deafen 1` (microphone closes too) / `deafen 2` (microphone stays) | `deaf_keep_mic`; your own mute is never changed | `deafen` mutes the voices |
+| Boost slider | Input volume, 0-200%, continuous | `input_gain` | (unchanged) |
+| Plain device names | list from the status file | `uifiles.clean_device_label`, aliases removed, `E` lines say what the default is | |
+
+**Directional audio, honestly.** Voice direction needs two functions the client mod DLLs provide: `UnitPosition` and `GetPlayerFacing`. Direction is the angle from where
+your character faces to the other player (so turning the camera does not matter, turning the character does). `/ev dir` prints the angle to your target, and `/ev dir flip` swaps
+the sides if a client turns out to answer mirrored. Measured in real engines (headphones, 90 degrees right): the right ear is about 3 times louder than the left; mono is equal.
+
+**Icons over heads, honestly.** The names drawn above characters are part of the 3D world: no addon can draw on them. A nameplate is the one thing that sits over a head and can be
+drawn on, so the icon rides on it. While a voice player is near and *Overhead icons* is On, EqVoice switches friendly nameplates on itself and makes the ones it caused quiet (only the name).
+Someone who already uses friendly nameplates keeps them untouched. Seen in the test stub only; **not seen in the real game**.
+
+**Not done.** The two-ears effect is verified in a real browser engine, not on your ears. Group voice does not exist. Per-player settings are kept by character name, per Windows user.
+
 ## Hardening results
 
 - Full suite: 559 pass, 4 skipped (after fixing two stale tests that expected the old mod check and an instant game ident).
@@ -95,4 +121,4 @@ Not seen in the real game yet: the layout was checked in the test stub (no contr
 1. Any of the new UI in the real game (panel layout, wizard, device lists, icon art positions).
 2. The setup exe on a PC other than this one, and with SmartScreen.
 3. 3 or more people at once (`10-step-by-step-test-guide.md`, Phase C).
-4. `tools/smoke_tray.py` is stale for 0.3.2 and needs rewriting against a simulated game.
+4. `tools/smoke_tray.py` is stale for 0.4.0 and needs rewriting against a simulated game.

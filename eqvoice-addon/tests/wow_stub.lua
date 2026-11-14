@@ -5,7 +5,7 @@
 local Stub = {}
 
 Stub.root = nil           -- set by run.lua: path to eqvoice-addon/EqVoice
-Stub.files = { "Util", "Proto", "Nearby", "Frame", "Scan", "Inbox", "Lookup", "Bridge", "Comm", "Status", "Control", "Panel", "Wizard", "Icons", "Diag", "Calibrate", "Core" }
+Stub.files = { "Util", "Proto", "Nearby", "Frame", "Scan", "Inbox", "Lookup", "Direction", "Bridge", "Comm", "Status", "Control", "Panel", "Wizard", "Icons", "Diag", "Calibrate", "Core" }
 
 local function reset()
 	Stub.now = 1000
@@ -69,6 +69,8 @@ local function newFontString(font)
 	function t:Show() self.shown = true end
 	function t:Hide() self.shown = false end
 	function t:SetFontObject(f) self.font = f end
+	function t:SetAlpha(a) self.alpha = a end
+	function t:GetFont() return self.fontFile, self.fontSize end
 	function t:SetShadowOffset(x, y) self.shadow = { x, y } end
 	function t:SetShadowColor(r, g, b, a) end
 	function t:SetFont(path, size, flags) self.fontFile, self.fontSize = path, size end
@@ -208,6 +210,10 @@ function Stub.Drag(frame, v)
 	if frame.scripts.OnMouseUp then frame.scripts.OnMouseUp() end
 end
 
+-- the client's own switches for friendly nameplates (Shift-V sets FRIENDNAMEPLATES_ON; an addon may call the two functions directly)
+function ShowFriendNameplates() Stub.friendPlates = true; Stub.friendPlateCalls = (Stub.friendPlateCalls or 0) + 1 end
+function HideFriendNameplates() Stub.friendPlates = false end
+
 function GetCursorPosition() return Stub.cursorX or 0, Stub.cursorY or 0 end
 function IsMouseButtonDown(b) return Stub.mouseDown and 1 or nil end
 
@@ -334,6 +340,8 @@ function Stub.Boot(opts)
 	end
 	_G.WorldFrame = { GetChildren = function(self) return unpack(kids) end, GetNumChildren = function(self) return table.getn(kids) end }
 	Stub.kids = kids
+	Stub.friendPlates, Stub.friendPlateCalls = false, 0
+	_G.FRIENDNAMEPLATES_ON = nil
 	_G.IsInGuild = function() return Stub.inGuild end
 	_G.GetNumRaidMembers = function() return Stub.raid end
 	_G.GetNumPartyMembers = function() return Stub.party end
@@ -428,15 +436,23 @@ function Stub.Boot(opts)
 end
 
 -- A nameplate the way the default client builds one: a button under WorldFrame whose regions are the border picture, the glow and the name.
-function Stub.AddPlate(name)
+function Stub.AddPlate(name, kind)
 	local f = newFrame(nil, "Button", UIParent)
 	local border = newTexture(); border:SetTexture("Interface\\Tooltips\\Nameplate-Border")
 	local glow = newTexture(); glow:SetTexture("x")
 	function border:GetTexture() return self.path end
 	function glow:GetTexture() return self.path end
 	local fs = newFontString("GameFontNormal"); fs.text = name; fs.parent = f
-	function f:GetRegions() return border, glow, fs end
-	f.nameText = fs
+	local level = newFontString("GameFontNormal"); level.text = "60"
+	local skull = newTexture()
+	function f:GetRegions() return border, glow, fs, level, skull end
+	-- the health bar: blue for a friendly player, green for a friendly NPC, red for an enemy
+	local colors = { player = { 0, 0, 1 }, npc = { 0, 1, 0 }, enemy = { 1, 0, 0 } }
+	local bar = { color = colors[kind or "player"], alpha = 1 }
+	function bar:GetStatusBarColor() return self.color[1], self.color[2], self.color[3] end
+	function bar:SetAlpha(a) self.alpha = a end
+	function f:GetChildren() return bar end
+	f.nameText, f.bar, f.border, f.level = fs, bar, border, level
 	Stub.kids[table.getn(Stub.kids) + 1] = f
 	return f
 end

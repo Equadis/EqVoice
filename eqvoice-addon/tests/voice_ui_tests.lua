@@ -110,25 +110,26 @@ do
 end
 
 -- ===================================================================== the model
-sec("voice ui: what the panel says about boost, the noise gate, the key and the mute list")
+sec("voice ui: what the panel says about the sound mode, the deafens, the noise gate, the key and the mute list")
 do
 	local OV = login()
 	local P = OV.Panel
 	put(OV, 1)
 	local m = P.Model(Stub.now)
-	eq(m.boost, "normal", "boost from the app"); eq(m.gate, "auto", "gate from the app"); eq(m.gdb, -48, "the manual bar")
-	put(OV, 2, { fields = "level=ok mode=ptt mute=0 deaf=0 tx=0 talk=0 vol=100 near=0 conn=0 key=Mouse_4 mic=ok boost=high gate=manual gdb=-52" })
+	eq(m.sp, "headphones", "the sound mode from the app (headphones by default)"); eq(m.gate, "auto", "gate from the app"); eq(m.gdb, -48, "the manual bar")
+	eq(m.dkeep, false, "not deafened with the microphone open"); eq(m.mt, false, "no microphone test")
+	put(OV, 2, { fields = "level=ok mode=ptt mute=0 deaf=1 dk=1 sp=speakers mt=1 tx=0 talk=0 vol=100 near=0 conn=0 key=Mouse_4 mic=ok gate=manual gdb=-52" })
 	m = P.Model(Stub.now)
-	eq(m.boost, "high", "a new boost"); eq(m.gate, "manual", "a new gate"); eq(m.gdb, -52, "a new bar"); eq(m.key, "Mouse 4", "the key")
-	put(OV, 3, { fields = "level=ok mode=open mute=0 deaf=0 tx=1 talk=0 vol=100 near=0 conn=0 key=F9 mic=ok boost=nonsense gate=nonsense" })
+	eq(m.sp, "speakers", "a new sound mode"); eq(m.dkeep, true, "the other deafen"); eq(m.mt, true, "the test running"); eq(m.gate, "manual", "a new gate"); eq(m.gdb, -52, "a new bar"); eq(m.key, "Mouse 4", "the key")
+	put(OV, 3, { fields = "level=ok mode=open mute=0 deaf=0 tx=1 talk=0 vol=100 near=0 conn=0 key=F9 mic=ok sp=nonsense gate=nonsense" })
 	m = P.Model(Stub.now)
-	eq(m.boost, "normal", "an unknown boost is not shown as real"); eq(m.gate, "auto", "nor an unknown gate")
+	eq(m.sp, "headphones", "an unknown sound mode is not shown as real"); eq(m.gate, "auto", "nor an unknown gate")
 	put(OV, 4, { fields = "level=ok mode=open mute=0 deaf=0 tx=1 talk=0 vol=100 near=0 conn=0 key=F9 mic=ok" })
 	m = P.Model(Stub.now)
-	eq(m.boost, "normal", "an older app (no boost field): normal"); eq(m.gate, "auto", "and an automatic gate"); eq(m.gdb, -48, "at -48")
+	eq(m.sp, "headphones", "an older app (no sound field): headphones"); eq(m.gate, "auto", "and an automatic gate"); eq(m.gdb, -48, "at -48")
 	-- clicks show at once
-	check(P.SetBoost("low"), "a click goes out"); eq(P.Model(Stub.now).boost, "low", "and shows at once")
-	check(not P.SetBoost("loud"), "an unknown boost cannot be sent")
+	check(P.SetSpatial("mono"), "a click goes out"); eq(P.Model(Stub.now).sp, "mono", "and shows at once")
+	check(not P.SetSpatial("surround"), "an unknown sound mode cannot be sent")
 	check(P.SetGate("manual"), "gate click"); eq(P.Model(Stub.now).gate, "manual", "shows at once")
 	check(not P.SetGate("loud"), "an unknown gate cannot be sent")
 	P.SetGateDb(-47); eq(P.pending.gdb.value, -46, "the bar moves in steps of 2: -47 -> -46")
@@ -163,9 +164,13 @@ do
 	local OV = login()
 	local s = SlashCmdList["EQVOICEUI"]
 	put(OV, 1)
-	s("boost high"); eq(lastSent(OV), "boost high", "/eqvc boost high")
-	s("boost OFF"); eq(lastSent(OV), "boost off", "upper case works")
-	s("boost wat"); check(chatHas("usage: /eqvc boost"), "an unknown boost explains itself")
+	s("sound speakers"); eq(lastSent(OV), "spatial speakers", "/eqvc sound speakers")
+	s("sound MONO"); eq(lastSent(OV), "spatial mono", "upper case works")
+	s("sound wat"); check(chatHas("usage: /eqvc sound"), "an unknown sound mode explains itself")
+	s("deafen mic"); eq(lastSent(OV), "deafen 2", "/eqvc deafen mic: deafened, microphone open")
+	s("deafen"); eq(lastSent(OV), "deafen 1", "/eqvc deafen: deafened, microphone closed")
+	s("undeafen"); eq(lastSent(OV), "deafen 0", "/eqvc undeafen")
+	s("mictest"); eq(lastSent(OV), "mictest 1", "/eqvc mictest")
 	s("gate manual"); eq(lastSent(OV), "gate manual", "/eqvc gate manual")
 	s("gate off"); eq(lastSent(OV), "gate off", "/eqvc gate off")
 	s("gate auto"); eq(lastSent(OV), "gate auto", "/eqvc gate auto")
@@ -191,7 +196,7 @@ do
 	s("muted"); check(chatHas("blocklist is empty"), "and says when it is empty")
 	s("icons off"); eq(OV.db.ui.icons, false, "/eqvc icons off is remembered"); s("icons on"); eq(OV.db.ui.icons, nil, "/eqvc icons on")
 	s("icons wat"); check(chatHas("usage: /eqvc icons"), "an unknown word explains itself")
-	s("help"); check(chatHas("/eqvc boost"), "help lists boost"); check(chatHas("/eqvc gate"), "the gate"); check(chatHas("/eqvc key"), "the key"); check(chatHas("blocklist"), "and the blocklist"); check(chatHas("/eqvc setup"), "and the microphone setup")
+	s("help"); check(chatHas("/eqvc sound"), "help lists the sound modes"); check(chatHas("/vc"), "and /vc"); check(chatHas("/eqvc gate"), "the gate"); check(chatHas("/eqvc key"), "the key"); check(chatHas("blocklist"), "and the blocklist"); check(chatHas("/eqvc setup"), "and the microphone setup")
 	Stub.Advance(4)
 	put(OV, 4)
 	s("status"); check(chatHas("noise gate auto"), "status names the noise gate")
@@ -206,28 +211,20 @@ do
 	Stub.Click(EqVoiceIndicator, "LeftButton")
 	local f = EqVoicePanel
 	check(f ~= nil and f:IsShown(), "the panel opens")
-	eq(f.w, 480, "wide"); eq(f.h, 586, "and tall enough for its four groups: header, microphone, speaker, nearby")
+	eq(f.w, 480, "wide"); eq(f.h, 642, "and tall enough for its four groups: header, microphone, speaker, nearby")
 	-- the key: a button of its own; hovering says what it does in the mode you are in
 	eq(f.bKey.text, "Keybind: F9", "the key's button")
-	f.bKey.scripts.OnEnter()
-	check(string.find(Stub.tip.lines[2] or "", "mutes and unmutes", 1, true), "open mic: the key mutes (" .. tostring(Stub.tip.lines[2]) .. ")")
-	f.bKey.scripts.OnLeave()
 	put(OV, 2, { fields = "level=ok mode=ptt mute=0 deaf=0 tx=0 talk=0 vol=100 near=0 conn=0 key=F9 mic=ok boost=normal gate=auto gdb=-48" })
 	eq(f.bPtt.text, "Push to talk", "push to talk is a plain choice beside open mic (the key has its own button)"); eq(f.bPtt.highlight, true, "and is the one lit")
-	f.bKey.scripts.OnEnter()
-	check(string.find(Stub.tip.lines[2] or "", "hold", 1, true), "push to talk: the key is held to talk (" .. tostring(Stub.tip.lines[2]) .. ")")
-	f.bKey.scripts.OnLeave()
-	-- boost: a slider with four stops
-	eq(f.sBoost.frame:GetValue(), 2, "boost stands at normal (the third stop of four)"); eq(f.boostText.text, "Normal (x2)", "and says so")
-	Stub.Drag(f.sBoost.frame, 3); eq(f.boostText.text, "High (x3)", "dragged to the top: the number follows"); Stub.Advance(0.5)
-	eq(lastSent(OV), "boost high", "and the app is told once it rests")
-	Stub.Drag(f.sBoost.frame, 0); Stub.Advance(0.5)
-	eq(lastSent(OV), "boost off", "the bottom is off"); eq(f.boostText.text, "Off", "named")
-	Stub.Drag(f.sBoost.frame, 1); Stub.Advance(0.5)
-	eq(lastSent(OV), "boost low", "then low")
+	-- microphone boost: one continuous slider, 0..200%
+	eq(f.sIn.frame.min, 0, "the boost runs from 0 ..."); eq(f.sIn.frame.max, 200, "... to 200%"); eq(f.sIn.frame.step, 1, "in single steps")
+	Stub.Drag(f.sIn.frame, 137); Stub.Advance(0.5)
+	eq(lastSent(OV), "input 137", "any value in between goes out as it is"); eq(f.inText.text, "137%", "and is shown")
+	Stub.Drag(f.sIn.frame, 100); Stub.Advance(0.5)
 	-- the sensitivity: ONE bar (the live meter and the noise gate together), and three buttons for the mode
 	eq(f.meter, f.sGate, "the meter is the gate's bar: there is no second one")
 	eq(f.bGAuto.highlight, true, "the gate is on Auto"); eq(f.bGManual.highlight, false, "not Manual"); eq(f.bGOff.highlight, false, "not Off")
+	check(f.bGManual.pt[4] < f.bGAuto.pt[4] and f.bGAuto.pt[4] < f.bGOff.pt[4], "the modes read Manual, Auto, Off from the left")
 	eq(f.sGate.mode, "auto", "the bar knows its mode"); eq(f.sGate.enabled, false, "and in automatic mode the handle cannot be dragged")
 	Stub.Click(f.bGManual); Stub.Advance(0.25)
 	eq(lastSent(OV), "gate manual", "Manual goes to manual"); eq(f.bGManual.highlight, true, "and lights"); eq(f.sGate.thr, -48, "the handle is at the bar")
@@ -272,21 +269,27 @@ do
 	eq(f.rows[4].icon.tex.shown, false, "an empty row has no icon")
 	_G.this = f.rows[1]
 	Stub.Click(f.rows[1])
-	eq(lastSent(OV), "pmute alice 1", "clicking Alice's row mutes her")
+	local pw = OV.Panel.player
+	check(pw ~= nil and pw.shown, "clicking Alice's row opens her settings"); eq(pw.name.text, "Alice", "named")
+	Stub.Click(pw.bMute)
+	eq(lastSent(OV), "pmute alice 1", "Mute in her window mutes her")
 	Stub.Advance(0.25)
-	eq(f.rowInfo[1].text, "13 yd  speaking  muted", "and the row shows it at once")
-	Stub.Click(f.rows[2])
-	eq(lastSent(OV), "pmute bob 0", "clicking Bob's row unmutes him")
+	eq(f.rowInfo[1].text, "13 yd  speaking  muted", "and the row shows it at once"); eq(pw.bMute.text, "Unmute", "and the button offers the way back")
+	Stub.Click(pw.bBlock)
+	eq(lastSent(OV), "pblock alice 1", "Block in her window blocks her (she stops hearing you)")
+	Stub.Drag(pw.sVol.frame, 150); Stub.Advance(0.5)
+	eq(lastSent(OV), "pvol alice 150", "her own volume, 0 to 200%"); eq(pw.volText.text, "150%", "shown")
+	Stub.Click(pw.bReset); Stub.Advance(0.5)
+	eq(lastSent(OV), "pvol alice 100", "reset to 100%")
 	_G.this = f.rows[1]
-	f.rows[1].scripts.OnEnter()
-	check(Stub.tip.shown and Stub.tip.lines[1] == "Alice", "a row's tooltip names the player: " .. tostring(Stub.tip.lines[1]))
-	check(string.find(Stub.tip.lines[2] or "", "muted by you", 1, true), "says what the icon says (she was muted a moment ago): " .. tostring(Stub.tip.lines[2]))
-	f.rows[1].scripts.OnLeave()
-	eq(Stub.tip.shown, false, "and goes away")
+	Stub.Click(f.rows[1]); eq(pw.shown, false, "a second click on the same name closes it")
+	Stub.Click(f.rows[2])
+	eq(OV.Panel.player.name.text, "Bob", "another name opens that player"); Stub.Click(OV.Panel.player.bMute)
+	eq(lastSent(OV), "pmute bob 0", "Bob was muted: the button unmutes him")
 	eq(f.bBlock.text, "Blocklist (1)", "the blocklist button counts who is on it")
 	-- no app: the new controls are off too
 	Stub.Advance(8)
-	eq(f.sBoost.enabled, false, "boost off without the app"); eq(f.sIn.enabled, false, "the microphone volume"); eq(f.bGManual.enabled, false, "gate"); eq(f.bKey.enabled, false, "key")
+	eq(f.sIn.enabled, false, "the microphone volume"); eq(f.bGManual.enabled, false, "gate"); eq(f.bKey.enabled, false, "key")
 	eq(f.bSetup.enabled, false, "and the setup")
 	eq(P.error, nil, "no drawing error")
 end
@@ -314,7 +317,7 @@ do
 	check(table.getn(controls) >= 20, "found the controls (" .. table.getn(controls) .. ")")
 	for i = 1, table.getn(controls) do
 		local c = controls[i]
-		check(c[1] >= 12 and c[3] <= 468 and c[2] >= 0 and c[4] <= 586 - 12, c[5] .. " lies inside the window and its cards (" .. c[1] .. "," .. c[2] .. "," .. c[3] .. "," .. c[4] .. ")")
+		check(c[1] >= 12 and c[3] <= 468 and c[2] >= 0 and c[4] <= f.h - 12, c[5] .. " lies inside the window and its cards (" .. c[1] .. "," .. c[2] .. "," .. c[3] .. "," .. c[4] .. ")")
 		for j = i + 1, table.getn(controls) do
 			local d = controls[j]
 			local apart = c[3] <= d[1] or d[3] <= c[1] or c[4] <= d[2] or d[4] <= c[2]
@@ -404,7 +407,7 @@ do
 	Stub.Click(EqVoiceIndicator, "LeftButton")
 	local f = EqVoicePanel
 	local n = table.getn(sent(OV))
-	f.sIn.frame:SetValue(0); f.sVol.frame:SetValue(0); f.sBoost.frame:SetValue(0); Stub.Advance(1)
+	f.sIn.frame:SetValue(0); f.sVol.frame:SetValue(0); Stub.Advance(1)
 	eq(table.getn(sent(OV)), n, "a slider the client moves by itself (layout, settling) sends nothing: only a pressed mouse does")
 	Stub.Drag(f.sIn.frame, 120); Stub.Advance(0.5)
 	eq(lastSent(OV), "input 120", "with a hand on it, it does")
@@ -438,14 +441,14 @@ do
 end
 
 -- ===================================================================== save the logs from the panel
-sec("voice ui: the Save logs button asks the app for the zip and the game says where it is")
+sec("voice ui: the Export Logs button asks the app for the zip and the game says where it is")
 do
 	local OV = login()
 	local P = OV.Panel
 	put(OV, 1)
 	Stub.Click(EqVoiceIndicator, "LeftButton")
 	local f = EqVoicePanel
-	eq(f.bReport.text, "Save logs to send", "there is a button for it")
+	eq(f.bReport.text, "Export Logs", "there is a button for it")
 	eq(f.bReport.enabled, true, "it works while the app runs")
 	Stub.Click(f.bReport); Stub.Advance(0.25)
 	eq(lastSent(OV), "report 1", "it asks the app to make the zip")
@@ -455,6 +458,77 @@ do
 	check(not string.find(f.hint.text, "EqVoice-logs", 1, true), "and stops saying so when the app stops (about twenty-five seconds)")
 	Stub.Advance(10)
 	eq(f.bReport.enabled, false, "no app: the button is off")
+	eq(P.error, nil, "no drawing error")
+end
+
+-- ===================================================================== 0.4: direction, overhead icons, deafens, the test, names
+sec("voice ui: direction from where you face, icons over heads, the two deafens, the microphone test, device names")
+do
+	local OV = login()
+	local P, D, I = OV.Panel, OV.Direction, OV.Icons
+	-- the direction of a voice: degrees from straight ahead of YOUR character, clockwise (UnitPosition gives north, west)
+	local pi = math.pi
+	local function az(facing, tn, tw) return D.Azimuth(0, 0, facing, tn, tw) end
+	eq(math.floor(az(0, 10, 0) + 0.5), 0, "north of you, facing north: ahead")
+	eq(math.floor(az(0, 0, -10) + 0.5), 90, "east of you, facing north: on your right")
+	eq(math.floor(az(0, 0, 10) + 0.5), -90, "west of you, facing north: on your left")
+	eq(math.floor(az(0, -10, 0) + 0.5), 180, "south of you, facing north: behind you")
+	eq(math.floor(az(pi / 2, 10, 0) + 0.5), 90, "turn to face west: north is now on your right (the way you face is what counts, not where you stand)")
+	eq(math.floor(az(pi, 0, -10) + 0.5), -90, "face south: east is on your left")
+	eq(D.Azimuth(1, 1, 0, 1, 1), nil, "on the same spot there is no direction")
+	eq(math.floor(D.Azimuth(0, 0, 0, 0, -10, true) + 0.5), -90, "/ev dir flip swaps the sides if a client answers mirrored")
+	-- plain device names
+	eq(P.DefaultName("AT2020USB+"), "System default (AT2020USB+)", "the system default shows what it is now"); eq(P.DefaultName(""), "System default", "and plain when it is not known")
+
+	-- overhead icons: friendly nameplates are switched on (quietly) while a voice player is near, and put back
+	put(OV, 1, { peers = { "Alice 12.5 1 1 direct s 0" } })
+	local pa = Stub.AddPlate("Alice", "player")
+	local pw = Stub.AddPlate("Boss", "enemy")
+	Stub.Advance(1)
+	eq(Stub.friendPlates, true, "a voice player is near: friendly nameplates are switched on")
+	eq(pa.bar.alpha, 0, "and the plate EqVoice caused is quiet: no health bar"); eq(pa.border.alpha, 0, "no border"); eq(pa.level.alpha, 0, "and no level")
+	eq(pw.bar.alpha, 1, "an enemy's plate is left exactly as it was")
+	check(I.plates[1].icon ~= nil and I.plates[1].icon.state == "s", "and the voice icon is over Alice's name")
+	eq(I.plates[1].icon.tex.pt[1], "BOTTOM", "above it")
+	I.SetOverhead(false); Stub.Advance(1)
+	eq(OV.db.ui.overhead, false, "the switch is kept"); eq(Stub.friendPlates, false, "off: friendly plates are put back"); eq(pa.bar.alpha, 1, "and their art"); eq(I.plates[1].icon.state, nil, "and no icon over heads")
+	I.SetOverhead(true); Stub.Advance(1)
+	eq(Stub.friendPlates, true, "on again")
+	-- a player who has friendly nameplates on themselves keeps them untouched
+	I.SetOverhead(false); Stub.Advance(1)
+	_G.FRIENDNAMEPLATES_ON = 1; I.SetOverhead(true); Stub.Advance(1)
+	eq(pa.bar.alpha, 1, "their own friendly plates are not made quiet"); check(I.plates[1].icon.state == "s", "but they get the icon")
+	_G.FRIENDNAMEPLATES_ON = nil
+
+	-- the two deafens and the microphone test: what the buttons say
+	Stub.Click(EqVoiceIndicator, "LeftButton")
+	local f = EqVoicePanel
+	put(OV, 2, { fields = "level=ok mode=open mute=0 deaf=1 dk=0 tx=0 talk=0 vol=100 near=0 conn=0 key=F9 mic=ok gate=auto gdb=-48" })
+	eq(f.bDeaf.text, "Undeafen", "deafened"); eq(f.bDeaf.highlight, true, "Deafen is lit"); eq(f.bMute.highlight, true, "and the microphone button too: a normal deafen closes the microphone")
+	eq(f.bDeafKeep.highlight, false, "the other deafen is not")
+	put(OV, 3, { fields = "level=ok mode=open mute=0 deaf=1 dk=1 tx=1 talk=0 vol=100 near=0 conn=0 key=F9 mic=ok gate=auto gdb=-48" })
+	eq(f.bDeafKeep.highlight, true, "the other deafen (hear nobody, still heard) is lit"); eq(f.bDeaf.highlight, false, "Deafen is not"); eq(f.bMute.highlight, false, "and the microphone button is not: the microphone is open")
+	Stub.Click(f.bDeafKeep); eq(lastSent(OV), "deafen 0", "the arrow again undeafens")
+	put(OV, 4, { fields = "level=ok mode=open mute=0 deaf=0 dk=0 tx=1 talk=0 vol=100 near=0 conn=0 key=F9 mic=ok gate=auto gdb=-48" })
+	Stub.Click(f.bDeafKeep); eq(lastSent(OV), "deafen 2", "the arrow deafens with the microphone left open")
+	put(OV, 5, { fields = "level=ok mode=open mute=0 deaf=0 dk=0 tx=1 talk=0 vol=100 near=0 conn=0 key=F9 mic=ok gate=auto gdb=-48" })
+	Stub.Click(f.bDeaf); eq(lastSent(OV), "deafen 1", "Deafen closes the microphone too")
+	-- the test
+	put(OV, 6, { fields = "level=ok mode=open mute=0 deaf=0 tx=0 talk=0 vol=100 near=0 conn=0 key=F9 mic=ok gate=auto gdb=-48 mt=0" })
+	eq(f.bTestMic.text, "Test Microphone", "the test button"); eq(f.bTestMic.highlight, false, "")
+	Stub.Click(f.bTestMic); Stub.Advance(0.25); eq(lastSent(OV), "mictest 1", "starts the test"); eq(f.bTestMic.text, "Stop Testing", "and says how to stop it"); eq(f.bTestMic.highlight, true, "in red")
+	f:Hide(); put(OV, 7, { fields = "level=ok mode=open mute=0 deaf=0 tx=0 talk=0 vol=100 near=0 conn=0 key=F9 mic=ok gate=auto gdb=-48 mt=1" })
+	Stub.Click(EqVoiceIndicator, "LeftButton")
+	eq(f.bTestMic.text, "Stop Testing", "the test went on while the panel was closed"); eq(f.bTestMic.highlight, true, "")
+	Stub.Click(f.bTestMic); eq(lastSent(OV), "mictest 0", "stops it")
+	-- the sound mode
+	for mode, b in pairs(f.bSpatial) do check(b ~= nil, mode .. " has a button") end
+	Stub.Click(f.bSpatial.mono); eq(lastSent(OV), "spatial mono", "")
+	-- the sensitivity bar turns red when your voice would carry at yell distance
+	put(OV, 8, { fields = "level=ok mode=open mute=0 deaf=0 tx=1 talk=0 vl=2 vol=100 near=0 conn=0 key=F9 mic=ok gate=auto gdb=-48 gl=-25 gt=-52 go=1" })
+	eq(f.sGate.loud, true, "loud: the bar's live fill is red"); eq(f.sGate.amber.color[1] > 0.8 and f.sGate.amber.color[2] < 0.4, true, "")
+	put(OV, 9, { fields = "level=ok mode=open mute=0 deaf=0 tx=1 talk=0 vl=1 vol=100 near=0 conn=0 key=F9 mic=ok gate=auto gdb=-48 gl=-35 gt=-52 go=1" })
+	eq(f.sGate.loud, false, "an ordinary voice: amber and green again")
 	eq(P.error, nil, "no drawing error")
 end
 
@@ -667,17 +741,13 @@ do
 	tf.shown = true; adv()
 	eq(ic.state, "s", "both shown again: back")
 
-	-- the click: the panel opens, and closes on the next click
-	check(OV.Panel.frame == nil or not OV.Panel.frame.shown, "the panel starts closed")
+	-- the click: another player's icon opens THEIR settings (volume, mute, block); the next click on it closes them
+	check(OV.Panel.player == nil or not OV.Panel.player.shown, "the player window starts closed")
 	Stub.Click(ic.btn)
-	check(OV.Panel.frame ~= nil and OV.Panel.frame.shown, "a click on the speaker opens the EqVoice panel")
+	check(OV.Panel.player ~= nil and OV.Panel.player.shown, "a click on the speaker opens that player's settings"); eq(OV.Panel.player.name.text, ic.who, "for the player the icon belongs to")
 	Stub.Click(ic.btn)
-	check(not OV.Panel.frame.shown, "and the next click closes it")
-	ic.btn.scripts.OnEnter()
-	eq(Stub.tip.lines[1], "EqVoice", "the tooltip names it"); eq(Stub.tip.lines[2], "speaking", "says what that player is doing")
-	eq(Stub.tip.lines[3], "Click: open the EqVoice settings.", "and what a click does"); eq(Stub.tip.shown, true, "shown")
-	ic.btn.scripts.OnLeave()
-	eq(Stub.tip.shown, false, "and put away")
+	check(not OV.Panel.player.shown, "and the next click closes it")
+	eq(ic.btn.scripts.OnEnter, nil, "no tooltips anywhere in EqVoice")
 
 	-- ECO's party frames draw their own, left-aligned names
 	_G.EquadisClassicOverhaul = { modules = { partyframes = { frames = {} }, nameplates = { plates = {} } } }
@@ -718,7 +788,7 @@ do
 	Stub.Click(EqVoiceIndicator, "LeftButton")
 	local f = EqVoicePanel
 	check(EqVoiceSetup == nil, "no overlay until the setup runs")
-	check(string.find(f.hint.text, "Set up mic once", 1, true), "a player who has never done it is nudged: " .. f.hint.text)
+	check(string.find(f.hint.text, "Calibrate once", 1, true), "a player who has never done it is nudged: " .. f.hint.text)
 	-- the button starts it, and the first step is on screen at once (before the app has answered)
 	Stub.Click(f.bSetup)
 	eq(lastSent(OV), "calibrate 1", "the button asks the app to start")
@@ -857,8 +927,7 @@ do
 	Stub.Click(f.sVol.down); Stub.Advance(0.5)
 	eq(lastSent(OV), "volume 90", "minus lowers the volume a tenth of its range: 100 -> 90"); eq(f.volText.text, "90%", "and the number shows it")
 	Stub.Click(f.sIn.up); Stub.Advance(0.5)
-	eq(lastSent(OV), "input 120", "plus raises the microphone volume by a tenth of 200: 100 -> 120")
-	Stub.Click(f.sBoost.up); Stub.Advance(0.5)
+	eq(lastSent(OV), "input 120", "plus raises the microphone boost by a tenth of 200: 100 -> 120")
 	check(P.error ~= nil and string.find(P.error, "Slider", 1, true), "the failure was noted so that it can be found: " .. tostring(P.error))
 	Stub.Advance(8)
 	eq(f.sVol.up.enabled, false, "without the app the buttons are off too")
@@ -955,7 +1024,7 @@ do
 	for i = 1, 8 do app() end
 	local f = EqVoiceWizard
 	check(f ~= nil and f.shown, "a few seconds later the box opens by itself")
-	eq(f.title.text, "Welcome to EqVoice", "welcome"); eq(f.step.text, "Step 1 of 6", ""); eq(f.bBack.shown, false, "no Back on the first page"); eq(f.bNext.text, "Next", "")
+	eq(f.title.text, "Welcome to EqVoice", "welcome"); eq(f.step.text, "Step 1 of 7", ""); eq(f.bBack.shown, false, "no Back on the first page"); eq(f.bNext.text, "Next", "")
 	check(string.find(f.pages[1][1].text, "proximity voice chat", 1, true), "it says what EqVoice is")
 	-- the microphone page
 	Stub.Click(f.bNext)
@@ -990,46 +1059,53 @@ do
 	local orows = f.pages[3].list.rows
 	eq(orows[3].text.text, "Monitor (HDMI)", "the speakers")
 	Stub.Click(orows[3]); eq(lastSent(OV), "spkdev Monitor (HDMI)", "a click picks them")
-	Stub.Click(f.pages[3].test); eq(lastSent(OV), "test 1", "the test sound")
+	check(f.pages[3].test == nil, "no test sound: the speaker test is gone")
+	-- how you hear: mono, speakers or headphones
+	Stub.Click(f.bNext)
+	eq(f.title.text, "How you hear", ""); app()
+	Stub.Click(f.pages[4].mono); eq(lastSent(OV), "spatial mono", "mono"); Stub.Click(f.pages[4].speakers); eq(lastSent(OV), "spatial speakers", "speakers")
+	Stub.Click(f.pages[4].headphones); eq(lastSent(OV), "spatial headphones", "headphones")
 	-- push to talk
 	Stub.Click(f.bNext)
 	eq(f.title.text, "Push to talk", ""); app()
-	eq(f.pages[4].keytext.text, "Push-to-talk key: F9", "it shows the key that is bound now")
-	Stub.Click(f.pages[4].ptt); eq(lastSent(OV), "mode ptt", "push to talk")
-	Stub.Click(f.pages[4].open); eq(lastSent(OV), "mode open", "open microphone")
-	Stub.Click(f.pages[4].key); Stub.Advance(0.25)
-	check(P.capturing, "the key button listens for the next key"); check(string.find(f.pages[4].keytext.text, "Press the key", 1, true), f.pages[4].keytext.text)
+	eq(f.pages[5].keytext.text, "Push-to-talk key: F9", "it shows the key that is bound now")
+	Stub.Click(f.pages[5].ptt); eq(lastSent(OV), "mode ptt", "push to talk")
+	Stub.Click(f.pages[5].open); eq(lastSent(OV), "mode open", "open microphone")
+	Stub.Click(f.pages[5].key); Stub.Advance(0.25)
+	check(P.capturing, "the key button listens for the next key"); check(string.find(f.pages[5].keytext.text, "Press the key", 1, true), f.pages[5].keytext.text)
 	_G.arg1 = "F10"; EqVoiceKeyCapture.scripts.OnKeyDown()
 	eq(lastSent(OV), "key F10", "any key can be bound, not only F9")
-	-- options
+	-- calibrate
 	Stub.Click(f.bNext)
-	eq(f.title.text, "Voice options", ""); app()
-	Stub.Drag(f.pages[5].sIn.frame, 150); Stub.Advance(0.5); eq(lastSent(OV), "input 150", "the microphone's volume")
-	Stub.Drag(f.pages[5].sOut.frame, 60); Stub.Advance(0.5); eq(lastSent(OV), "volume 60", "everyone else's")
-	Stub.Click(f.pages[5].mute); eq(lastSent(OV), "mute 1", "mute"); Stub.Click(f.pages[5].deaf); eq(lastSent(OV), "deafen 1", "deafen")
-	Stub.Click(f.pages[5].setup); eq(lastSent(OV), "calibrate 1", "the microphone setup is one click away")
+	eq(f.title.text, "Calibrate", ""); app()
+	Stub.Drag(f.pages[6].sIn.frame, 150); Stub.Advance(0.5); eq(lastSent(OV), "input 150", "the microphone's volume")
+	Stub.Drag(f.pages[6].sOut.frame, 60); Stub.Advance(0.5); eq(lastSent(OV), "volume 60", "everyone else's")
+	Stub.Click(f.pages[6].setup); eq(lastSent(OV), "calibrate 1", "the calibration is one click away")
 	Stub.Click(EqVoiceSetup and EqVoiceSetup.bCancel or f.bNext)
 	-- the check
 	app()
 	while f.title.text ~= "All set?" do Stub.Click(f.bNext) end
 	eq(f.bNext.text, "Finish", "the last page ends with Finish")
 	app()
-	local rowsC = f.pages[6].rows
+	local rowsC = f.pages[7].rows
 	eq(rowsC[1].text.text, "Microphone detected", ""); eq(rowsC[2].text.text, "Output detected", ""); eq(rowsC[3].text.text, "EqVoice connected", "")
 	eq(rowsC[1].tex.path, "Interface\\Buttons\\UI-CheckBox-Check", "a tick"); eq(rowsC[1].tex.r, 1, "in full colour")
-	eq(f.pages[6].summary.text, "Setup complete.", "everything is ready")
+	eq(f.pages[7].summary.text, "Setup complete.", "everything is ready")
 	app((string.gsub(BASE, "hub=1", "hub=0")))
 	check(rowsC[3].tex.r < 0.6, "a check that is not yet true is grey, not a cross")
-	check(string.find(f.pages[6].summary.text, "keeps trying", 1, true), "and says EqVoice keeps trying")
+	check(string.find(f.pages[7].summary.text, "keeps trying", 1, true), "and says EqVoice keeps trying")
 	for i = 1, 11 do app((string.gsub(BASE, "hub=1", "hub=0"))) end
 	eq(rowsC[3].tex.path, "Interface\\Buttons\\UI-GroupLoot-Pass-Up", "after ten seconds it is a cross")
 	Stub.Click(f.bNext)
 	eq(f.shown, false, "Finish closes it"); eq(OV.db.ui.setupDone, true, "and it does not come back")
 	Stub.Advance(30); app()
 	eq(f.shown, false, "not by itself")
-	-- /eqvc welcome opens it again, from the first page
-	SlashCmdList["EQVOICEUI"]("welcome")
-	check(f.shown and f.title.text == "Welcome to EqVoice", "/eqvc welcome opens the same box again")
+	-- /eqvc setup (and welcome) open it again, from the first page: the whole first-time setup
+	SlashCmdList["EQVOICEUI"]("setup")
+	check(f.shown and f.title.text == "Welcome to EqVoice", "/eqvc setup opens the whole box again")
+	Stub.Click(f.bSkip); SlashCmdList["EQVOICEUI"]("welcome")
+	check(f.shown and f.title.text == "Welcome to EqVoice", "/eqvc welcome too")
+	SlashCmdList["VC"] = SlashCmdList["VC"]
 	f:Hide()
 	eq(OV.db.ui.setupDone, true, "closing it any way is the same as finishing")
 	eq(P.error, nil, "no panel drawing error"); eq(W.error, nil, "no box drawing error")
@@ -1064,10 +1140,10 @@ do
 	local function app(fields) seq = seq + 1; put(OV, seq, { fields = fields or BASE, devices = DEV }) end
 	app()
 	-- what the player chooses is remembered (and mute and deafen are not)
-	P.SetMode("ptt"); P.SetVolume(70); P.SetInput(130); P.SetBoost("high"); P.SetGate("manual"); P.SetGateDb(-52); P.SetMute(true); P.SetDeaf(true)
+	P.SetMode("ptt"); P.SetVolume(70); P.SetInput(130); P.SetSpatial("speakers"); P.SetGate("manual"); P.SetGateDb(-52); P.SetMute(true); P.SetDeaf(true)
 	P.SetDevice("in", "Headset Mic (USB)", 2); P.SetDevice("out", "Monitor (HDMI)", 2); P.Command("key", "BUTTON4")
 	local s = OV.db.settings
-	eq(s.mode, "ptt", "the mode"); eq(s.volume, "70", "the volume"); eq(s.input, "130", "the microphone volume"); eq(s.boost, "high", "")
+	eq(s.mode, "ptt", "the mode"); eq(s.volume, "70", "the volume"); eq(s.input, "130", "the microphone volume"); eq(s.spatial, "speakers", "where voices are heard from")
 	eq(s.gate, "manual", ""); eq(s.gatedb, "-52", ""); eq(s.micdev, "Headset Mic (USB)", "the microphone"); eq(s.spkdev, "Monitor (HDMI)", "the speakers"); eq(s.key, "BUTTON4", "the key")
 	eq(s.mute, nil, "mute is not remembered"); eq(s.deafen, nil, "nor is deafen")
 	-- the app goes away and comes back with its own defaults (a new install, a deleted config): the game's choices are handed back, one a tick
@@ -1078,7 +1154,7 @@ do
 	seq = seq + 1
 	put(OV, seq, { fields = BASE, devices = DEV })
 	Stub.Advance(4)
-	eq(got.mode, "ptt", "the mode is handed back"); eq(got.volume, "70", ""); eq(got.input, "130", ""); eq(got.boost, "high", ""); eq(got.gate, "manual", "")
+	eq(got.mode, "ptt", "the mode is handed back"); eq(got.volume, "70", ""); eq(got.input, "130", ""); eq(got.spatial, "speakers", ""); eq(got.gate, "manual", "")
 	eq(got.gatedb, "-52", ""); eq(got.micdev, "Headset Mic (USB)", ""); eq(got.spkdev, "Monitor (HDMI)", ""); eq(got.key, "BUTTON4", "")
 	eq(got.mute, nil, "mute is not"); eq(got.deafen, nil, "")
 	-- one at a time: the command file keeps only the newest eight
@@ -1087,7 +1163,7 @@ do
 	eq(n, 9, "all nine arrived, none lost behind another")
 	-- what the app already has is not sent again
 	local OK = BASE .. " "
-	local fields2 = "level=ok mode=ptt mute=0 deaf=0 tx=0 talk=0 vol=70 near=0 conn=0 key=Mouse_4 game=1 hub=1 mic=ok din=2 dout=2 ing=130 boost=high gate=manual gdb=-52"
+	local fields2 = "level=ok mode=ptt mute=0 deaf=0 tx=0 talk=0 vol=70 near=0 conn=0 key=Mouse_4 game=1 hub=1 mic=ok din=2 dout=2 ing=130 sp=speakers gate=manual gdb=-52"
 	Stub.Advance(8)
 	got = {}
 	seq = seq + 1

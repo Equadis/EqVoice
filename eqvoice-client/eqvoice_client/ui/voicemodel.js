@@ -163,8 +163,37 @@
     return 20 * Math.log10(Math.sqrt(sum / Math.max(1, samples.length)) + 1e-9);
   }
 
+  // ---- where a voice is heard from. `az` is the speaker's direction in degrees from straight ahead of YOU (the way your character faces):
+  // +90 is directly to your right, -90 to your left, 180 behind; null when the game cannot say. `dist` is yards.
+  //   mono        no direction at all.
+  //   speakers    an equal-power pan, at most 80% to one side (loudspeakers already stand apart: a hard pan sounds like a dead channel),
+  //               and a voice behind you a little quieter (two speakers in front cannot put a sound behind you: quieter is the cue left).
+  //   headphones  a point on a circle round your head for the HRTF panner: left/right AND front/back, at full width.
+  // A player standing on top of you has no meaningful direction (it flips as either of you shuffles): inside 1 yd a voice is centred, and the
+  // direction comes in over the next 3 yd. The answer is { pan -1..1, gain, x, z } (x right, z back: Web Audio's listener looks along -z).
+  const SPATIAL_MODES = ['mono', 'speakers', 'headphones'];
+  const normSpatial = (v) => (SPATIAL_MODES.indexOf(v) >= 0 ? v : 'headphones');
+  const SPATIAL = { nearFlat: 1, nearFull: 4, speakerWidth: 0.8, behindCut: 0.25, azTau: 0.12 };
+  function spatialFor(mode, az, dist) {
+    const centre = { pan: 0, gain: 1, x: 0, z: -1, width: 0 };
+    if (mode === 'mono' || az === null || az === undefined || !isFinite(az)) return centre;
+    const w = (dist === null || dist === undefined || !isFinite(dist)) ? 1 : clamp((dist - SPATIAL.nearFlat) / (SPATIAL.nearFull - SPATIAL.nearFlat), 0, 1);
+    const r = az * Math.PI / 180, s = Math.sin(r), c = Math.cos(r);
+    if (mode === 'speakers') {
+      return { pan: SPATIAL.speakerWidth * s * w, gain: 1 - SPATIAL.behindCut * w * (1 - c) / 2, x: 0, z: -1, width: w };
+    }
+    return { pan: s * w, gain: 1, x: s * w, z: -(c * w + (1 - w)), width: w };
+  }
+  // the shortest way round from one direction to another, in degrees (-180..180]
+  function azDelta(from, to) {
+    let d = (to - from) % 360;
+    if (d > 180) d -= 360;
+    if (d <= -180) d += 360;
+    return d;
+  }
+
   const BOOST = { off: 1, low: 1.4, normal: 2, high: 3 };           // the boost option: how much louder a voice is right next to you
   const normBoost = (v) => (v === 'off' || v === 'low' || v === 'normal' || v === 'high' ? v : 'normal');
 
-  root.VoiceModel = { normBitrate, DEFAULT_CURVE, FOLLOW, flatFor, boostFor, curveGain, LEVEL, levelingDb, BOOST, normBoost, LOUD, Loudness, VA, VoiceActivity, levelDb, clamp };
+  root.VoiceModel = { normBitrate, DEFAULT_CURVE, FOLLOW, flatFor, boostFor, curveGain, LEVEL, levelingDb, BOOST, normBoost, LOUD, Loudness, VA, VoiceActivity, levelDb, clamp, SPATIAL_MODES, normSpatial, SPATIAL, spatialFor, azDelta };
 })(typeof window !== 'undefined' ? window : globalThis);

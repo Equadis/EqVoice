@@ -72,8 +72,11 @@ function Lookup.Configure(cfg)
 	if cfg.report then c.report = OV.clamp(cfg.report, 5, 200) end
 end
 
+Lookup.tokens = {}            -- name -> the unit token of each player the game has loaded near you (Direction.lua asks it where they are)
+
 function Lookup.Clear()
 	Lookup.results, Lookup.nresults = {}, 0
+	Lookup.tokens = {}
 end
 
 -- One name. Returns the distance in yards, or nil plus the reason it is not available.
@@ -83,13 +86,14 @@ local function checkOne(name)
 		Lookup.stats.errors = Lookup.stats.errors + 1
 		return nil, "UnitTokenFromName raised an error: " .. tostring(token)
 	end
-	if not token then return nil, "no such player loaded near you" end
+	if not token then Lookup.tokens[name] = nil; return nil, "no such player loaded near you" end
 	local okN, nm = pcall(UnitName, token)
 	local okP, isPlayer = pcall(UnitIsPlayer, token)
 	if not (okN and nm == name) then return nil, "the unit is called " .. tostring(nm) end
 	if not (okP and isPlayer) then return nil, "not a player" end
 	local okD, d2, checked = pcall(UnitDistanceSquared, token)
-	if not (okD and checked and type(d2) == "number" and d2 >= 0) then return nil, "the game gave no distance" end
+	if not (okD and checked and type(d2) == "number" and d2 >= 0) then Lookup.tokens[name] = nil; return nil, "the game gave no distance" end
+	Lookup.tokens[name] = token
 	return math.sqrt(d2)
 end
 

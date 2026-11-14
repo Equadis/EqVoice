@@ -3,6 +3,7 @@ clicked in the game. Run against a real hub with a simulated game, like the othe
 import json
 import time
 
+import asyncio
 from eqvoice_client.bridge.uifiles import build_control, control_path, parse_status, status_path
 from eqvoice_client.config import Config
 
@@ -83,7 +84,8 @@ def test_what_the_player_clicks_in_the_game_happens(tmp_path):
             await until(lambda: read_status(game).fields["vol"] == "40", 5, "status follows")
 
             send(game, ("test", "1"))
-            await until(lambda: pa.named("tone"), 5, "the speaker test is played")
+            await asyncio.sleep(0.5)
+            assert pa.named("tone") == [], "the game no longer has a speaker test"
 
             # two commands in one file are both applied, in order
             send(game, ("mode", "ptt"), ("mute", "1"))

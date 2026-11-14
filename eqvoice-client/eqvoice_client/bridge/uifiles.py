@@ -84,6 +84,32 @@ def control_path(inbox_path) -> Path:
     return p.with_name("eqvoice-ctl" + file_suffix(p.name))
 
 
+def direction_path(inbox_path) -> Path:
+    p = Path(inbox_path)
+    return p.with_name("eqvoice-dir" + file_suffix(p.name))
+
+
+DIRECTION_MAGIC = "OVD1"
+
+
+def parse_direction(text: str) -> dict:
+    """The addon's direction file: ``OVD1 <seq>`` then one ``<name> <degrees>`` line per nearby player. Degrees are from straight ahead of your
+    character, clockwise: +90 is to your right, -90 to your left, 180 behind. Returns {lower-case name: degrees}; anything damaged is left out."""
+    out = {}
+    lines = str(text or "").replace("\r", "").split("\n")
+    if not lines or not lines[0].startswith(DIRECTION_MAGIC):
+        return out
+    for ln in lines[1:]:
+        name, _, deg = ln.strip().partition(" ")
+        try:
+            v = float(deg)
+        except ValueError:
+            continue
+        if name and -360.0 <= v <= 360.0:
+            out[name.lower()] = ((v + 180.0) % 360.0) - 180.0
+    return out
+
+
 def _word(v) -> str:
     """One field value: no spaces, '=' or '|' (the game treats '|' as an escape in text it draws)."""
     s = _VALUE_BAD.sub("_", str(v))
@@ -108,26 +134,79 @@ MAX_DEVICES = 8
 MAX_DEVICE_NAME = 60
 
 
+_GENERIC_KIND = r"(?:Microphone Array|Microphone|Headset Microphone|Headset Earphone|Headset|Headphones|Speakers|Speaker|Line In|Line)"
+
+
+def clean_device_label(label) -> str:
+    """A device's own name, without what Windows and the browser wrap round it:
+    ``Default - Microphone (2- AT2020USB+) (0909:001c)`` -> ``AT2020USB+``; ``Microphone (Steam Streaming Microphone)`` -> ``Steam Streaming
+    Microphone``; ``Speakers (Realtek(R) Audio)`` -> ``Realtek(R) Audio``; ``CU34G2XP (4- NVIDIA High Definition Audio)`` keeps its own name
+    in front and loses only the number."""
+    s = " ".join(str(label or "").split())
+    s = re.sub(r"\s*\([0-9a-fA-F]{4}:[0-9a-fA-F]{4}\)$", "", s)            # the USB id
+    s = re.sub(r"^(?:Default|Communications) - ", "", s)
+    m = re.match(r"^%s \((.+)\)$" % _GENERIC_KIND, s)
+    if m:
+        s = m.group(1)
+    s = re.sub(r"^\d+- ", "", s)                                             # Windows numbers a second device of one kind "2- name"
+    s = re.sub(r"\((\d+)- ", "(", s)
+    return s.strip()
+
+
+def _is_alias(d: dict) -> bool:
+    """The browser lists the system's default and communications devices a second time, under those names: they are not devices of their own."""
+    return str(d.get("id") or "") in ("default", "communications") or bool(re.match(r"^(?:Default|Communications) - ", str(d.get("label") or "")))
+
+
+def game_devices(devs) -> list:
+    """[(id, name)] of the real devices, as the game lists them: plain names, no aliases, at most MAX_DEVICES, a repeated name numbered."""
+    out, seen = [], {}
+    for d in devs or []:
+        if not isinstance(d, dict) or _is_alias(d):
+            continue
+        name = clean_device_label(d.get("label")) or "?"
+        seen[name] = seen.get(name, 0) + 1
+        if seen[name] > 1:
+            name = "%s (%d)" % (name, seen[name])
+        out.append((str(d.get("id") or ""), name))
+    return out[:MAX_DEVICES]
+
+
+def default_device_name(devs) -> str:
+    """The name of the device the system default is now (the browser says so in its "Default - ..." entry); "" when it does not say."""
+    for d in devs or []:
+        if isinstance(d, dict) and (str(d.get("id") or "") == "default" or str(d.get("label") or "").startswith("Default - ")):
+            return clean_device_label(d.get("label"))
+    return ""
+
+
 def _device_name(v) -> str:
     """A device's name as the game can show it: one line, no control characters, no `|` (the game's chat escape), cut to a length that fits."""
     s = " ".join(str(v or "").replace("|", "/").split())
     return (s[:MAX_DEVICE_NAME - 1] + "…") if len(s) > MAX_DEVICE_NAME else s
 
 
-def build_status(seq: int, ts: int, character: str, fields: dict, headline: str, more=(), peers=(), muted=(), devices=None) -> str:
+def build_status(seq: int, ts: int, character: str, fields: dict, headline: str, more=(), peers=(), muted=(), devices=None, blocked=()) -> str:
     lines = ["S " + " ".join("%s=%s" % (_word(k), _word(v)) for k, v in fields.items()), "M " + (_line(headline) or "-")]
     for text in list(more)[:MAX_MORE]:
         lines.append("N " + (_line(text) or "-"))
     for p in list(peers)[:MAX_PEERS]:
-        lines.append("P %s %s %d %d %s %s %d" % (_word(p.get("name", "?")), _yards(p.get("dist")), 1 if p.get("connected") else 0,
-                                                  1 if p.get("speaking") else 0, _word(p.get("path") or "-"),
-                                                  _state(p.get("state")), 1 if p.get("muted") else 0))
+        lines.append("P %s %s %d %d %s %s %d %d %d" % (_word(p.get("name", "?")), _yards(p.get("dist")), 1 if p.get("connected") else 0,
+                                                        1 if p.get("speaking") else 0, _word(p.get("path") or "-"),
+                                                        _state(p.get("state")), 1 if p.get("muted") else 0, 1 if p.get("blocked") else 0,
+                                                        int(round(max(0.0, min(2.0, float(p.get("vol", 1.0)))) * 100))))
     names = [_word(n) for n in list(muted)[:MAX_MUTED]]
     for i in range(0, len(names), 8):                     # eight names to a line keeps every line short
         lines.append("X " + " ".join(names[i:i + 8]))
+    names = [_word(n) for n in list(blocked)[:MAX_MUTED]]
+    for i in range(0, len(names), 8):                     # K: the players who do not hear you
+        lines.append("K " + " ".join(names[i:i + 8]))
     for kind in ("in", "out"):
         for i, name in enumerate(list((devices or {}).get(kind) or [])[:MAX_DEVICES], 1):
             lines.append("D %s %d %s" % (kind, i, _device_name(name) or "?"))
+        default = _device_name(((devices or {}).get("default") or {}).get(kind) or "")
+        if default:
+            lines.append("E %s %s" % (kind, default))      # E: what the system default is now
     body = "".join(line + "\n" for line in lines)
     return "%s %d %d %04X %s\n%s" % (STATUS_MAGIC, seq & 0xFFFF, ts, body_crc(body), character, body)
 
@@ -142,7 +221,9 @@ class ParsedStatus:
     more: list = field(default_factory=list)
     peers: list = field(default_factory=list)
     muted: list = field(default_factory=list)
+    blocked: list = field(default_factory=list)
     devices: dict = field(default_factory=lambda: {"in": [], "out": []})
+    defaults: dict = field(default_factory=lambda: {"in": "", "out": ""})
 
 
 def parse_status(text: str) -> ParsedStatus:
@@ -178,9 +259,16 @@ def parse_status(text: str) -> ParsedStatus:
             if len(f) >= 5:
                 out.peers.append({"name": f[0], "dist": None if f[1] == "-" else float(f[1]), "connected": f[2] == "1",
                                   "speaking": f[3] == "1", "path": f[4],
-                                  "state": _state(f[5]) if len(f) > 5 else "-", "muted": len(f) > 6 and f[6] == "1"})
+                                  "state": _state(f[5]) if len(f) > 5 else "-", "muted": len(f) > 6 and f[6] == "1",
+                                  "blocked": len(f) > 7 and f[7] == "1", "vol": int(f[8]) if len(f) > 8 and f[8].isdigit() else 100})
         elif kind == "X":
             out.muted.extend(n for n in rest.split(" ") if n)
+        elif kind == "K":
+            out.blocked.extend(n for n in rest.split(" ") if n)
+        elif kind == "E":
+            k, _, name = rest.partition(" ")
+            if k in ("in", "out") and name:
+                out.defaults[k] = name
         elif kind == "D":
             k, _, tail = rest.partition(" ")
             n, _, name = tail.partition(" ")
@@ -242,16 +330,17 @@ class StatusWriter:
         self.errors = 0
         self.last_error = ""
 
-    def write(self, character: str, fields: dict, headline: str, more=(), peers=(), muted=(), force: bool = False, devices=None) -> bool:
+    def write(self, character: str, fields: dict, headline: str, more=(), peers=(), muted=(), force: bool = False, devices=None, blocked=()) -> bool:
         key = (character, tuple(fields.items()), headline, tuple(more), tuple(tuple(sorted(p.items())) for p in peers), tuple(muted),
-               tuple(tuple(v) for v in ((devices or {}).get("in") or (), (devices or {}).get("out") or ())))
+               tuple(tuple(v) for v in ((devices or {}).get("in") or (), (devices or {}).get("out") or ())),
+               tuple(sorted(((devices or {}).get("default") or {}).items())), tuple(blocked))
         now = self.clock()
         since = now - self.last_write
         changed = key != self.last_key
         if not force and not ((changed and since >= self.min_interval_s) or since >= self.refresh_s):
             return False
         self.seq = self.seq % 65535 + 1
-        text = build_status(self.seq, int(now), character, fields, headline, more, peers, muted, devices)
+        text = build_status(self.seq, int(now), character, fields, headline, more, peers, muted, devices, blocked)
         try:
             replace_file(self.path, text)
         except OSError as e:

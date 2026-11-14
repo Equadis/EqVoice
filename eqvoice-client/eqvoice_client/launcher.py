@@ -297,7 +297,7 @@ def start_tray(app: App, loop, title: str = "EqVoice") -> Optional[tray.Tray]:
 
     items = [("Restart EqVoice", lambda: loop.call_soon_threadsafe(lambda: restart_program(app))),
              ("Open log folder", lambda: open_folder(Path(app.cfg.home) / "logs")),
-             ("Save logs to send", report)]
+             ("Export logs", report)]
     t = tray.Tray(UI_DIR / "eqvoice.ico", "EqVoice", activate, quit_program, items=items, header=BUILD_LABEL,
                   status=lambda: holder["tray"].status_text if holder.get("tray") else "",
                   open_label="Open developer window" if developer else None, quit_label="Exit EqVoice")

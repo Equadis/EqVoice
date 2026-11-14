@@ -118,3 +118,15 @@ Logs never contain character names or addresses (`LOG_EVENTS`); `TRACE` does and
 
 `wrangler dev -c wrangler.production.toml --local` runs the production settings (minus the custom domain) on your PC: the same
 Worker and Durable Object on the real runtime, which is how the test suite exercises it.
+
+
+## TURN: for players whose routers allow no direct path
+
+Two strict NATs cannot reach each other directly; their voice then needs a relay. The hub hands every client the relay's address with its other ICE servers.
+
+* **Cloudflare's own TURN service** (what the test build uses): in the dashboard, Realtime > TURN Server > Create. Put the key's id in `wrangler.production.toml` as `TURN_KEY_ID`
+  and its token in a secret: `wrangler secret put TURN_KEY_API_TOKEN -c wrangler.production.toml`. The Worker makes day-long credentials from them and renews them every six hours;
+  no credential is ever in the repository.
+* **A fixed relay** (coturn, or a paid service): the variables `TURN_URLS` (comma separated), `TURN_USERNAME` and `TURN_CREDENTIAL`.
+
+Check it: connect to `/ws` and read the `ice` list in the first message; a `turn:` entry with a username and credential means clients get the relay. Audio through the relay is still end to end encrypted.

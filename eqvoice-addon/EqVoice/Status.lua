@@ -31,6 +31,9 @@ Status.POLL      = 0.5
 Status.MAX_PEERS = 40
 Status.MAX_DEVICES = 8           -- microphones and speakers listed, each
 Status.devices = { ["in"] = {}, out = {} }
+Status.defaults = { ["in"] = "", out = "" }     -- what the system default device is now, by name
+Status.blocked = {}              -- lower-case name -> true: the players who do not hear you
+Status.nblocked = 0
 Status.MAX_MUTED = 60
 Status.STATES    = "solmd-"
 Status.MAX_MORE  = 4
@@ -75,7 +78,7 @@ function Status.Parse(text)
 	if string.upper(p[4]) ~= crcHex(body) then return nil, "crc" end
 
 	local t = { seq = seq, ts = ts, character = p[5], fields = {}, headline = "", more = {}, nmore = 0, peers = {}, npeers = 0, muted = {}, nmuted = 0, byName = {},
-		devices = { ["in"] = {}, out = {} } }
+		devices = { ["in"] = {}, out = {} }, defaults = { ["in"] = "", out = "" }, blocked = {}, nblocked = 0 }
 	local pos, len = 1, string.len(body)
 	while pos <= len do
 		local e = string.find(body, "\n", pos, true)
@@ -103,7 +106,8 @@ function Status.Parse(text)
 				t.npeers = t.npeers + 1
 				local state = f[6]
 				if not state or string.len(state) ~= 1 or not string.find(Status.STATES, state, 1, true) then state = "-" end
-				local row = { name = f[1], dist = tonumber(f[2]), connected = (f[3] == "1"), speaking = (f[4] == "1"), path = f[5], state = state, muted = (f[7] == "1") }
+				local row = { name = f[1], dist = tonumber(f[2]), connected = (f[3] == "1"), speaking = (f[4] == "1"), path = f[5], state = state, muted = (f[7] == "1"),
+					blocked = (f[8] == "1"), vol = tonumber(f[9] or "") or 100 }
 				t.peers[t.npeers] = row
 				t.byName[string.lower(f[1])] = row
 			end
@@ -112,6 +116,18 @@ function Status.Parse(text)
 			local s, e, which, n, name = string.find(rest, "^(%a+) (%d+) (.+)$")
 			local list = s and t.devices[which] or nil
 			if list and table.getn(list) < Status.MAX_DEVICES then list[table.getn(list) + 1] = name end
+		elseif kind == "E" then
+			-- E <in|out> <name>: what the system default device is now
+			local s, e, which, name = string.find(rest, "^(%a+) (.+)$")
+			if s and t.defaults[which] ~= nil then t.defaults[which] = name end
+		elseif kind == "K" then
+			local f, nf = OV.split(rest, " ")
+			for i = 1, nf do
+				if f[i] ~= "" and t.nblocked < Status.MAX_MUTED then
+					t.nblocked = t.nblocked + 1
+					t.blocked[string.lower(f[i])] = true
+				end
+			end
 		elseif kind == "X" then
 			local f, nf = OV.split(rest, " ")
 			for i = 1, nf do
@@ -183,6 +199,8 @@ function Status.Poll(now)
 	Status.peers, Status.npeers = t.peers, t.npeers
 	Status.muted, Status.nmuted, Status.byName = t.muted, t.nmuted, t.byName
 	Status.devices = t.devices
+	Status.defaults = t.defaults
+	Status.blocked, Status.nblocked = t.blocked, t.nblocked
 	local hp = OV.split(string.gsub(string.sub(text, 1, nl - 1), "\r", ""), " ")
 	Status.lastBody, Status.lastCrc = string.sub(text, nl + 1), string.upper(hp[4])
 	Status.version = Status.version + 1

@@ -20,7 +20,7 @@ Proximity voice chat for **OctoWoW**: talk to the players near you, quieter the 
 
 ## Something wrong? Send logs
 
-1. In game: `/eqvoice` → **Save logs to send** (or tray icon → *Save logs to send*).
+1. In game: `/eqvoice` → **Export Logs** (or tray icon → *Export logs*).
 2. A zip appears on your Desktop with Explorer open on it. It holds logs only, no audio.
 3. Join the [OctoWoW Discord](https://discord.gg/QtdNpKnU72), then in
    [this channel](https://discord.com/channels/1547014756463026197/1567260437102202880) DM or message **Equadis** with:

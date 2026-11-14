@@ -32,8 +32,10 @@ def test_how_you_sound_reaches_the_game_only_while_you_can_be_heard(tmp_path):
 
 
 DEVICES = {"t": "devices",
-           "inputs": [{"id": "default", "label": "Default - Microphone A"}, {"id": "idB", "label": "Headset Mic (USB)"}],
-           "outputs": [{"id": "default", "label": "Default - Speakers"}, {"id": "idS", "label": "Monitor (HDMI)"}]}
+           "inputs": [{"id": "default", "label": "Default - Microphone (Microphone A)"}, {"id": "idA", "label": "Microphone (Microphone A)"},
+                      {"id": "idB", "label": "Microphone (Headset Mic (USB))"}],
+           "outputs": [{"id": "default", "label": "Default - Speakers (Realtek(R) Audio)"}, {"id": "idR", "label": "Speakers (Realtek(R) Audio)"},
+                       {"id": "idS", "label": "Monitor (HDMI)"}]}
 
 
 def test_the_game_is_told_which_microphones_and_speakers_there_are_and_picks_one_by_name(tmp_path):
@@ -43,9 +45,10 @@ def test_the_game_is_told_which_microphones_and_speakers_there_are_and_picks_one
             pa, game = sc.pages["Alice"], sc.games["Alice"]
             await until(lambda: a.ui_control is not None, 10, "panel files")
             await pa.ws.send_json(DEVICES)
-            await until(lambda: read_status(game).devices["in"] == ["Default - Microphone A", "Headset Mic (USB)"], 10, "the game is told the microphones")
+            await until(lambda: read_status(game).devices["in"] == ["Microphone A", "Headset Mic (USB)"], 10, "the game is told the microphones, by their own names, without the system aliases")
             st = read_status(game)
-            assert st.devices["out"] == ["Default - Speakers", "Monitor (HDMI)"]
+            assert st.devices["out"] == ["Realtek(R) Audio", "Monitor (HDMI)"]
+            assert st.defaults == {"in": "Microphone A", "out": "Realtek(R) Audio"}, "and told what the system default is now"
             assert st.fields["din"] == "0" and st.fields["dout"] == "0", "nothing chosen: the system's own"
 
             send(game, ("micdev", "Headset Mic (USB)"))

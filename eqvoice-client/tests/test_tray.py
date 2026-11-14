@@ -365,7 +365,7 @@ def test_the_public_menu_says_which_build_and_what_it_is_doing_and_has_no_settin
             icon.status_text = "Ready: Alice on Realm. 2 players in range, 1 connected."
             lines = menu_lines(icon)
             assert lines == ["(%s)" % launcher.BUILD_LABEL, "(Ready: Alice on Realm. 2 players in range, 1 connected.)", "-",
-                             "Restart EqVoice", "Open log folder", "Save logs to send", "-", "Exit EqVoice"], lines
+                             "Restart EqVoice", "Open log folder", "Export logs", "-", "Exit EqVoice"], lines
             assert not any("setting" in x.lower() or "option" in x.lower() or "open eqvoice" in x.lower() for x in lines), "settings are in the game"
             icon.status_text = ""
             assert menu_lines(icon)[1] == "-", "no status yet: no empty line"
@@ -408,7 +408,7 @@ def test_the_menu_lines_reach_what_they_name_and_a_double_click_says_the_status(
                 return wait()
             assert await pick(0, lambda: ("restart", app) in seen), "Restart EqVoice"
             assert await pick(1, lambda: ("folder", "logs") in seen), "Open log folder opens <home>\\logs"
-            assert await pick(2, lambda: app.reports == 1), "Save logs to send"
+            assert await pick(2, lambda: app.reports == 1), "Export logs"
             icon.status_text = "Ready: Alice."
             tray.user32.PostMessageW(icon.hwnd, tray.WM_TRAY, 1, tray.WM_LBUTTONDBLCLK)
             for _ in range(100):

@@ -166,7 +166,7 @@ do
 	eq(m.input, 150, "the app's own answer")
 	m = with(12, "level=ok mode=open mute=0 deaf=0 tx=1 talk=0 vol=80 near=0 conn=0 key=F9 mic=ok ing=nonsense")
 	eq(m.input, 100, "an unknown value is not shown as if it were real")
-	P.SetInput(73); eq(P.pending.ing.value, 75, "73 -> 75"); P.SetInput(-5); eq(P.pending.ing.value, 0, "floor 0"); P.SetInput(999); eq(P.pending.ing.value, 200, "ceiling 200")
+	P.SetInput(73); eq(P.pending.ing.value, 73, "73 stays 73: the boost is a continuous slider"); P.SetInput(-5); eq(P.pending.ing.value, 0, "floor 0"); P.SetInput(999); eq(P.pending.ing.value, 200, "ceiling 200")
 	-- the microphone setup: what the app reports, and nothing unknown is believed
 	m = with(13, "level=ok mode=open mute=0 deaf=0 tx=1 talk=0 vol=80 near=0 conn=0 key=F9 mic=ok cal=normal calt=4 calq=- cald=1")
 	eq(m.cal, "normal", "the step the setup is on"); eq(m.calt, 4, "seconds left"); eq(m.calq, "-", "no result yet"); eq(m.cald, true, "done before")
@@ -175,7 +175,7 @@ do
 	m = with(15, "level=ok mode=open mute=0 deaf=0 tx=1 talk=0 vol=80 near=0 conn=0 key=F9 mic=ok cal=done calq=good gdb=-58 ing=85")
 	eq(m.cal, "done", "done"); eq(m.calq, "good", "well")
 	-- volume snaps to steps of 5 and stays in range
-	P.SetVolume(73); eq(P.pending.vol.value, 75, "73 -> 75")
+	P.SetVolume(73); eq(P.pending.vol.value, 73, "73 stays 73")
 	P.SetVolume(-20); eq(P.pending.vol.value, 0, "floor 0")
 	P.SetVolume(500); eq(P.pending.vol.value, 100, "ceiling 100")
 end
@@ -245,12 +245,13 @@ do
 	s("unmute"); eq(last(), "mute 0", "/eqvc unmute")
 	s("deafen"); eq(last(), "deafen 1", "/eqvc deafen")
 	s("undeafen"); eq(last(), "deafen 0", "/eqvc undeafen")
-	s("input 73"); eq(last(), "input 75", "/eqvc input 73 -> 75")
+	s("input 73"); eq(last(), "input 73", "/eqvc input 73: any value")
 	s("mic 500"); eq(last(), "input 200", "/eqvc mic works too, and the top is 200")
-	s("setup"); eq(last(), "calibrate 1", "/eqvc setup starts the microphone setup")
-	s("vol 73"); eq(last(), "volume 75", "/eqvc vol 73 -> 75")
+	s("calibrate"); eq(last(), "calibrate 1", "/eqvc calibrate starts the microphone calibration")
+	s("setup"); check(OV.Wizard and OV.Wizard.open and OV.Wizard.page == 1, "/eqvc setup restarts the whole first-time setup, from its first screen")
+	s("vol 73"); eq(last(), "volume 73", "/eqvc vol 73")
 	s("volume 5"); eq(last(), "volume 5", "/eqvc volume 5")
-	s("test"); eq(last(), "test 1", "/eqvc test")
+	s("mictest"); eq(last(), "mictest 1", "/eqvc mictest starts the microphone test")
 	s("OPEN"); eq(last(), "mode open", "upper case works")
 	Stub.Advance(4)                      -- let the clicked values lapse, so status shows what the app said
 	local n = table.getn(Stub.chat)
@@ -316,7 +317,7 @@ do
 	eq(P.Model(Stub.now).deaf, true, "Deafen")
 	-- the output volume is a slider: the number follows the hand at once, the value is sent once the hand rests
 	check(f.sVol.frame ~= nil, "the output volume is a slider"); eq(f.sVol.frame.kind, "Slider", "of the client's own kind")
-	eq(f.sVol.frame.orientation, "HORIZONTAL", "lying down"); eq(f.sVol.frame.min, 0, "from 0"); eq(f.sVol.frame.max, 100, "to 100"); eq(f.sVol.frame.step, 5, "in steps of 5")
+	eq(f.sVol.frame.orientation, "HORIZONTAL", "lying down"); eq(f.sVol.frame.min, 0, "from 0"); eq(f.sVol.frame.max, 100, "to 100"); eq(f.sVol.frame.step, 1, "continuously")
 	eq(f.sVol.frame:GetValue(), 100, "it stands at the volume")
 	local nsent = table.getn(parseControl(OV, Stub.fs["eqvoice-ctl-Me.txt"]).cmds)
 	Stub.Drag(f.sVol.frame, 80)                                       -- the player drags it
@@ -330,9 +331,10 @@ do
 	vc = parseControl(OV, Stub.fs["eqvoice-ctl-Me.txt"])
 	eq(vc.cmds[table.getn(vc.cmds)].arg, "90", "a drag sends where it ended, not every step on the way")
 	eq(P.Model(Stub.now).vol, 90, "volume dragged: 80 -> 90")
-	Stub.Click(f.bTest)
+	check(f.bTest == nil, "there is no speaker test any more")
+	Stub.Click(f.bTestMic)
 	local c = parseControl(OV, Stub.fs["eqvoice-ctl-Me.txt"])
-	eq(c.cmds[table.getn(c.cmds)].cmd, "test", "Test speakers")
+	eq(c.cmds[table.getn(c.cmds)].cmd, "mictest", "Test Microphone")
 	check(OV.Panel.error == nil, "no drawing error so far: " .. tostring(OV.Panel.error))
 	-- Escape closes it (it is in UISpecialFrames), and the indicator toggles it
 	local special = false
@@ -346,12 +348,7 @@ do
 	Stub.Advance(8)
 	check(string.find(f.status.text, "not running", 1, true), "app gone: " .. f.status.text)
 	eq(f.bOpen.enabled, false, "buttons are disabled"); eq(ind.badgeText, "NO APP", "indicator"); eq(ind.slash.shown, false, "no slash without the app")
-	-- the tooltip
-	ind.scripts.OnEnter()
-	check(Stub.tip.shown and Stub.tip.lines[1] == "EqVoice: NO APP", "hovering the indicator shows a tooltip: " .. tostring(Stub.tip.lines[1]))
-	check(string.find(Stub.tip.lines[3] or "", "Shift-drag", 1, true), "which says how to move it")
-	_G.this = ind
-	ind.scripts.OnLeave()
+	eq(ind.scripts.OnEnter, nil, "the indicator has no tooltip")
 	eq(Stub.tip.shown, false, "and leaving hides it")
 	-- dragging (with Shift) remembers the place; /eqvc reset forgets it
 	_G.this = ind

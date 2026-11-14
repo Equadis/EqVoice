@@ -37,7 +37,7 @@ JoinChannelByName GetChannelName LeaveChannelByName
 event arg1 arg2 arg3 arg4
 UnitIsPlayer UnitIsEnemy WorldFrame UnitExists GetRealmName GetFramerate
 SLASH_EQVOICE1 SLASH_EQVOICE2 SLASH_EQVOICEUI1 SLASH_EQVOICEUI2
-this GameTooltip UISpecialFrames IsShiftKeyDown GameFontHighlight GetCursorPosition IsMouseButtonDown
+this GameTooltip UISpecialFrames IsShiftKeyDown GameFontHighlight GetCursorPosition IsMouseButtonDown GetPlayerFacing UnitFacing ShowFriendNameplates HideFriendNameplates FRIENDNAMEPLATES_ON UnitExists
 EqVoice EqVoiceDB
 WriteCustomFile ReadCustomFile ExportFile ImportFile UnitXP
 """.split())
