@@ -455,6 +455,16 @@ def message(title: str, text: str, kind: str = "info") -> None:
     ctypes.windll.user32.MessageBoxW(0, text, title, MB.get(kind, 0x40))
 
 
+def notice(title: str, text: str, kind: str = "warn") -> None:
+    """A message box that does NOT hold the program up: it is shown from its own thread, and EqVoice goes on starting (a warning about the game's
+    folder is no reason to keep the voice from connecting until somebody clicks OK)."""
+    log.info("%s: %s", title, " ".join(str(text).split()))
+    if not IS_WINDOWS:
+        return
+    import threading
+    threading.Thread(target=message, args=(title, text, kind), name="notice", daemon=True).start()
+
+
 def ask_yes_no(title: str, text: str) -> bool:
     if not IS_WINDOWS:
         return False

@@ -143,11 +143,11 @@ def ensure_game(cfg: Config, admin_retry: bool = True) -> Optional[Path]:
     on = installer.enable_addon(wow)
     log.info(on.words())
     if on.still_off:
-        installer.message(TITLE, switched_off_text(on.still_off), "warn")
+        installer.notice(TITLE, switched_off_text(on.still_off), "warn")
     from .setup_app import mods_text, missing_mods
     missing = missing_mods(wow)
     if missing:
-        installer.message(TITLE, mods_text(wow, missing), "warn")
+        installer.notice(TITLE, mods_text(wow, missing), "warn")
     cfg.bridge.wow_dir = str(wow)
     return wow
 
