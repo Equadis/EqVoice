@@ -27,7 +27,7 @@ SS = 8                                                   # supersampling: drawn 
 ICONS = ROOT / "tools" / "art" / "voice-icons"
 VOICE = {"VoiceSpeaking.tga": "speaking", "VoiceOpen.tga": "open", "VoiceKnown.tga": "known", "VoiceMuted.tga": "muted", "VoiceDeafened.tga": "deafened"}
 # vol_high = speaking.png, vol_mid = open.png, vol_low = known.png (see addon Icons.lua)
-NAMES = ("MicroUp.tga", "MicroDown.tga", "MicGlyph.tga", "MicSlash.tga", "Logo.tga", "RoundFill.tga", "IconClose.tga", "IconDown.tga", "IconLeft.tga", "IconRight.tga") + tuple(sorted(VOICE))
+NAMES = ("MicroUp.tga", "MicroDown.tga", "MicGlyph.tga", "MicSlash.tga", "Logo.tga", "RoundFill.tga", "Knob.tga", "IconClose.tga", "IconDown.tga", "IconLeft.tga", "IconRight.tga") + tuple(sorted(VOICE))
 
 
 def write_tga(img: Image.Image, path: Path) -> None:
@@ -190,11 +190,21 @@ def round_fill() -> Image.Image:
     return img
 
 
+def knob() -> Image.Image:
+    """16 x 16, white: a disc that fills the square exactly (anti-aliased), the slider knob. Drawn on a square it is a perfect circle."""
+    big = Image.new("L", (16 * SS, 16 * SS), 0)
+    ImageDraw.Draw(big).ellipse([0, 0, 16 * SS - 1, 16 * SS - 1], fill=255)
+    img = Image.new("RGBA", (16, 16), (255, 255, 255, 0))
+    img.putalpha(big.resize((16, 16), Image.LANCZOS))
+    return img
+
+
 def make(out: Path = OUT) -> list:
     out.mkdir(parents=True, exist_ok=True)
     arts = {"MicroUp.tga": frame(False), "MicroDown.tga": frame(True), "MicGlyph.tga": glyph(), "MicSlash.tga": slash()}
     arts.update({tga: voice_icon(png) for tga, png in VOICE.items()})
     arts["RoundFill.tga"] = round_fill()
+    arts["Knob.tga"] = knob()
     arts["IconClose.tga"], arts["IconDown.tga"] = icon_close(), icon_down()
     arts["IconLeft.tga"], arts["IconRight.tga"] = icon_side(False), icon_side(True)
     arts["Logo.tga"] = Image.open(ICONS.parent / "eqvoice-logo.png").convert("RGBA").resize((64, 64), Image.LANCZOS)      # the panel's header: EqUpdater's icon

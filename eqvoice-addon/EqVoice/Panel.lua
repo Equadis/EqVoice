@@ -34,6 +34,7 @@ Panel.GATE_LABEL  = { off = "Off", auto = "Auto", manual = "Manual" }           
 Panel.GATE_NEXT   = { auto = "manual", manual = "off", off = "auto" }
 Panel.GATE_MIN, Panel.GATE_MAX, Panel.GATE_STEP = -80, -20, 2                         -- manual bar, dB
 Panel.SLIDER_SEND_S = 0.2    -- a slider that has rested this long sends its value
+Panel.LIVE_SEND_S   = 0.08   -- a live slider (the volumes) sends while it is being dragged, this often
 Panel.DISCONNECT_S = 8       -- seconds without the voice server before your own icon says so (a login takes a moment)
 Panel.BL_ROWS   = 10         -- blocked players shown on a page of the blocklist
 Panel.DEVICE_ROWS = 8        -- microphones (or speakers) listed in a picker, besides "system default"
@@ -95,7 +96,7 @@ local THEME = {                                              -- EqUpdater's look
 	accent = { 0.788, 0.604, 0.239 }, goldLt = { 0.894, 0.741, 0.404 },
 	text = { 0.933, 0.914, 0.863 }, muted = { 0.569, 0.639, 0.741 }, dark = { 0.020, 0.055, 0.130 }, track = { 0.016, 0.063, 0.153 },
 	amber = { 0.89, 0.62, 0.18 }, amberDim = { 0.30, 0.22, 0.09 }, green = { 0.475, 0.749, 0.451 }, greenDim = { 0.07, 0.22, 0.12 },
-	danger = { 0.55, 0.22, 0.22 }, dangerEdge = { 0.72, 0.38, 0.38 },
+	danger = { 0.55, 0.22, 0.22 }, dangerEdge = { 0.72, 0.38, 0.38 }, blockBtn = { 0.42, 0.10, 0.10 }, blockLit = { 0.66, 0.17, 0.17 },
 }
 Panel.THEME = THEME
 
@@ -734,11 +735,11 @@ local function closeButton(parent, name, onclick)
 end
 
 -- A small picture at the left of a button (one of the addon's own: a microphone, a slashed microphone, a speaker ...).
-local function buttonIcon(b, file)
+local function buttonIcon(b, file, size)
 	local t = b:CreateTexture(nil, "OVERLAY")
 	t:SetTexture(Panel.ART .. file)
-	t:SetWidth(14)
-	t:SetHeight(14)
+	t:SetWidth(size or 14)
+	t:SetHeight(size or 14)
 	t:SetPoint("LEFT", b, "LEFT", 9, 0)
 	local fs = b:GetFontString()
 	if fs then
@@ -810,11 +811,11 @@ local function newSlider(parent, key, x, y, w, minv, maxv, step, show, commit)
 		f:SetOrientation("HORIZONTAL")
 		f:SetMinMaxValues(minv, maxv)
 		f:SetValueStep(step)
-		f:SetThumbTexture(ROUND)
+		f:SetThumbTexture(Panel.ART .. "Knob.tga")                              -- a disc, on a square: a perfect circle
 		local th = f:GetThumbTexture()
 		if th then
-			th:SetWidth(10)
-			th:SetHeight(13)
+			th:SetWidth(14)
+			th:SetHeight(14)
 			th:SetVertexColor(0.95, 0.95, 1.0, 1)
 		end
 		local track = newBox(f, f, "BACKGROUND")
@@ -864,9 +865,10 @@ local function newSlider(parent, key, x, y, w, minv, maxv, step, show, commit)
 	function s.Busy() return s.dragging or s.pendingValue ~= nil end
 	function s.Flush(now)
 		if s.dragging and IsMouseButtonDown and not IsMouseButtonDown("LeftButton") then s.dragging = false end      -- let go outside the slider: OnMouseUp never came
-		if s.pendingValue ~= nil and now - (s.restAt or 0) >= Panel.SLIDER_SEND_S then
+		if s.pendingValue ~= nil and (now - (s.restAt or 0) >= Panel.SLIDER_SEND_S or (s.live and s.dragging and now - (s.sentAt or -100) >= Panel.LIVE_SEND_S)) then
 			local v = s.pendingValue
 			s.pendingValue = nil
+			s.sentAt = now
 			commit(v)
 		end
 	end
@@ -1264,6 +1266,7 @@ function Panel.Build()
 	f.bSpkDev = newDropdown(f, "EqVoicePanelSpeakerDevice", "System default", 328, 128, -386, function() Panel.OpenPicker("out") end)
 	f.sVol, f.volText = sliderRow(f, "Volume", "Output volume", -424, 0, 100, 1, 56,
 		function(v) return string.format("%d%%", v) end, function(v) Panel.SetVolume(v) end, { 24, 100, 128, 258, 394 })
+	f.sVol.live = true
 	local lab3 = newText(f, "GameFontHighlightSmall", 24, -458, 100, 14)
 	lab3:SetText("Sound")
 	f.bSpatial = {}
@@ -1464,16 +1467,20 @@ function Panel.BuildPlayer()
 	f.sVol, f.volText = sliderRow(f, "PlayerVol", "Volume", -70, 0, 200, 1, 50,
 		function(v) return string.format("%d%%", v) end, function(v) if Panel.playerWho then Panel.SetPlayerVolume(Panel.playerWho, v) end end,
 		{ 22, 56, 82, 148, 236 })
+	f.sVol.live = true                                                          -- the volume follows the hand as you drag
 	f.bReset = newButton(f, "EqVoicePlayerReset", "Reset to 100%", 110, 22, -100, function()
 		if Panel.playerWho then Panel.SetPlayerVolume(Panel.playerWho, 100) end
 	end, 22)
 	f.bMute = newButton(f, "EqVoicePlayerMute", "Mute", 124, 22, -134, function()
 		if Panel.playerWho then Panel.TogglePlayerMute(Panel.playerWho) end
 	end, 28)
-	buttonIcon(f.bMute, "MicSlash.tga")
+	buttonIcon(f.bMute, "VoiceMuted.tga")                                       -- the white muted icon, as beside names
 	f.bBlock = newButton(f, "EqVoicePlayerBlock", "Block", 124, 154, -134, function()
 		if Panel.playerWho then Panel.SetPlayerBlock(Panel.playerWho, not Panel.IsPlayerBlocked(Panel.playerWho, OV.Now())) end
 	end, 28)
+	local cross = buttonIcon(f.bBlock, "IconClose.tga", 11)                      -- a red cross on a red button
+	cross:SetVertexColor(1.0, 0.42, 0.42, 1)
+	paint(f.bBlock, THEME.blockBtn)
 	f.note = newText(f, "GameFontDisableSmall", 22, -168, 256, 12)
 	f.note:SetText("Mute: you stop hearing them. Block: they stop hearing you.")
 	if UISpecialFrames then table.insert(UISpecialFrames, "EqVoicePlayer") end
@@ -1516,7 +1523,8 @@ local function applyPlayer(f, m, now)
 	buttonText(f.bMute, muted and "Unmute" or "Mute")
 	buttonText(f.bBlock, blocked and "Unblock" or "Block")
 	setSelected(f.bMute, muted, true)
-	setSelected(f.bBlock, blocked, true)
+	paint(f.bBlock, blocked and THEME.blockLit or THEME.blockBtn)                -- the whole button is red; brighter while they are blocked
+	setColor(f.bBlock:GetFontString(), THEME.text)
 	if row then
 		f.sub:SetText(string.format("%s%s", row.dist and (string.format("%d yd away", math.floor(row.dist + 0.5))) or "out of range", row.connected and "" or "  (connecting)"))
 	else
@@ -2029,7 +2037,12 @@ function Panel.BuildLive()
 		acc = acc + (arg1 or 0)
 		if acc < Panel.LIVE_S then return end
 		acc = 0
-		Panel.Live(OV.Now())
+		local now = OV.Now()
+		for i = 1, table.getn(Panel.sliders) do                              -- a live slider being dragged sends as it moves, not when it stops
+			local s = Panel.sliders[i]
+			if s.live and s.dragging then pcall(s.Flush, now) end
+		end
+		Panel.Live(now)
 	end))
 	Panel.live = f
 end

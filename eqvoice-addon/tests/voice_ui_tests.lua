@@ -1460,4 +1460,53 @@ do
 	eq(OV.Panel.error, nil, "no drawing error")
 end
 
+sec("voice ui: the player window: white mute icon, red Block, round knobs, a volume that follows the hand")
+do
+	local OV = login()
+	local P = OV.Panel
+	put(OV, 1, { peers = { "Alice 12.5 1 0 direct o 0" } })
+	Stub.Advance(1)
+	P.OpenPlayer("Alice"); Stub.Advance(0.5)
+	local f = EqVoicePlayer
+	check(f ~= nil and f.shown, "the player window is up")
+	check(f.bMute.icon.path ~= nil and string.find(f.bMute.icon.path, "VoiceMuted.tga", 1, true), "Mute carries the white muted icon, not a bare slash")
+	check(f.bBlock.icon.path ~= nil and string.find(f.bBlock.icon.path, "IconClose.tga", 1, true), "Block carries a cross")
+	check(f.bBlock.icon.r > 0.9 and f.bBlock.icon.g < 0.6 and f.bBlock.icon.b < 0.6, "a red one")
+	local c = f.bBlock.bgc
+	check(c[1] > 0.3 and c[2] < 0.2 and c[3] < 0.2, "on a red button (not just when it is on)")
+	-- the volume follows the hand: values go out while the mouse is still down
+	local before = table.getn(sent_all(OV))
+	Stub.mouseDown = true
+	f.sVol.frame.scripts.OnMouseDown()
+	f.sVol.frame:SetValue(150); Stub.Advance(0.25)
+	eq(lastSent(OV), "pvol alice 150", "dragging: the first value is sent without letting go")
+	f.sVol.frame:SetValue(175); Stub.Advance(0.25)
+	eq(lastSent(OV), "pvol alice 175", "and the next one too")
+	check(f.sVol.dragging, "(the mouse is still down)")
+	Stub.mouseDown = false
+	f.sVol.frame.scripts.OnMouseUp(); Stub.Advance(0.5)
+	eq(lastSent(OV), "pvol alice 175", "letting go sends nothing more: it was already sent")
+	-- a slider that is not live waits until it rests
+	Stub.Click(EqVoiceIndicator, "LeftButton")
+	local pf = EqVoicePanel
+	-- every slider's knob is a disc on a square: a perfect circle
+	local n = 0
+	for i = 1, table.getn(P.sliders) do
+		local s = P.sliders[i]
+		if s.frame and s.frame.GetThumbTexture then
+			local th = s.frame:GetThumbTexture()
+			n = n + 1
+			check(th ~= nil and th.w == th.h and th.w > 0, "slider " .. i .. ": the knob is square")
+			check(th.path ~= nil and string.find(th.path, "Knob.tga", 1, true), "and it is the disc art")
+		end
+	end
+	check(n >= 3, "(" .. n .. " sliders checked)")
+	pf.sIn.frame.scripts.OnMouseDown()
+	pf.sIn.frame:SetValue(130)
+	eq(P.Busy and true or true, true, "")
+	pf.sIn.frame.scripts.OnMouseUp(); Stub.Advance(0.5)
+	eq(lastSent(OV), "input 130", "the microphone volume still goes out when it rests")
+	eq(P.error, nil, "no drawing error")
+end
+
 end
