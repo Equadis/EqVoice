@@ -246,6 +246,7 @@ class App:
         self.cal = {"phase": "idle", "left": 0, "quality": "", "text": ""}
         self.cal_facts: dict = {}                       # the numbers behind the last setup (the log and the tests read them)
         self.gate_error = ""                            # why the page gave up on the keyboard filter (the raw microphone is sent)
+        self.denoise_error = ""                         # why the page could not load the noise suppressor
         self._off_checked = -100.0                      # when the game's addon lists were last read for "EqVoice: disabled"
         self._off_for: list = []
         self.test_names =[n for n in (cfg.roster.get("test_names") or []) if isinstance(n, str) and n]   # extra names for the game
@@ -273,6 +274,8 @@ class App:
         # the tail that keeps a push-to-talk word from being clipped would swallow a quick second press of the mute key, so open mic has none
         self.ptt = KeyPoller(lambda: int(cfg.audio.ptt_vk), self._on_ptt,
                              lambda: 0 if cfg.audio.mode == "open" else int(cfg.audio.ptt_release_ms))
+        self.whisper_down = False                       # the whisper key is held: the people near you hear you as if you were twice as far away
+        self.whisper = KeyPoller(lambda: int(cfg.audio.get("whisper_vk", 0) or 0), self._on_whisper, lambda: 100)
 
     def _hook_trace(self, src) -> None:
         for part in getattr(src, "parts", None) or [src]:
@@ -390,6 +393,10 @@ class App:
         for p in self.pages:
             p.put({"t": "log", "line": line}, droppable=True)
 
+    def _on_whisper(self, down: bool) -> None:
+        self.whisper_down = down
+        trace("whisper", down=down, key=str(self.cfg.audio.get("whisper_label", "")))
+
     def _on_ptt(self, down: bool) -> None:
         self.ptt_down = down
         log.debug("ptt %s", "down" if down else "up")
@@ -427,10 +434,10 @@ class App:
             self.last_deaf = d
             self.last_muted = bool(self.cfg.audio.muted)                 # (the mute that comes or goes with a deafen is part of its blip)
             self.media({"cmd": "deafen", "value": d})
-        st = (not tx, d)
+        st = (not tx, d, bool(self.whisper_down))
         if st != self.last_state:
             self.last_state = st
-            self.media({"cmd": "self_state", "mute": st[0], "deaf": st[1]})       # what the people you are connected to are told about you
+            self.media({"cmd": "self_state", "mute": st[0], "deaf": st[1], "whisper": st[2]})       # what the people you are connected to are told about you
         m = bool(self.cfg.audio.muted)
         if m != self.last_muted:
             if self.last_muted is not None and not d:
@@ -487,7 +494,7 @@ class App:
                     "input_gain": self._input_gain(), "bitrate": self._bitrate_kbps(), "curve": self.peers.cfg.curve,
                     "keyboard": bool(a.get("keyboard_filter", True)), "auto_gain": bool(a.get("auto_gain", False)),
                     "auto_level": bool(a.get("auto_level", True)), "gate_mode": self._gate_mode(), "gate_db": self._gate_db(),
-                    "spatial": self._spatial()})
+                    "spatial": self._spatial(), "denoise": bool(a.get("denoise", True))})
         self.last_tx = self.last_deaf = self.last_muted = self.last_state = None
         self._apply_voice()
         if self.mic_test:
@@ -725,6 +732,7 @@ class App:
                 "sp": self._spatial(), "mt": int(self.mic_test),
                 "tx": int(self.tx_enabled), "talk": int(talking), "vl": self._self_voice_level(), "vol": int(round(float(a.master_volume) * 100)), "ing": int(round(self._input_gain() * 100)),
                 "near": self.peers.nearby_count(), "conn": self.peers.counts()["CONNECTED"], "key": a.ptt_label or "?",
+                "wk": (a.get("whisper_label") or "none"), "wh": int(self.whisper_down), "dn": int(bool(a.get("denoise", True))),
                 "game": int(view.status == "live"), "hub": int(self.signalling.state == "registered"),
                 "mic": self.mic.get("state") or "starting", "app": __version__, "boost": self._boost(), "gate": self._gate_label(),
                 "gdb": int(round(self._gate_db())), "cues": int(bool(a.get("cues", True))),
@@ -892,6 +900,10 @@ class App:
                 msg = {"cmd": "boost", "value": arg}
             elif cmd == "key" and arg:
                 msg = {"cmd": "ptt_key", "wow": arg}
+            elif cmd == "wkey" and arg:                                          # the whisper key ("none" takes it away)
+                msg = {"cmd": "whisper_key", "wow": arg}
+            elif cmd == "denoise" and arg in ("0", "1"):
+                msg = {"cmd": "denoise", "value": arg == "1"}
             elif cmd in ("micdev", "spkdev"):
                 msg = self._device_command("inputs" if cmd == "micdev" else "outputs", arg)
             elif cmd == "watch":
@@ -1274,7 +1286,7 @@ class App:
 
     async def _static(self, request: web.Request) -> web.StreamResponse:
         name = request.match_info["name"]
-        if name not in ("app.js", "style.css", "voicemodel.js", "gate-worklet.js") and name not in VOICE_PICTURES:
+        if name not in ("app.js", "style.css", "voicemodel.js", "gate-worklet.js", "rnnoise-worklet.js") and name not in VOICE_PICTURES:
             raise web.HTTPNotFound()
         return web.FileResponse(UI_DIR / name, headers={"Cache-Control": "no-store"})
 
@@ -1422,7 +1434,7 @@ class App:
                 trace("audio_devices", microphones=[x or "?" for x in sig[0]], speakers=[x or "?" for x in sig[1]],
                       chosen_microphone=self.cfg.audio.input or "system default", chosen_speakers=self.cfg.audio.output or "system default")
         elif t == "mic":
-            self.mic = {k: m.get(k) for k in ("state", "label", "level", "tx", "pcs", "gate", "gopen", "gfloor", "glevel", "gthr", "ldb", "hz", "vl")}
+            self.mic = {k: m.get(k) for k in ("state", "label", "level", "tx", "pcs", "gate", "dn", "gopen", "gfloor", "glevel", "gthr", "ldb", "hz", "vl")}
             sig = (self.mic.get("state"), self.mic.get("label"))
             if sig != self._mic_sig:
                 self._mic_sig = sig
@@ -1440,6 +1452,11 @@ class App:
                 self.gate_error = str(m.get("error") or "unknown")[:160]
                 log.warning("the keyboard filter was switched off in the page: %s", self.gate_error)
                 trace("keyboard_filter_failed", error=self.gate_error)
+        elif t == "denoise":
+            if not m.get("ok"):
+                self.denoise_error = str(m.get("error") or "unknown")[:160]
+                log.warning("noise suppression is off in the page (the microphone is sent without it): %s", self.denoise_error)
+                trace("denoise_failed", error=self.denoise_error)
         elif t == "fx":
             if not m.get("ok"):
                 self.fx_error = str(m.get("error") or "unknown")[:160]
@@ -1545,6 +1562,26 @@ class App:
                 self.key_note = ("", 0.0)
             elif "wow" in m:
                 self.key_note = ("%s cannot be used as the key" % str(m["wow"])[:20], self.clock())
+        elif cmd == "whisper_key":
+            name = str(m.get("wow", ""))
+            if name.lower() == "none":
+                a.whisper_vk, a.whisper_label = 0, ""
+                trace("whisper_key", ok=True, label="none")
+            else:
+                k = vk_from_wow(name)
+                if k and k[0] != int(a.ptt_vk or 0):
+                    a.whisper_vk, a.whisper_label = k
+                    log.info("whisper key set to %s (virtual key 0x%02X)", k[1], k[0])
+                    self.key_note = ("", 0.0)
+                elif k:
+                    self.key_note = ("%s is the push-to-talk key already" % k[1], self.clock())
+                else:
+                    self.key_note = ("%s cannot be used as the key" % name[:20], self.clock())
+                trace("whisper_key", ok=bool(k), label=k[1] if k else "")
+        elif cmd == "denoise":
+            a.denoise = bool(m.get("value"))
+            trace("denoise", on=a.denoise)
+            self.media({"cmd": "denoise", "value": a.denoise})
         elif cmd == "ptt_virtual":
             self.ptt.virtual = bool(m.get("down"))
             self.ptt.sample()
@@ -1654,6 +1691,7 @@ class App:
             asyncio.create_task(self._run_ticker(), name="ticker"),
             asyncio.create_task(self._run_meter(), name="meter"),
             asyncio.create_task(self.ptt.run(), name="ptt"),
+            asyncio.create_task(self.whisper.run(), name="whisper"),
         ]
         url = "http://127.0.0.1:%d/?token=%s" % (self.port, self.token)
         self.url = url

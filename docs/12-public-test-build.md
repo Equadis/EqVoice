@@ -83,6 +83,19 @@ Opaque charcoal window, flat compact controls, one purple accent, four groups: a
 
 Not seen in the real game yet: the layout was checked in the test stub (no control overlaps or leaves the window), not on screen.
 
+## 0.5.0 (2026-11): whisper, noise suppression, a natural volume curve, direction that learns
+
+Borrowed from Simple Voice Chat's proximity voice (not its groups): **whispering** (hold a key you choose, Whisper in the panel; you are heard as if twice as far
+away, so the range halves), **RNNoise noise suppression** (a neural network in an audio worklet, `ui/rnnoise-worklet.js`, in front of the keyboard filter;
+on by default, "Noise Suppression" in the panel; if it cannot load the microphone is sent without it and the app logs why), and a **natural volume curve**
+(100% to 5 yd, 50% at 20, 15% at 40, a shout 10% at 70; see doc 11). OpenAL's 3D sound is what the engine's HRTF panner already does.
+
+**Direction now learns the axes.** `UnitPosition` answers in a different order on different clients (SuperWoW north, west; ClassicAPI y, x), so the addon learns the
+axes from 20 yards of running forward and keeps them (`EqVoiceDB.dirCal`); `/ev dir reset` forgets them. The direction follows the way the character faces, not the camera.
+
+Also: the nameplate name EqVoice draws for plates ECO hides uses the player's own nameplate font; the overhead icon is 16 px; the setup box lost its Skip button
+and the Sound row reads Headphones, Speakers, Mono; the Nearby list scrolls with the mouse wheel and only glows for the selected player. Not seen in the real game yet.
+
 ## 0.4.1 (2026-11): what changed and how it works
 
 **Where each part lives.** Settings you click are in the addon (`Panel.lua`, `Wizard.lua`); the app (`eqvoice-client`) applies them and the hidden engine page

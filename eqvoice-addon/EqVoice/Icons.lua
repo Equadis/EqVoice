@@ -49,7 +49,7 @@ OV.Icons = Icons
 
 Icons.ART    = "Interface\\AddOns\\EqVoice\\"
 Icons.SIZE   = 16
-Icons.PLATE_SIZE = 32          -- over a nameplate: big enough to read at a glance from across the screen
+Icons.PLATE_SIZE = 16          -- over a nameplate: half the size it was (32); a glance is enough
 Icons.PLATE_GAP  = 2           -- pixels between the icon and the top of the name
 Icons.GAP    = 3               -- pixels between the end of a name and its icon
 Icons.EVERY  = 0.25            -- seconds between looks at the screen
@@ -380,16 +380,28 @@ local function setQuiet(p, on, now)
 end
 
 -- A name of our own on a plate whose own name another addon (ECO) has taken away without drawing one.
-local function setLabel(p, text, kind)
+local function setLabel(p, text, kind, like)
 	if not text or text == "" then
 		if p.label then p.label:Hide(); p.labelOn = false end
 		return
 	end
 	if not p.label then
 		p.label = p.frame:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
-		local ui = OV.Panel and OV.Panel.UI
-		if ui and ui.styleText then ui.styleText(p.label, 12, ui.FONT_SEMI) end
 		p.label:SetPoint("CENTER", p.frame, "CENTER", 0, 0)
+	end
+	-- the player's own nameplate font, never EqVoice's: the one ECO gave this plate, or else the client's own
+	for k = 1, 2 do
+		local src = (k == 1) and like or p.name
+		if src and src.GetFont and p.label.SetFont then
+			local ok, font, size, flags = pcall(src.GetFont, src)
+			if ok and font and size then
+				if p.labelFont ~= font or p.labelSize ~= size then
+					p.label:SetFont(font, size, flags)
+					p.labelFont, p.labelSize = font, size
+				end
+				break
+			end
+		end
 	end
 	if kind == "npc" then p.label:SetTextColor(0.6, 1.0, 0.4) else p.label:SetTextColor(0.5, 0.66, 1.0) end
 	p.label:SetText(text)
@@ -410,7 +422,7 @@ local function quietPass(now)
 			if ep then
 				setQuiet(p, false, now)
 				local undrawn = kind and ep.overlay and not visible(ep.overlay)
-				setLabel(p, undrawn and p.name:GetText() or nil, kind)
+				setLabel(p, undrawn and p.name:GetText() or nil, kind, ep.name)
 			else
 				setQuiet(p, kind ~= nil, now)
 				setLabel(p, nil)

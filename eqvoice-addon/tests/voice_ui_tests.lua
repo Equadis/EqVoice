@@ -729,7 +729,7 @@ do
 	Stub.Advance(0.5)
 	check(I.plates[1] ~= nil and I.plates[1].frame == pa, "the plates were found"); eq(table.getn(I.plates), 2, "both of them")
 	eq(I.plates[1].icon.state, "s", "Alice's plate has an icon"); eq(I.plates[1].icon.tex.pt[2], pa.nameText, "on the plate, anchored to the name"); eq(I.plates[1].icon.tex.pt[1], "BOTTOM", "its bottom edge ..."); eq(I.plates[1].icon.tex.pt[3], "TOP", "... on the top of the name: above it"); eq(I.plates[1].icon.tex.pt[4], 0, "centred over it")
-	eq(I.plates[1].icon.tex.w, 32, "and big: 32 pixels, twice the size of the icons beside names on the unit frames")
+	eq(I.plates[1].icon.tex.w, 16, "and 16 pixels: the same size as the icons beside names on the unit frames")
 	eq(I.plates[2].icon, nil, "Wolf's plate has none (and none was even made)")
 	pa.shown = false
 	Stub.Advance(0.5)
@@ -1346,6 +1346,95 @@ do
 	put(OV, 3, { peers = { "Solo 5.0 1 0 direct" } }); Stub.Advance(1)
 	eq(f.rowName[1].text, "Solo", "one player"); check(not f.nearThumb.shown, "no scroll bar for a short list")
 	put(OV, 4, { peers = {} }); Stub.Advance(1)
+end
+
+sec("voice ui: the direction learns which way the position axes lie")
+do
+	local OV = login()
+	local D = OV.Direction
+	local pi = math.pi
+	local function deg(x) return math.floor(x + 0.5) end
+	-- ClassicAPI's axes: (west, north). A target north of you, east of you, west of you, with you facing north:
+	local s, c = -1, pi / 2
+	eq(deg(D.Azimuth(0, 0, 0, 0, 10, nil, s, c)), 0, "west-first axes: north is ahead")
+	eq(deg(D.Azimuth(0, 0, 0, -10, 0, nil, s, c)), 90, "east is on your right")
+	eq(deg(D.Azimuth(0, 0, 0, 10, 0, nil, s, c)), -90, "west is on your left")
+	eq(deg(D.Azimuth(0, 0, pi / 2, 10, 0, nil, s, c)), 0, "facing west, west is ahead")
+	-- run straight ahead in a few directions and let it learn, for each of the shapes a client can have
+	local shapes = {
+		{ name = "north-west", f = function(n, w) return n, w end, s = 1, c = 0 },
+		{ name = "west-north", f = function(n, w) return w, n end, s = -1, c = pi / 2 },
+		{ name = "south-east", f = function(n, w) return -n, -w end, s = 1, c = pi },
+		{ name = "east-south", f = function(n, w) return -w, -n end, s = -1, c = -pi / 2 },
+	}
+	for _, sh in ipairs(shapes) do
+		OV.db.dirCal = nil
+		D.learn = { sx = { 0, 0 }, sy = { 0, 0 }, yards = 0 }
+		local n, w = 0, 0
+		for leg = 1, 4 do
+			local facing = leg * 1.3                                            -- radians, counter-clockwise from north
+			for step = 1, 12 do
+				n, w = n + 0.7 * math.cos(facing), w + 0.7 * math.sin(facing)
+				local a, b = sh.f(n, w)
+				D.Learn(a, b, facing)
+			end
+		end
+		check(OV.db.dirCal ~= nil, sh.name .. ": settled after running")
+		local ls, lc = D.Axes()
+		eq(ls, sh.s, sh.name .. ": mirrored or not")
+		local dc = math.abs(math.atan2(math.sin(lc - sh.c), math.cos(lc - sh.c)))
+		check(dc < 0.05, sh.name .. ": the turn is right (off by " .. dc .. ")")
+		-- and a player north-east of you, facing north: 45 degrees to the right, whatever the axes
+		local a0, b0 = sh.f(0, 0)
+		local ta, tb = sh.f(10, -10)
+		eq(deg(D.Azimuth(a0, b0, 0, ta, tb, nil, ls, lc)), 45, sh.name .. ": north-east is 45 degrees to the right")
+	end
+	-- standing still or sidestepping teaches nothing
+	OV.db.dirCal = nil; D.learn = { sx = { 0, 0 }, sy = { 0, 0 }, yards = 0 }
+	for i = 1, 300 do D.Learn(5, 5, 1) end
+	eq(OV.db.dirCal, nil, "standing still settles nothing")
+	-- a first guess from the shape of the answer: four values is ClassicAPI's
+	local was = _G.UnitPosition
+	_G.UnitPosition = function() return 1, 2, 3, 4 end
+	local gs = D.Axes(); eq(gs, -1, "four values: ClassicAPI's order is the first guess")
+	_G.UnitPosition = function() return 1, 2, 3 end
+	gs = D.Axes(); eq(gs, 1, "three values: SuperWoW's")
+	_G.UnitPosition = was
+end
+
+sec("voice ui: the whisper key and noise suppression")
+do
+	local OV = login()
+	local P = OV.Panel
+	put(OV, 1, { fields = "level=ok mode=open mute=0 deaf=0 tx=1 talk=0 vol=100 near=0 conn=0 key=F9 mic=ok wk=none wh=0 dn=1" })
+	Stub.Click(EqVoiceIndicator, "LeftButton")
+	local f = EqVoicePanel
+	Stub.Advance(0.5)
+	eq(f.bWhisper.text, "Whisper: none", "no whisper key to begin with"); eq(f.bWhisper.highlight, false, "")
+	eq(f.bDenoise.text, "Noise Suppression: On", "noise suppression is on"); eq(f.bDenoise.highlight, true, "and lit")
+	check(f.bTestMic.pt[5] == f.bDenoise.pt[5] and f.bDenoise.pt[5] == f.bWhisper.pt[5], "the three share a row")
+	check(f.bTestMic.pt[4] < f.bDenoise.pt[4] and f.bDenoise.pt[4] < f.bWhisper.pt[4], "Test Microphone, Noise Suppression, Whisper from the left")
+	Stub.Click(f.bDenoise); eq(lastSent(OV), "denoise 0", "the switch turns it off")
+	Stub.Advance(0.25); eq(f.bDenoise.text, "Noise Suppression: Off", "and says so at once")
+	put(OV, 2, { fields = "level=ok mode=open mute=0 deaf=0 tx=1 talk=0 vol=100 near=0 conn=0 key=F9 mic=ok wk=none wh=0 dn=0" })
+	Stub.Click(f.bDenoise); eq(lastSent(OV), "denoise 1", "and back on")
+	-- choosing the whisper key
+	_G.arg1 = nil
+	Stub.Click(f.bWhisper); Stub.Advance(0.25)
+	local c = EqVoiceKeyCapture
+	check(c ~= nil and c.shown, "the key listener is up"); check(string.find(f.bWhisper.text, "Press a key", 1, true), "the whisper button asks for a key")
+	check(not string.find(f.bKey.text, "Press a key", 1, true), "and the push-to-talk button does not")
+	_G.arg1 = "LSHIFT"; c.scripts.OnKeyDown()
+	eq(lastSent(OV), "wkey LSHIFT", "the whisper key goes to the app, not the push-to-talk one")
+	put(OV, 3, { fields = "level=ok mode=open mute=0 deaf=0 tx=1 talk=0 vol=100 near=0 conn=0 key=F9 mic=ok wk=Left_Shift wh=0 dn=1" }); Stub.Advance(0.5)
+	eq(f.bWhisper.text, "Whisper: Left Shift", "the app's name for the key is shown")
+	put(OV, 4, { fields = "level=ok mode=open mute=0 deaf=0 tx=1 talk=0 vol=100 near=0 conn=0 key=F9 mic=ok wk=Left_Shift wh=1 dn=1" }); Stub.Advance(0.5)
+	eq(f.bWhisper.highlight, true, "the button is lit while the key is held")
+	-- Backspace takes it away
+	Stub.Click(f.bWhisper); _G.arg1 = "BACKSPACE"; c.scripts.OnKeyDown()
+	eq(lastSent(OV), "wkey none", "Backspace removes the whisper key")
+	Stub.Click(f.bWhisper); Stub.Click(f.bWhisper); eq(P.capturing, false, "a second click cancels")
+	eq(P.error, nil, "no drawing error")
 end
 
 end

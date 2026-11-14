@@ -39,6 +39,9 @@ DEFAULTS = {
         "ptt_code": "F9",         # physical key (KeyboardEvent.code); resolved through your keyboard layout
         "ptt_vk": 0,              # Windows virtual key; derived from ptt_code at start, or a mouse button
         "ptt_label": "F9",
+        "whisper_vk": 0,          # the key held to whisper (speak at half range, like Simple Voice Chat's whisper); 0 = none
+        "whisper_label": "",
+        "denoise": True,          # RNNoise noise suppression on the microphone (a neural network that takes breathing, fans and keyboards out of the voice)
         "ptt_release_ms": 200,
         "processing": True,       # echo cancellation, noise suppression, auto gain (turn off to debug)
         "muted": False,
@@ -49,7 +52,7 @@ DEFAULTS = {
         "max_bitrate_kbps": 24,   # cap on the voice you send and ask for, 8..64 (0 = the browser's own default, about 32)
         "keyboard_filter": True,  # keep keyboard clacks, mouse clicks and other short noises off your microphone (a gate with a short look-ahead)
         "auto_gain": False,       # the browser's automatic microphone level: off, so that talking louder is heard as louder (and reaches further)
-        "boost": "normal",        # how much louder a voice is right next to you, easing away smoothly to nothing at 10 yd: off | low (x1.4) | normal (x2) | high (x3)
+        "boost": "off",        # how much louder a voice is right next to you, easing away smoothly to nothing at 10 yd: off | low (x1.4) | normal (x2) | high (x3)
         "auto_level": True,       # lift quiet microphones and ease hot ones towards the same level on your side, so every voice is loud and clear
         "gate_mode": "auto",      # the noise gate (it is the keyboard filter, with a bar): auto follows the room's noise, manual uses gate_db
         "gate_db": -48.0,         # manual mode: the level (dB, in the speech band) a voice must reach to open the gate; -80 (very sensitive) .. -20
@@ -66,6 +69,8 @@ DEFAULTS = {
         "peak_radius": 85.0,      # yards: where the volume curve ends: silent from here. Calls are kept up to here
         "full_radius": 30.0,      # yards: a voice is at its full volume up to here (30 yd is still 100%), then falls away to nothing at peak_radius
         "loud_full_radius": 45.0, # yards: ... and a raised voice (shouting) stays at full volume up to here
+        "curve_shape": "natural", # natural: 100% to 5 yd, 50% at 20, 15% at 40, 4% at 60, a raised voice heard as 0.65 times as far (yell_scale); plain: the older flat-then-fall curve
+        "yell_scale": 0.65,
         "curve_power": 1.6,       # how the volume falls between full_radius and peak_radius: (1 - t) ** power, so about 12% of full at 70 yd
         "boost_radius": 0.0,      # yards of full boost held before it starts to ease (0: it eases away from the first inch) ...
         "boost_fade_radius": 10.0,# ... and it has eased away to nothing by here (a smooth curve, no step)
@@ -115,7 +120,7 @@ DEFAULTS = {
         "welcomed": False,        # the one-time "here is what to do in the game" message of EqVoice.exe has been shown
     },
     "log_level": "INFO",
-    "config_version": 5,
+    "config_version": 6,
 }
 
 # Version 2 made open mic the default and F9 the push-to-talk key. A saved file from before that still says "ptt" with the
@@ -158,6 +163,10 @@ def _migrate(data: dict, saved_version: int) -> None:
         a = data.get("audio")
         if isinstance(a, dict):
             a.pop("voice_fx", None)
+    if saved_version < 6:                              # the natural curve: voices are 100% at 5 yd, so the default doubling right next to you goes
+        a = data.get("audio")
+        if isinstance(a, dict) and a.get("boost") == "normal":
+            a["boost"] = "off"
     data["config_version"] = DEFAULTS["config_version"]
 
 

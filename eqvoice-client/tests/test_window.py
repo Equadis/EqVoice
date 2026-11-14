@@ -180,30 +180,30 @@ def test_changing_the_key_in_the_window_still_sends_what_was_pressed():
     assert out["sent"] == [{"t": "ui", "cmd": "ptt_key", "code": "F10", "key": "F10"}]
 
 
-def test_the_page_follows_distance_readings_smoothly_so_the_boost_never_steps():
+def test_the_page_follows_distance_readings_smoothly_so_the_volume_never_steps():
     """Readings arrive a couple of times a second, and a player walking fast moves several yards between them. The volume must still
     rise continuously (the old page stepped to each new reading): sample the gain every 20 ms through a fast walk up to someone."""
     out = run("""
       setTimeout(() => {
         const media = window.__ov.media, VM = window.VoiceModel;
-        const p = { sid: 's', ep: 1, audio: { volume: 0, muted: false }, fx: null, loud: new VM.Loudness(), loudT: performance.now(), dist: 12, distS: 12,
-                    gate: true, slew: 0.1, step: 1, target: 1, gain: 1, userVol: 1, mute: false, refDb: null, levDb: 0, value: 1, send: true };
+        const p = { sid: 's', ep: 1, audio: { volume: 0, muted: false }, fx: null, loud: new VM.Loudness(), loudT: performance.now(), dist: 40, distS: 40,
+                    gate: true, slew: 0.1, step: 1, target: 0.15, gain: 0.15, userVol: 1, mute: false, refDb: null, levDb: 0, value: 1, send: true };
         media.peers.set('s', p); media.master = 1; media.autoLevel = false;
         const samples = [];
         const sampler = setInterval(() => samples.push(p.gain), 20);
-        const readings = [12, 9, 6, 3, 0.5];                               // 6 yd a second
+        const readings = [40, 30, 20, 10, 3];                              // 20 yd a second
         readings.forEach((d, i) => setTimeout(() => media.setGain({ sid: 's', ep: 1, dist: d, gate: true, value: 1, ms: 300 }), i * 500));
         setTimeout(() => {
           clearInterval(sampler);
           let worst = 0, falls = 0;
           for (let i = 1; i < samples.length; i++) { worst = Math.max(worst, Math.abs(samples[i] - samples[i - 1])); if (samples[i] < samples[i - 1] - 1e-9) falls++; }
-          done({ n: samples.length, worst, falls, first: samples[0], last: samples[samples.length - 1], want: VM.curveGain(0.5, media.curve, 0),
-                 shouldHaveStepped: VM.curveGain(3, media.curve, 0) - VM.curveGain(6, media.curve, 0) });
+          done({ n: samples.length, worst, falls, first: samples[0], last: samples[samples.length - 1], want: VM.curveGain(3, media.curve, 0),
+                 shouldHaveStepped: VM.curveGain(10, media.curve, 0) - VM.curveGain(20, media.curve, 0) });
         }, 3200);
       }, 50);
     """)
     assert out["n"] > 100, "the page was running its 20 ms ticks"
     assert out["falls"] == 0, "walking up to someone never makes them quieter on the way"
-    assert out["shouldHaveStepped"] > 0.4 and out["worst"] < 0.04, \
+    assert out["shouldHaveStepped"] > 0.3 and out["worst"] < 0.04, \
         "a reading that moves the target by %.2f is followed in small steps (the biggest 20 ms change was %.3f)" % (out["shouldHaveStepped"], out["worst"])
-    assert abs(out["last"] - out["want"]) < 0.03 and out["last"] > 1.9, "and it arrives: %r of %r" % (out["last"], out["want"])
+    assert abs(out["last"] - out["want"]) < 0.03 and out["last"] > 0.95, "and it arrives: %r of %r" % (out["last"], out["want"])

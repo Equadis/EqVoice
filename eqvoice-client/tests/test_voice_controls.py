@@ -12,7 +12,7 @@ from test_ingame_panel import read_status, send
 def test_the_new_settings_have_defaults_and_old_files_get_them(tmp_path):
     cfg = Config.load(tmp_path / "fresh")
     a = cfg.audio
-    assert a.boost == "normal" and a.auto_level is True and a.cues is True
+    assert a.boost == "off" and a.auto_level is True and a.cues is True
     assert a.gate_mode == "auto" and a.gate_db == -48.0 and a.mute_list == []
     p = cfg.proximity
     assert (p.full_radius, p.loud_full_radius, p.peak_radius, p.curve_power, p.boost_radius, p.boost_fade_radius) == (30.0, 45.0, 85.0, 1.6, 0.0, 10.0)
@@ -20,7 +20,7 @@ def test_the_new_settings_have_defaults_and_old_files_get_them(tmp_path):
     home.mkdir()
     (home / "config.json").write_text(json.dumps({"config_version": 3, "audio": {"mode": "open", "muted": True}}))
     old = Config.load(home)
-    assert old.audio.boost == "normal" and old.audio.gate_mode == "auto" and old.audio.muted is True and old.audio.mute_list == []
+    assert old.audio.boost == "off" and old.audio.gate_mode == "auto" and old.audio.muted is True and old.audio.mute_list == []
 
 
 def test_with_an_open_microphone_the_key_mutes_and_unmutes_and_says_so(tmp_path):
@@ -44,14 +44,14 @@ def test_with_an_open_microphone_the_key_mutes_and_unmutes_and_says_so(tmp_path)
             await until(lambda: pa.named("tx")[-1]["enabled"] is True, 5, "and the microphone opens")
             a._on_ptt(False)
             # the page is told how you look to the others: microphone closed, not deafened
-            await until(lambda: pa.named("self_state") and pa.named("self_state")[-1] == {"cmd": "self_state", "mute": False, "deaf": False}, 5, "self state")
+            await until(lambda: pa.named("self_state") and pa.named("self_state")[-1] == {"cmd": "self_state", "mute": False, "deaf": False, "whisper": False}, 5, "self state")
             a._on_ptt(True)
             await until(lambda: pa.named("self_state")[-1]["mute"] is True and pa.named("self_state")[-1]["deaf"] is False, 5, "muted")
             a._on_ptt(False)
             # deafened: the key only mutes (it does not undeafen), and no other blip plays while deafened
             a._on_ui({"cmd": "deafen", "value": True})
             await until(lambda: cues()[-1] == "deafen", 5, "a blip for deafening")
-            await until(lambda: pa.named("self_state")[-1] == {"cmd": "self_state", "mute": True, "deaf": True}, 5, "deafened and so not transmitting")
+            await until(lambda: pa.named("self_state")[-1] == {"cmd": "self_state", "mute": True, "deaf": True, "whisper": False}, 5, "deafened and so not transmitting")
             n = len(cues())
             a._on_ptt(True)
             a._on_ptt(False)
@@ -115,9 +115,9 @@ def test_boost_and_the_noise_gate_reach_the_page_the_game_and_the_config(tmp_pat
             game = sc.games["Alice"]
             await until(lambda: status_path(game.in_path).exists() and a.ui_control is not None and pa.named("config"), 10, "ready")
             cfg = pa.named("config")[-1]
-            assert cfg["curve"]["boost"] == 2.0 and cfg["auto_level"] is True and cfg["gate_mode"] == "auto" and cfg["gate_db"] == -48.0
+            assert cfg["curve"]["boost"] == 1.0 and cfg["auto_level"] is True and cfg["gate_mode"] == "auto" and cfg["gate_db"] == -48.0
             st = read_status(game).fields
-            assert (st["boost"], st["gate"], st["gdb"]) == ("normal", "off", "-48"), "the test scene runs with the keyboard filter off"
+            assert (st["boost"], st["gate"], st["gdb"]) == ("off", "off", "-48"), "the test scene runs with the keyboard filter off"
 
             send(game, ("boost", "high"))
             await until(lambda: pa.named("curve") and pa.named("curve")[-1]["value"]["boost"] == 3.0, 5, "the page is given the new curve")

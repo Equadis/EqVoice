@@ -196,7 +196,7 @@ def test_commands_from_an_old_session_are_not_replayed(tmp_path):
 def test_open_mic_is_the_default_and_f9_the_key(tmp_path):
     cfg = Config.load(tmp_path / "fresh")
     assert cfg.audio.mode == "open" and cfg.audio.ptt_code == "F9" and cfg.audio.ptt_label == "F9"
-    assert cfg.audio.master_volume == 1.0 and cfg.config_version == 5
+    assert cfg.audio.master_volume == 1.0 and cfg.config_version == 6
 
 
 def test_an_old_config_that_never_chose_push_to_talk_moves_to_the_new_defaults(tmp_path):
@@ -207,7 +207,7 @@ def test_an_old_config_that_never_chose_push_to_talk_moves_to_the_new_defaults(t
     assert cfg.audio.mode == "open" and cfg.audio.ptt_code == "F9" and cfg.audio.ptt_label == "F9"
     assert cfg.audio.muted is True, "everything else is kept"
     cfg.save()
-    assert json.loads((home / "config.json").read_text())["config_version"] == 5
+    assert json.loads((home / "config.json").read_text())["config_version"] == 6
 
 
 def test_a_player_who_chose_their_own_key_keeps_push_to_talk(tmp_path):
@@ -245,7 +245,7 @@ def test_an_old_config_gets_the_wider_range_unless_the_player_chose_their_own(tm
                                                   "roster": {"report": 60.0}}))
     cfg = Config.load(home)
     assert (cfg.proximity.full_radius, cfg.proximity.report_radius, cfg.roster.report) == (30.0, 95.0, 100.0), "the saved old defaults move on"
-    assert cfg.proximity.peak_radius == 85.0 and cfg.audio.boost == "normal" and cfg.config_version == 5
+    assert cfg.proximity.peak_radius == 85.0 and cfg.audio.boost == "off" and cfg.config_version == 6
     chosen = tmp_path / "chosen"
     chosen.mkdir()
     (chosen / "config.json").write_text(json.dumps({"config_version": 2, "proximity": {"full_radius": 12.0, "report_radius": 70.0}, "roster": {"report": 80.0}}))

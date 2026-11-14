@@ -163,7 +163,7 @@ def test_config_defaults_merge_save_and_redact(tmp_path):
     cfg = Config.load(tmp_path)
     assert cfg.bridge.corner == "TOPLEFT" and cfg.ui.port == 17420 and cfg.audio.mode == "open", "open mic is the default"
     assert cfg.proximity.say_radius == 41.0 and cfg.proximity.full_radius == 30.0 and cfg.roster.max_checks == "auto"
-    assert cfg.proximity.peak_radius == 85.0 and cfg.audio.boost == "normal" and cfg.proximity.report_radius == 95.0 and cfg.roster.report == 100.0
+    assert cfg.proximity.peak_radius == 85.0 and cfg.audio.boost == "off" and cfg.proximity.report_radius == 95.0 and cfg.roster.report == 100.0
     assert cfg.proximity.loud_full_radius == 45.0 and cfg.proximity.curve_power == 1.6 and cfg.audio.auto_level is True
     cfg.audio.mode = "ptt"
     cfg.join_code = "hunter2"

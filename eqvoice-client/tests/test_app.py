@@ -84,18 +84,20 @@ def test_unrelated_characters_register_meet_talk_and_part(tmp_path):
             await until(lambda: pa.last_gain()["send"] is True, 3, "the page is told to play and transmit")
             prox = a.cfg.proximity
             curve = a.peers.cfg.curve
-            assert pa.last_gain()["value"] == pytest.approx(voice_gain(30, curve), abs=0.02) and pa.last_gain()["value"] == pytest.approx(1.0, abs=0.02), "30 yd is full volume"
+            assert pa.last_gain()["value"] == pytest.approx(voice_gain(30, curve), abs=0.02) and pa.last_gain()["value"] == pytest.approx(0.28, abs=0.02), "30 yd is 28% on the natural curve"
 
             # 4. distance controls volume, in both directions
             sc.walk_to("Alice", "Bobby", 2)
             want2 = voice_gain(2, curve)
             await until(lambda: abs(pa.last_gain()["value"] - want2) < 0.02 and abs(pb.last_gain()["value"] - want2) < 0.02, 6,
-                        "boosted right next to each other (%.2f times a voice's own loudness at 2 yd)" % want2)
-            assert 1.7 < want2 < 2.0
+                        "full volume right next to each other (%.2f times a voice's own loudness at 2 yd)" % want2)
+            assert want2 == 1.0
             sc.walk_to("Alice", "Bobby", 6)
             want6 = voice_gain(6, curve)
-            await until(lambda: abs(pa.last_gain()["value"] - want6) < 0.02, 6, "and less so at 6 yd (%.2f): it scales with the distance" % want6)
-            assert 1.0 < want6 < want2
+            await until(lambda: abs(pa.last_gain()["value"] - want6) < 0.02, 6, "and still full at 6 yd (%.2f)" % want6)
+            assert 0.95 < want6 <= want2
+            sc.walk_to("Alice", "Bobby", 20)
+            await until(lambda: abs(pa.last_gain()["value"] - 0.5) < 0.03, 6, "half at 20 yd")
             sc.walk_to("Alice", "Bobby", 65)
             want65 = voice_gain(65, curve)
             await until(lambda: abs(pa.last_gain()["value"] - want65) < 0.05, 6, "quiet at 65 yards (%.2f)" % want65)
@@ -388,9 +390,10 @@ def test_metrics_and_state_describe_the_pipeline(tmp_path):
             assert st["gate"] == {"open": True, "reason": ""} and st["identity"]["character"] == "Alice"
             peer = st["peers"][0]
             assert peer["name"] == "Bobby" and peer["dist"] == 15.0 and peer["linked"] and peer["state"] == "CONNECTED"
-            assert st["proximity"] == {"say_radius": 41.0, "full_radius": 30.0, "peak_radius": 85.0, "near_gain": 2.0,
-                                       "curve": {"boost": 2.0, "boost_r": 0.0, "boost_fade": 10.0, "full": 30.0, "full_loud": 45.0, "end": 85.0, "power": 1.6}}
-            assert st["voice"]["boost"] == "normal" and st["voice"]["auto_level"] is True
+            assert st["proximity"] == {"say_radius": 41.0, "full_radius": 30.0, "peak_radius": 85.0, "near_gain": 1.0,
+                                       "curve": {"boost": 1.0, "boost_r": 0.0, "boost_fade": 10.0, "full": 30.0, "full_loud": 45.0, "end": 85.0, "power": 1.6,
+                                                 "points": [[0.0, 0.0], [5.0, 0.0], [20.0, -6.0206], [40.0, -16.4782], [60.0, -28.0], [85.0, -60.0]], "yell": 0.65}}
+            assert st["voice"]["boost"] == "off" and st["voice"]["auto_level"] is True
     run(go(), 60)
 
 

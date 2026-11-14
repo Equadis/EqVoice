@@ -440,7 +440,11 @@ function OV.Slash(msg)
 		OV.PublishBridge(now, true)
 		status()
 	elseif cmd == "dir" then
-		if w[2] == "flip" then
+		if w[2] == "reset" then
+			OV.db.dirCal = nil
+			OV.Direction.learn = { sx = { 0, 0 }, sy = { 0, 0 }, yards = 0 }
+			OV.Print("voice direction: forgot the learned axes; run 20 yards straight ahead to learn them again")
+		elseif w[2] == "flip" then
 			OV.db.dirFlip = not OV.db.dirFlip and true or nil
 			OV.Print("voice direction: left and right " .. (OV.db.dirFlip and "swapped" or "as the game gives them"))
 		else
@@ -451,9 +455,13 @@ function OV.Slash(msg)
 			local tn, tw = nil, nil
 			if D and UnitExists and UnitExists("target") then tn, tw = D.Position("target") end
 			if not (facing and pn) then OV.Print("this client cannot say where you face or stand: voices will not have a direction")
-			elseif not tn then OV.Print(string.format("you face %d degrees (0 north, 90 west); target a player to see where they are", math.floor(facing * 180 / math.pi + 0.5)))
+			elseif not tn then
+				local as, ac, learned = D.Axes()
+				OV.Print(string.format("you face %d degrees (0 north, 90 west); axes %s (%s). Target a player to see where they are, or run 20 yards straight ahead to let the addon learn the axes",
+					math.floor(facing * 180 / math.pi + 0.5), as == 1 and "turn with you" or "mirrored", learned and "learned from your running" or "a first guess"))
 			else
-				local d = D.Azimuth(pn, pw, facing, tn, tw, OV.db.dirFlip)
+				local as, ac = D.Axes()
+				local d = D.Azimuth(pn, pw, facing, tn, tw, OV.db.dirFlip, as, ac)
 				if not d then OV.Print("your target stands where you stand")
 				else OV.Print(string.format("your target is %d degrees to your %s (0 ahead, 90 beside you, 180 behind). Wrong side? /ev dir flip", math.floor(math.abs(d) + 0.5), d >= 0 and "RIGHT" or "LEFT")) end
 			end

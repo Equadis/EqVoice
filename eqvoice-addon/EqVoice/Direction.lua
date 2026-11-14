@@ -10,8 +10,13 @@
 --   OVD1 <seq>
 --   <name> <degrees>
 --
--- The game's axes: the first number UnitPosition gives grows to the north, the second to the west; facing is 0 looking north and grows
--- counter-clockwise (a quarter turn to the left is +pi/2). If a client ever answers mirrored, `/ev dir flip` swaps left and right.
+-- The game's axes are not the same on every client: SuperWoW's UnitPosition answers (north, west, up) and ClassicAPI's answers (y, x, up,
+-- map) in the other order, whichever of the two loaded last is the one in use, and either can be mirrored. So the addon does not trust a
+-- convention: it learns the axes from you. Every few yards you run forward, the way you moved (in the position's own axes) is compared
+-- with the way the character faces (GetPlayerFacing, 0 north and growing counter-clockwise), and that gives the turn (a quarter, a half
+-- ...) and whether the axes are mirrored. After about 20 yards of running it is settled and kept (EqVoiceDB.dirCal); until then the shape of
+-- the answer gives a first guess (four values: ClassicAPI's, west first; else SuperWoW's, north first).
+-- If a client ever answers mirrored, `/ev dir flip` swaps left and right on top of that.
 
 local OV = EqVoice
 local Dir = {}
@@ -26,6 +31,8 @@ Dir.lastBody  = nil
 Dir.lastWrite = -100
 Dir.last      = {}           -- name -> degrees, as last written
 Dir.stats     = { writes = 0, errors = 0 }
+Dir.LEARN_YARDS = 20         -- yards of running forward before the axes are settled
+Dir.learn     = { sx = { 0, 0 }, sy = { 0, 0 }, yards = 0 }
 
 -- Which way you face, in radians: 0 north, growing counter-clockwise. nil when the client cannot say.
 function Dir.Facing()
@@ -48,17 +55,70 @@ function Dir.Position(unit)
 	return nil
 end
 
+-- The axes, as learned or else guessed: `s` is +1 when the position's axes turn the way the facing does and -1 when they are mirrored, and
+-- `c` (radians) is where straight ahead of a character facing 0 lies in them. SuperWoW's (north, west) is s 1, c 0; ClassicAPI's (west, north) is s -1, c 90 degrees.
+function Dir.Axes()
+	local cal = OV.db and OV.db.dirCal
+	if type(cal) == "table" and type(cal.s) == "number" and type(cal.c) == "number" then return cal.s, cal.c, true end
+	if type(UnitPosition) == "function" then
+		local ok, a, b, c, d = pcall(UnitPosition, "player")
+		if ok and d ~= nil then return -1, math.pi / 2, false end         -- four values: ClassicAPI's (y, x, z, map)
+	end
+	return 1, 0, false
+end
+
+local function wrap(r)
+	while r > math.pi do r = r - 2 * math.pi end
+	while r <= -math.pi do r = r + 2 * math.pi end
+	return r
+end
+
 -- Pure. You stand at (pn, pw) facing `facing`; they stand at (tn, tw). Degrees clockwise from straight ahead, -180 < d <= 180;
--- nil when you stand on the same spot.
-function Dir.Azimuth(pn, pw, facing, tn, tw, flip)
+-- nil when you stand on the same spot. (s, c): the axes, see Dir.Axes; (1, 0) when not given.
+function Dir.Azimuth(pn, pw, facing, tn, tw, flip, s, c)
 	local dn, dw = tn - pn, tw - pw
 	if dn == 0 and dw == 0 then return nil end
-	local bearing = math.atan2(dw, dn)                 -- counter-clockwise from north: due west is +90 degrees
-	local deg = -(bearing - facing) * 180 / math.pi     -- clockwise from where you face: to your right is positive
+	s, c = s or 1, c or 0
+	local bearing = math.atan2(dw, dn)                 -- in the position's axes: with (north, west), counter-clockwise from north
+	local deg = -s * (bearing - (s * facing + c)) * 180 / math.pi     -- clockwise from where you face: to your right is positive
 	while deg > 180 do deg = deg - 360 end
 	while deg <= -180 do deg = deg + 360 end
 	if flip then deg = -deg end
 	return deg
+end
+
+-- Learn the axes from your own running: called with where you stand and which way you face, ten times a second. A step of 0.3 to 3 yards
+-- with the facing steady is you running (or riding) straight ahead; the way you went, against the way you face, says how the axes lie.
+-- Backing up or sidestepping is a minority and the sum is dominated by running forward.
+function Dir.Learn(pa, pb, facing)
+	local L = Dir.learn
+	if L.pa then
+		local da, db = pa - L.pa, pb - L.pb
+		local d = math.sqrt(da * da + db * db)
+		local df = math.abs(wrap(facing - L.f))
+		if d >= 0.3 and d <= 3 and df < 0.05 then
+			local h = math.atan2(db, da)
+			for k = 1, 2 do
+				local s = (k == 1) and 1 or -1
+				local e = h - s * facing
+				L.sx[k] = L.sx[k] + d * math.cos(e)
+				L.sy[k] = L.sy[k] + d * math.sin(e)
+			end
+			L.yards = L.yards + d
+		end
+	end
+	L.pa, L.pb, L.f = pa, pb, facing
+	if L.yards >= Dir.LEARN_YARDS then
+		local r1 = math.sqrt(L.sx[1] * L.sx[1] + L.sy[1] * L.sy[1])
+		local r2 = math.sqrt(L.sx[2] * L.sx[2] + L.sy[2] * L.sy[2])
+		local k = (r1 >= r2) and 1 or 2
+		local r = (k == 1) and r1 or r2
+		if r / L.yards >= 0.75 and OV.db then
+			OV.db.dirCal = { s = (k == 1) and 1 or -1, c = math.atan2(L.sy[k], L.sx[k]) }
+			Dir.settled = (Dir.settled or 0) + 1
+		end
+		L.sx, L.sy, L.yards = { 0, 0 }, { 0, 0 }, 0                    -- and look again over the next 20 yards (a patch can change the axes)
+	end
 end
 
 -- The direction of every player the last scan found: name -> degrees. Empty when the client lacks the two functions.
@@ -69,11 +129,13 @@ function Dir.Compute()
 	local facing = Dir.Facing()
 	local pn, pw = Dir.Position("player")
 	if not (facing and pn) then return out, 0 end
+	Dir.Learn(pn, pw, facing)
 	local flip = OV.db and OV.db.dirFlip
+	local s, c = Dir.Axes()
 	for name, token in pairs(tokens) do
 		local tn, tw = Dir.Position(token)
 		if tn then
-			local d = Dir.Azimuth(pn, pw, facing, tn, tw, flip)
+			local d = Dir.Azimuth(pn, pw, facing, tn, tw, flip, s, c)
 			if d then out[name] = d; n = n + 1 end
 		end
 	end

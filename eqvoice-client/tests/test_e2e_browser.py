@@ -367,10 +367,10 @@ def test_volume_is_boosted_up_close_full_to_30_yd_quiet_at_60_and_a_shout_stays_
             # an ordinary voice is quiet at 60 yd ...
             await until(lambda: s("fx", "") == "chain" and s("lvl", None) is not None and s("loud") < 0.1, 30, "Bobby's page is hearing Alice talk")
             talk = voice_gain(60, curve, 0.0)
-            await until(lambda: abs(s("gain", -1) - talk) < 0.05 and s("flat") == pytest.approx(curve["full"], abs=0.6), 20,
+            await until(lambda: abs(s("gain", -1) - talk) < 0.03 and s("flat") == pytest.approx(5.0, abs=0.2), 20,
                         "talking at 60 yd has volume %.2f (page says %r, full volume to %r yd)" % (talk, s("gain", -1), s("flat")))
             # ... a shout is louder and stays at full volume further out
-            await until(lambda: s("loud") > 0.8 and s("gain") > talk + 0.1 and s("flat") > curve["full"] + 0.8 * (curve["full_loud"] - curve["full"]), 100,
+            await until(lambda: s("loud") > 0.8 and s("gain") > talk + 0.08 and s("flat") > 5.0 / (1 - 0.8 * (1 - curve["yell"])), 100,
                         "the shout is louder at 60 yd (loud %r, full volume to %r yd, volume %r)" % (s("loud"), s("flat"), s("gain")))
             print("\n[e2e] 60 yd: talking %.2f, a shout %.2f (loudness %.2f, full volume to %.1f yd)" % (talk, s("gain"), s("loud"), s("flat")))
             await until(lambda: s("loud") < 0.05 and abs(s("gain", -1) - talk) < 0.05, 40, "and when the shout is over the voice is back to its talking volume")
@@ -387,16 +387,15 @@ def test_volume_is_boosted_up_close_full_to_30_yd_quiet_at_60_and_a_shout_stays_
 
             # closer: 30 yd is the full volume, and right next to each other it is boosted
             sc.walk_to("Alice", "Bobby", 30)
-            await until(lambda: s("loud") < 0.1 and abs(s("gain") - 1.0) < 0.05, 30, "at 30 yd an ordinary voice is at 100%% (page says %r)" % s("gain"))
+            want30 = voice_gain(30, curve)
+            await until(lambda: s("loud") < 0.1 and abs(s("gain") - want30) < 0.03, 30, "at 30 yd an ordinary voice is at %.0f%% (page says %r)" % (want30 * 100, s("gain")))
             sc.walk_to("Alice", "Bobby", 2)
-            want2 = voice_gain(2, curve)
-            await until(lambda: abs(s("gain") - want2) < 0.03 and abs(s("boost") - want2) < 0.03, 20,
-                        "next to each other the volume is boosted by the curve's own %.2f (gain %r, boost %r)" % (want2, s("gain"), s("boost")))
-            sc.walk_to("Alice", "Bobby", 6)
-            want6 = voice_gain(6, curve)
-            await until(lambda: abs(s("gain") - want6) < 0.03 and 1.05 < s("boost") < want2 - 0.1, 20,
-                        "at 6 yd less so (%.2f): the boost scales with the distance (gain %r, boost %r)" % (want6, s("gain"), s("boost")))
-            assert s("vol") == 1.0, "the speaker element is at full volume and the boost carries the rest"
+            await until(lambda: abs(s("gain") - 1.0) < 0.03, 20, "next to each other it is the voice as it is, 100%% (gain %r)" % s("gain"))
+            sc.walk_to("Alice", "Bobby", 20)
+            want20 = voice_gain(20, curve)
+            assert want20 == pytest.approx(0.5, abs=0.01), "(the curve: half at 20 yd)"
+            await until(lambda: abs(s("gain") - want20) < 0.03, 20, "at 20 yd it is half (%.2f; gain %r)" % (want20, s("gain")))
+            assert s("vol") == pytest.approx(want20, abs=0.04), "the speaker element carries the volume (no boost to add: the curve never goes above 100%)"
             assert a.gate_error == "" and b.fx_error == "", (a.gate_error, b.fx_error)
     run(go(), 420)
 
@@ -610,3 +609,19 @@ def test_the_microphone_test_keeps_your_voice_off_the_line_and_goes_on_until_sto
             e2 = stat(b, "Alice", "energy")
             await until(lambda: stat(b, "Alice", "energy") - e2 > 0.01, 25, "stopped: Bobby hears Alice again, as before")
     run(go(), 300)
+
+
+def test_noise_suppression_loads_in_the_real_engine_can_be_switched_off_and_on_and_never_breaks_the_microphone(tmp_path):
+    async def go():
+        async with Scene(tmp_path, ice_servers=[]) as sc:
+            cfg = dict(REAL, audio=dict(REAL["audio"], denoise=True))
+            a = await sc.add("Alice", at=(0, 0), real_browser=True, cfg=cfg)
+            await until(lambda: any(p.media for p in a.pages), 40, "the media page")
+            await until(lambda: a.mic.get("state") == "ok" and a.mic.get("dn") is True, 40, "the microphone is up with the suppressor in the chain (%r)" % a.mic)
+            assert a.denoise_error == "", a.denoise_error
+            a._on_ui({"cmd": "denoise", "value": False})
+            await until(lambda: a.mic.get("state") == "ok" and a.mic.get("dn") is False, 30, "switched off: the microphone is rebuilt without it (%r)" % a.mic)
+            a._on_ui({"cmd": "denoise", "value": True})
+            await until(lambda: a.mic.get("state") == "ok" and a.mic.get("dn") is True, 30, "and on again (%r)" % a.mic)
+            assert a.denoise_error == "" and a.gate_error == "", (a.denoise_error, a.gate_error)
+    run(go(), 200)

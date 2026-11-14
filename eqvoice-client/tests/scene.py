@@ -37,7 +37,7 @@ def make_cfg(home, url, character, **bridge):
         "roster": {"refresh_s": 1.0, "scan_interval_s": 0.1},
         "proximity": dict(debounce_s=0.3, leave_grace_s=0.6, teardown_s=2.0, connect_timeout_s=6.0,
                           retry_backoff_s=[1], forget_s=5, fail_closed_s=3.0),
-        "audio": {"mode": "ptt", "keyboard_filter": False},          # the fake microphone beeps; a 30 ms beep is what the keyboard filter drops
+        "audio": {"mode": "ptt", "keyboard_filter": False, "denoise": False},          # the fake microphone beeps; a 30 ms beep is what the keyboard filter drops
     })
 
 

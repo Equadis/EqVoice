@@ -231,3 +231,57 @@ def test_the_new_settings_have_defaults_and_old_config_files_get_them(tmp_path):
     (tmp_path / "old" / "config.json").write_text(json.dumps({"audio": {"mode": "ptt", "peer_volume": {"a": 1.0}}}), encoding="utf-8")
     old = Config.load(tmp_path / "old")
     assert old.audio.mode == "ptt" and old.audio.spatial == "headphones" and old.audio.player_volume == {}
+
+
+def test_the_whisper_key_is_chosen_in_the_game_kept_refused_when_it_is_the_talk_key_and_the_page_is_told_when_it_is_held(tmp_path):
+    async def go():
+        async with Scene(tmp_path) as sc:
+            a = await sc.add("Alice", at=(0, 0))
+            pa, game = sc.pages["Alice"], sc.games["Alice"]
+            await until(lambda: a.ui_control is not None, 10, "panel files")
+            assert int(a.cfg.audio.whisper_vk) == 0 and read_status(game).fields["wk"] == "none", "no whisper key to begin with"
+            send(game, ("wkey", "LSHIFT"))
+            await until(lambda: a.cfg.audio.whisper_vk != 0, 5, "the key is set")
+            await until(lambda: read_status(game).fields["wk"] != "none", 5, "and the game is told its name")
+            send(game, ("wkey", "F9"))                                         # the push-to-talk key already
+            before = a.ui_commands
+            await until(lambda: a.ui_commands > before, 5, "handled")
+            assert a.cfg.audio.whisper_label.lower().startswith("l") or "shift" in a.cfg.audio.whisper_label.lower(), "the talk key is refused: nothing changed"
+            # held: the page is told, and told again when it is let go
+            a.whisper_down = True
+            a._apply_voice()
+            await until(lambda: pa.named("self_state") and pa.named("self_state")[-1].get("whisper") is True, 5, "the page is told you whisper")
+            a.whisper_down = False
+            a._apply_voice()
+            await until(lambda: pa.named("self_state")[-1].get("whisper") is False, 5, "and told again when you let go")
+            send(game, ("wkey", "none"))
+            await until(lambda: a.cfg.audio.whisper_vk == 0, 5, "none takes it away")
+        assert Config.load(tmp_path / "Alice").audio.whisper_vk == 0
+    run(go(), 90)
+
+
+def test_noise_suppression_is_on_by_default_switched_from_the_game_sent_to_the_page_and_kept(tmp_path):
+    async def go():
+        async with Scene(tmp_path) as sc:
+            assert Config.load(tmp_path / "Fresh").audio.denoise is True, "on unless the player says otherwise"
+            a = await sc.add("Alice", at=(0, 0), cfg={"audio": {"denoise": True}})
+            pa, game = sc.pages["Alice"], sc.games["Alice"]
+            await until(lambda: a.ui_control is not None, 10, "panel files")
+            assert a.cfg.audio.denoise is True and pa.named("config")[-1]["denoise"] is True
+            assert read_status(game).fields["dn"] == "1"
+            send(game, ("denoise", "0"))
+            await until(lambda: pa.named("denoise") and pa.named("denoise")[-1]["value"] is False, 5, "the page is told")
+            await until(lambda: read_status(game).fields["dn"] == "0", 5, "and the game")
+            n = len(pa.named("config"))
+            a._send_config()
+            await until(lambda: len(pa.named("config")) > n and pa.named("config")[-1]["denoise"] is False, 5, "a new engine is handed it")
+        assert Config.load(tmp_path / "Alice").audio.denoise is False, "kept"
+    run(go(), 90)
+
+
+def test_a_whispering_voice_is_heard_as_if_twice_as_far_away_in_the_page_and_in_python():
+    from eqvoice_client.peers import PeerConfig, voice_gain
+    c = PeerConfig(say_radius=41, peak_radius=85, natural=True).curve
+    assert voice_gain(10, c, 0.0, whisper=True) == voice_gain(20, c, 0.0), "10 yd whispering sounds like 20 yd talking"
+    assert voice_gain(5, c, 0.0, whisper=True) < 1 and voice_gain(2.5, c, 0.0, whisper=True) == 1.0, "up close (inside 2.5 yd) it is still full"
+    assert voice_gain(45, c, 0.0, whisper=True) == 0.0, "and it is over at half the range"

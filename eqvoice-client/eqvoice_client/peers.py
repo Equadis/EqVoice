@@ -59,6 +59,8 @@ class PeerConfig:
     boost_fade_radius: float = 10.0   # ... and has eased away to nothing by here
     loud_full_radius: float = 0.0     # a raised voice stays at full volume up to here (0 = no further than full_radius)
     curve_power: float = 1.6          # how the volume falls between full_radius and the end: (1 - t) ** power
+    natural: bool = False             # the natural curve (NATURAL_POINTS, a raised voice is heard as `yell` times nearer) instead of the plain one
+    yell: float = 0.65                # the natural curve: a raised voice is heard as if the speaker were this fraction as far away
     leave_hysteresis: float = 3.0
     debounce_s: float = 0.8
     leave_grace_s: float = 1.5
@@ -83,14 +85,15 @@ class PeerConfig:
     @property
     def wide(self) -> bool:
         """A raised voice stays at full volume further than an ordinary one, so the page needs the distance itself to work the volume out."""
-        return self.loud_full_radius > self.full_radius
+        return self.natural or self.loud_full_radius > self.full_radius
 
     @property
     def curve(self) -> dict:
         """What the media page needs to apply the distance curve itself (a raised voice stays louder further out than the page is told here).
         Same keys as ``DEFAULT_CURVE`` in ui/voicemodel.js."""
         return {"boost": self.near_gain, "boost_r": self.boost_radius, "boost_fade": self.boost_fade_radius, "full": self.full_radius,
-                "full_loud": max(self.loud_full_radius, self.full_radius), "end": self.reach, "power": self.curve_power}
+                "full_loud": max(self.loud_full_radius, self.full_radius), "end": self.reach, "power": self.curve_power,
+                "points": [list(p) for p in NATURAL_POINTS] if self.natural else None, "yell": self.yell}
 
     @classmethod
     def from_section(cls, s) -> "PeerConfig":
@@ -98,13 +101,45 @@ class PeerConfig:
                    peak_radius=float(s.get("peak_radius", 0.0) or 0.0), near_gain=float(s.get("near_gain", 1.0) or 1.0),
                    boost_radius=float(s.get("boost_radius", 0.0)), boost_fade_radius=float(s.get("boost_fade_radius", 10.0)),
                    loud_full_radius=float(s.get("loud_full_radius", 0.0) or 0.0), curve_power=float(s.get("curve_power", 1.6)),
+                   natural=str(s.get("curve_shape", "natural")) == "natural", yell=float(s.get("yell_scale", 0.65)),
                    leave_hysteresis=float(s.leave_hysteresis), debounce_s=s.debounce_s, leave_grace_s=s.leave_grace_s,
                    teardown_s=s.teardown_s, connect_timeout_s=s.connect_timeout_s, max_peers=s.max_peers,
                    fade_in_ms=s.fade_in_ms, fade_out_ms=s.fade_out_ms, retry_backoff_s=tuple(s.retry_backoff_s),
                    forget_s=s.forget_s, fail_closed_s=s.fail_closed_s)
 
 
-def voice_gain(distance: float, curve: dict, loudness: float = 0.0) -> float:
+# The natural curve: (yards, decibels) for an ordinary voice, joined smoothly (see ``through_points``): 100% to 5 yd, 50% at 20, 15% at 40, 4% at 60.
+NATURAL_POINTS = ((0.0, 0.0), (5.0, 0.0), (20.0, -6.0206), (40.0, -16.4782), (60.0, -28.0), (85.0, -60.0))
+
+
+def through_points(pts, x: float) -> float:
+    """A smooth curve through ``pts`` that never overshoots them (a monotone cubic, Fritsch-Carlson), flat outside the first and last.
+    The same arithmetic as ``throughPoints`` in ui/voicemodel.js."""
+    n = len(pts)
+    if x <= pts[0][0]:
+        return pts[0][1]
+    if x >= pts[n - 1][0]:
+        return pts[n - 1][1]
+    h = [pts[i + 1][0] - pts[i][0] for i in range(n - 1)]
+    d = [(pts[i + 1][1] - pts[i][1]) / h[i] for i in range(n - 1)]
+    m = [0.0] * n
+    m[0], m[n - 1] = d[0], d[n - 2]
+    for i in range(1, n - 1):
+        if d[i - 1] * d[i] <= 0:
+            m[i] = 0.0
+        else:
+            w1, w2 = 2 * h[i] + h[i - 1], h[i] + 2 * h[i - 1]
+            m[i] = (w1 + w2) / (w1 / d[i - 1] + w2 / d[i])
+    k = 0
+    while k < n - 2 and x >= pts[k + 1][0]:
+        k += 1
+    t = (x - pts[k][0]) / h[k]
+    t2, t3 = t * t, t * t * t
+    return ((2 * t3 - 3 * t2 + 1) * pts[k][1] + (t3 - 2 * t2 + t) * h[k] * m[k]
+            + (-2 * t3 + 3 * t2) * pts[k + 1][1] + (t3 - t2) * h[k] * m[k + 1])
+
+
+def voice_gain(distance: float, curve: dict, loudness: float = 0.0, whisper: bool = False) -> float:
     """How loud a voice is at ``distance`` yards, as a multiple of its own loudness (the same curve as ``curveGain`` in ui/voicemodel.js,
     which the page applies itself so that it can use how loud the speaker is being):
 
@@ -114,6 +149,15 @@ def voice_gain(distance: float, curve: dict, loudness: float = 0.0) -> float:
         full .. end         falling to nothing at ``end``, as (1 - t) ** power
 
     ``loudness`` (0 = ordinary speech, 1 = shouting) moves ``full`` towards ``full_loud``."""
+    if whisper:
+        distance = distance * float(curve.get("whisper") or 2.0)         # whispering: heard as if twice as far away
+    if curve.get("points"):
+        if distance >= curve["end"]:
+            return 0.0
+        scale = 1.0 - max(0.0, min(1.0, loudness)) * (1.0 - (curve.get("yell") or 1.0))      # a raised voice is heard as if nearer
+        db = through_points(curve["points"], distance * scale)
+        left = max(0.0, min(1.0, (curve["end"] - distance) / 10.0))                      # the last 10 yd ease out
+        return boost_for(distance, curve) * 10.0 ** (db / 20.0) * left * left * (3.0 - 2.0 * left)
     return boost_for(distance, curve) * _rolloff(distance, curve, loudness)
 
 

@@ -23,6 +23,10 @@ def test_the_distance_curve_is_the_same_in_the_page_and_the_app():
         {"boost": 2.0, "boost_r": 3.0, "boost_fade": 8.0, "full": 30.0, "full_loud": 45.0, "end": 85.0, "power": 1.6},
         {"boost": 1.0, "boost_r": 3.0, "boost_fade": 8.0, "full": 10.0, "full_loud": 10.0, "end": 41.0, "power": 1.6},
         {"boost": 3.0, "boost_r": 4.0, "boost_fade": 12.0, "full": 20.0, "full_loud": 60.0, "end": 70.0, "power": 2.0},
+        {"boost": 1.0, "boost_r": 0.0, "boost_fade": 10.0, "full": 30.0, "full_loud": 45.0, "end": 85.0, "power": 1.6,
+         "points": [[0, 0], [5, 0], [20, -6.0206], [40, -16.4782], [60, -28], [85, -60]], "yell": 0.65},
+        {"boost": 2.0, "boost_r": 0.0, "boost_fade": 10.0, "full": 30.0, "full_loud": 45.0, "end": 60.0, "power": 1.6,
+         "points": [[0, 0], [5, 0], [20, -6.0206], [40, -16.4782], [60, -28], [85, -60]], "yell": 0.5},
     ]
     out = run("""
       const VM = window.VoiceModel, rows = [];
@@ -36,9 +40,37 @@ def test_the_distance_curve_is_the_same_in_the_page_and_the_app():
         assert js == pytest.approx(voice_gain(d, c, s), abs=1e-9), (c, s, d)
 
 
-def test_the_default_curve_is_boosted_up_close_full_to_30_yd_quiet_at_70_and_gone_at_85():
+def test_the_natural_curve_is_100_to_5_yd_half_at_20_15_percent_at_40_and_a_shout_is_10_percent_at_70():
     out = run("""
       const VM = window.VoiceModel, c = VM.DEFAULT_CURVE, g = (d, s) => VM.curveGain(d, c, s);
+      let worstStep = 0, prev = g(0, 0), rises = 0, falls = 0, prevY = g(0, 1);
+      for (let i = 1; i <= 1700; i++) {                                           // every 5 cm from 0 to 85 yd
+        const v = g(i / 20, 0), y = g(i / 20, 1);
+        worstStep = Math.max(worstStep, Math.abs(v - prev), Math.abs(y - prevY));
+        if (v > prev + 1e-12 || y > prevY + 1e-12) rises++;
+        prev = v; prevY = y;
+      }
+      done({ points: c.points, boost: c.boost, talk: [0, 3, 5, 20, 40, 60, 70, 84, 85, 90].map((d) => g(d, 0)), shout: [5, 20, 40, 70, 84, 85].map((d) => g(d, 1)),
+             half: g(40, 0.5), worstStep, rises, flat: [VM.flatFor(c, 0), VM.flatFor(c, 1)] });
+    """)
+    assert out["boost"] == 1, "no doubling up close: 5 yd is 100%"
+    talk = dict(zip([0, 3, 5, 20, 40, 60, 70, 84, 85, 90], out["talk"]))
+    assert talk[0] == talk[3] == talk[5] == 1, "100% up to 5 yd"
+    assert talk[20] == pytest.approx(0.5, abs=0.005), "half at 20 yd: %r" % talk[20]
+    assert talk[40] == pytest.approx(0.15, abs=0.005), "15% at 40 yd: %r" % talk[40]
+    assert talk[60] < 0.06 and talk[70] < talk[60] and talk[84] < 0.005 and talk[85] == 0 and talk[90] == 0, "and on down to nothing at 85: %r" % talk
+    shout = dict(zip([5, 20, 40, 70, 84, 85], out["shout"]))
+    assert shout[70] == pytest.approx(0.10, abs=0.015), "a shout is 10% at 70 yd: %r" % shout[70]
+    assert shout[5] == 1 and shout[20] > talk[20] and shout[40] > talk[40] and shout[85] == 0, "a shout carries further, and is over at the same 85"
+    assert talk[40] < out["half"] < shout[40], "half way between talking and shouting is half way"
+    assert out["rises"] == 0, "it never gets louder as you walk away"
+    assert out["worstStep"] < 0.006, "and there is no step anywhere (biggest 5 cm change %.5f)" % out["worstStep"]
+    assert out["flat"][0] == 5 and out["flat"][1] == pytest.approx(5 / 0.65), "the full-volume stretch grows with the loudness"
+
+
+def test_the_plain_curve_is_boosted_up_close_full_to_30_yd_quiet_at_70_and_gone_at_85():
+    out = run("""
+      const VM = window.VoiceModel, c = Object.assign({}, VM.DEFAULT_CURVE, { boost: 2, points: null }), g = (d, s) => VM.curveGain(d, c, s);
       let steps = 0, prev = g(0, 0), worst = 0;                                  // every 5 cm from 0 to 10 yd
       for (let i = 1; i <= 200; i++) { const v = g(i / 20, 0); worst = Math.max(worst, Math.abs(v - prev)); if (v > prev) steps++; prev = v; }
       done({ curve: c, boost: VM.BOOST, near: [0, 1, 2, 3, 5, 8].map((d) => g(d, 0)), worst, rises: steps,
@@ -46,7 +78,7 @@ def test_the_default_curve_is_boosted_up_close_full_to_30_yd_quiet_at_70_and_gon
              shout: [30, 45, 55, 70, 80, 85].map((d) => g(d, 1)), half: [45, 60].map((d) => g(d, 0.5)),
              flatFor: [VM.flatFor(c, 0), VM.flatFor(c, 1), VM.flatFor(c, 0.5), VM.flatFor(c, 9), VM.flatFor(c, -2)] });
     """)
-    assert out["curve"] == {"boost": 2, "boost_r": 0, "boost_fade": 10, "full": 30, "full_loud": 45, "end": 85, "power": 1.6}
+    assert out["curve"]["boost"] == 2 and out["curve"]["full"] == 30 and out["curve"]["end"] == 85
     near = out["near"]
     assert near[0] == 2, "right next to each other the voice is boosted: twice its own loudness"
     assert near[0] > near[1] > near[2] > near[3] > near[4] > near[5] > 1 and near[4] == pytest.approx(2 ** 0.5, abs=0.001), \

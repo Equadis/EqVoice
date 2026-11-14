@@ -116,6 +116,20 @@ against each other in the tests (the addon's real Lua parses what Python writes 
 Seven numbers decide it (config `proximity.*`, `audio.boost`), and they are the same in the page (`ui/voicemodel.js`, `curveGain`) and the app
 (`peers.voice_gain`; a test checks them against each other over a grid):
 
+**From 0.5.0 the curve is the natural one** (`audio`/`proximity.curve_shape`, `natural`; `plain` keeps the older shape below). It is a smooth curve through
+(yards, decibels) for an ordinary voice, `NATURAL_POINTS` in `peers.py` and `voicemodel.js`, with no flat stretch and no step:
+
+| distance | what you hear |
+|---|---|
+| **0 to 5 yd** | **100%**: the voice as its owner's microphone made it (the doubling "boost" is off by default now) |
+| **20 yd** | **50%** |
+| **40 yd** | **15%** |
+| **60 yd** | **4%**, and on down to nothing at **85 yd** (`peak_radius`); the last 10 yd ease out |
+| a **raised voice** | heard as if the speaker were `yell_scale` (0.65) times as far away: **10% at 70 yd**, 50% at 31 |
+| a **whispering voice** (the whisper key held) | heard as if twice as far away: the range is halved (50% at 10 yd, gone at 42) |
+
+The older (plain) curve, for `curve_shape: plain`:
+
 | distance | what you hear |
 |---|---|
 | **0 to 10 yd** (`boost_fade_radius`) | the **boost**, which **scales with the distance**: normal is **twice** the voice's own loudness (+6 dB) right next to each other, 173% at 3 yd, 141% (+3 dB) at 5 yd, 107% at 8 yd, gone at 10 yd. It is a half cosine in decibels: no flat stretch, no step, easing in at both ends. Low is 1.4 times, high is 3 times, off is none (`audio.boost`). `boost_radius`, 0 by default, would hold the full boost for that many yards first |

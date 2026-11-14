@@ -22,7 +22,33 @@
   //
   // A voice the speaker is raising keeps its full volume further out: `full` moves towards `full_loud` as loudness goes from 0 to 1 (a
   // shout is still at full volume at 45 yd, and louder than a normal voice at 70). The end of the curve does not move: it is how far calls are kept.
-  const DEFAULT_CURVE = { boost: 2, boost_r: 0, boost_fade: 10, full: 30, full_loud: 45, end: 85, power: 1.6 };
+  //
+  // The NATURAL curve (the default; `points` set) replaces the plain one above: a voice carries the way a real one does, getting steadily
+  // and smoothly louder as you walk up to it, with no flat stretch and no step. It is a smooth curve through these (yards, decibels)
+  // for an ordinary voice: 100% to 5 yd, 50% at 20 yd, 15% at 40 yd, 4% at 60 yd, and nothing at the end (`end`, 85 yd). A raised voice
+  // is heard as if the speaker were `yell` times as far away (0.65: at 70 yd a shout is 10%). The last 10 yd before `end` ease to nothing.
+  const NATURAL_POINTS = [[0, 0], [5, 0], [20, -6.0206], [40, -16.4782], [60, -28], [85, -60]];
+  const DEFAULT_CURVE = { boost: 1, boost_r: 0, boost_fade: 10, full: 30, full_loud: 45, end: 85, power: 1.6, points: NATURAL_POINTS, yell: 0.65, whisper: 2 };
+
+  // a smooth curve through the points that never overshoots them (a monotone cubic, Fritsch-Carlson), flat outside the first and last
+  function throughPoints(pts, x) {
+    const n = pts.length;
+    if (x <= pts[0][0]) return pts[0][1];
+    if (x >= pts[n - 1][0]) return pts[n - 1][1];
+    const h = [], d = [];
+    for (let i = 0; i < n - 1; i++) { h[i] = pts[i + 1][0] - pts[i][0]; d[i] = (pts[i + 1][1] - pts[i][1]) / h[i]; }
+    const m = new Array(n);
+    m[0] = d[0]; m[n - 1] = d[n - 2];
+    for (let i = 1; i < n - 1; i++) {
+      if (d[i - 1] * d[i] <= 0) m[i] = 0;
+      else { const w1 = 2 * h[i] + h[i - 1], w2 = h[i] + 2 * h[i - 1]; m[i] = (w1 + w2) / (w1 / d[i - 1] + w2 / d[i]); }
+    }
+    let k = 0;
+    while (k < n - 2 && x >= pts[k + 1][0]) k++;
+    const t = (x - pts[k][0]) / h[k], t2 = t * t, t3 = t2 * t;
+    return (2 * t3 - 3 * t2 + 1) * pts[k][1] + (t3 - 2 * t2 + t) * h[k] * m[k] + (-2 * t3 + 3 * t2) * pts[k + 1][1] + (t3 - t2) * h[k] * m[k + 1];
+  }
+  const yellScale = (curve, loudness) => 1 - clamp(loudness, 0, 1) * (1 - (curve.yell || 1));
 
   // The distance reaches the page a few times a second, and a person walks several yards in that time, so the page follows it rather than
   // jumping to it (`distTau` seconds), and the volume follows the curve a little more slowly still (`gainTau`): the volume, the boost most
@@ -30,6 +56,7 @@
   const FOLLOW = { distTau: 0.3, gainTau: 0.08 };
 
   function flatFor(curve, loudness) {
+    if (Array.isArray(curve.points)) return curve.points[1][0] / yellScale(curve, loudness);       // the natural curve: full volume this far out
     return curve.full + clamp(loudness, 0, 1) * Math.max(0, (curve.full_loud || curve.full) - curve.full);
   }
 
@@ -41,8 +68,16 @@
     return Math.pow(boost, 0.5 * (1 + Math.cos(Math.PI * t)));
   }
 
-  function curveGain(dist, curve, loudness) {
+  // `whisper`: the speaker holds the whisper key: they are heard as if twice as far away (the range is halved, as in Simple Voice Chat)
+  function curveGain(dist0, curve, loudness, whisper) {
+    const dist = whisper ? dist0 * (curve.whisper || 2) : dist0;
     const boost = boostFor(dist, curve);
+    if (Array.isArray(curve.points)) {
+      if (dist >= curve.end) return 0;
+      const db = throughPoints(curve.points, dist * yellScale(curve, loudness));
+      const left = clamp((curve.end - dist) / 10, 0, 1);                                // the last 10 yd ease out
+      return boost * Math.pow(10, db / 20) * left * left * (3 - 2 * left);
+    }
     const flat = flatFor(curve, loudness);
     if (dist <= flat) return boost;
     if (dist >= curve.end) return 0;
@@ -195,5 +230,5 @@
   const BOOST = { off: 1, low: 1.4, normal: 2, high: 3 };           // the boost option: how much louder a voice is right next to you
   const normBoost = (v) => (v === 'off' || v === 'low' || v === 'normal' || v === 'high' ? v : 'normal');
 
-  root.VoiceModel = { normBitrate, DEFAULT_CURVE, FOLLOW, flatFor, boostFor, curveGain, LEVEL, levelingDb, BOOST, normBoost, LOUD, Loudness, VA, VoiceActivity, levelDb, clamp, SPATIAL_MODES, normSpatial, SPATIAL, spatialFor, azDelta };
+  root.VoiceModel = { normBitrate, DEFAULT_CURVE, NATURAL_POINTS, FOLLOW, flatFor, boostFor, curveGain, LEVEL, levelingDb, BOOST, normBoost, LOUD, Loudness, VA, VoiceActivity, levelDb, clamp, SPATIAL_MODES, normSpatial, SPATIAL, spatialFor, azDelta };
 })(typeof window !== 'undefined' ? window : globalThis);

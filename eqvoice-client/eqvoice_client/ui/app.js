@@ -22,6 +22,12 @@ let ws = null;
 let wsOpen = false;
 let S = {};                      // last state pushed by the client
 
+// One audio context for everything, at 48 kHz: what Opus and the RNNoise noise suppressor both work at (the browser converts to and from the devices).
+function newAudioContext() {
+  const AC = window.AudioContext || window.webkitAudioContext;
+  try { return new AC({ sampleRate: 48000 }); } catch (_) { return new AC(); }
+}
+
 function send(obj) {
   if (wsOpen) ws.send(JSON.stringify(obj));
 }
@@ -152,6 +158,9 @@ class Media {
     this.gateDb = -48;
     this.autoLevel = true;          // lift quiet microphones and ease hot ones towards the same level
     this.keyboard = true;           // keep keyboard clacks and other short noises off the microphone
+    this.denoise = true;            // RNNoise on the microphone (a neural noise suppressor, in an audio worklet)
+    this.denoiseOk = undefined;     // false when the suppressor could not be loaded: the microphone is sent without it
+    this.selfWhisper = false;       // the whisper key is held
     this.autoGain = false;          // the browser's automatic microphone level: off, so that a louder voice is heard as louder
     this.fxBroken = '';             // set when the chain went silent or could not be built: everything then plays plain
     this.spatial = 'headphones';    // where voices are heard from: 'mono', 'speakers' or 'headphones' (VM.spatialFor)
@@ -197,7 +206,8 @@ class Media {
         if (isFinite(Number(c.gate_db))) this.gateDb = Number(c.gate_db);
         const kb = c.keyboard !== false;
         this.keyboard = kb;
-        const kbChanged = this.chainWanted() !== !!this.sendChain;       // the keyboard filter or the volume now needs (or no longer needs) the chain
+        if (c.denoise !== undefined) this.denoise = !!c.denoise;
+        const kbChanged = this.chainWanted() !== !!this.sendChain || this.denoiseWanted() !== !!(this.sendChain && this.sendChain.rn);       // the filter, the suppressor or the volume now needs (or no longer needs) the chain
         if (this.sendChain) this.sendChain.inGain.gain.value = this.inputGain;
         this.autoGain = !!c.auto_gain;
         this.applyFxAll();
@@ -207,6 +217,7 @@ class Media {
         break;
       case 'fail_chain': this.fxFailed('requested by a test'); break;       // the end-to-end test of the fallback
       case 'keyboard': this.keyboard = !!c.value; if (this.micTrack) await this.initMic(); break;
+      case 'denoise': this.denoise = !!c.value; this.denoiseOk = undefined; if (this.micTrack) await this.initMic(); break;
       case 'input': this.inputId = c.id || ''; await this.initMic(); break;
       case 'output': this.outputId = c.id || ''; this.applySinkAll(); break;
       case 'tx': this.txEnabled = !!c.enabled; this.applyTx(); break;
@@ -223,7 +234,7 @@ class Media {
       case 'curve': if (c.value) this.curve = Object.assign({}, VM.DEFAULT_CURVE, c.value); break;       // the boost option changed
       case 'level': this.autoLevel = !!c.value; break;
       case 'cue': this.cue(c.kind); break;
-      case 'self_state': this.selfMute = !!c.mute; this.selfDeaf = !!c.deaf; this.peers.forEach((p) => this.sendState(p)); break;
+      case 'self_state': this.selfMute = !!c.mute; this.selfDeaf = !!c.deaf; this.selfWhisper = !!c.whisper; this.peers.forEach((p) => this.sendState(p)); break;
       case 'gate':                                                          // the noise gate's mode and bar changed: the filter takes it live
         this.gateMode = c.mode === 'manual' ? 'manual' : 'auto';
         if (isFinite(Number(c.db))) this.gateDb = Number(c.db);
@@ -264,7 +275,7 @@ class Media {
       // A clone that stays enabled feeds the level meter while push-to-talk is up.
       this.meterTrack = this.devTrack.clone();
       this.meterTrack.enabled = true;
-      this.ctx = this.ctx || new (window.AudioContext || window.webkitAudioContext)();
+      this.ctx = this.ctx || newAudioContext();
       if (this.ctx.state === 'suspended') this.ctx.resume().catch(() => {});
       const src = this.ctx.createMediaStreamSource(new MediaStream([this.meterTrack]));
       this.analyser = this.ctx.createAnalyser();
@@ -372,7 +383,8 @@ class Media {
   // sustained voice (gate-worklet.js). With the volume at 100% and the filter off the raw microphone is sent as it is.
   // Any trouble with the chain and the raw microphone is sent instead: being heard comes before being clean.
 
-  chainWanted() { return this.keyboard || Math.abs(this.inputGain - 1) > 0.001; }
+  denoiseWanted() { return !!this.denoise && this.denoiseOk !== false; }
+  chainWanted() { return this.keyboard || this.denoiseWanted() || Math.abs(this.inputGain - 1) > 0.001; }
 
   async buildSendTrack(dev) {
     if (!this.chainWanted()) return dev;
@@ -387,7 +399,20 @@ class Media {
       const inGain = ctx.createGain();
       inGain.gain.value = this.inputGain;
       const dest = ctx.createMediaStreamDestination();
-      src.connect(inGain);
+      let rn = null;                                           // RNNoise: the voice without the breathing, fans and keyboard (a failure sends the microphone as it is)
+      if (this.denoiseWanted()) {
+        try {
+          if (!ctx.audioWorklet) throw new Error('no audio worklet in this browser');
+          if (!this.rnnLoaded) { await ctx.audioWorklet.addModule('/static/rnnoise-worklet.js'); this.rnnLoaded = true; }
+          rn = new AudioWorkletNode(ctx, 'NoiseSuppressorWorklet', { numberOfInputs: 1, numberOfOutputs: 1, outputChannelCount: [1] });
+          rn.onprocessorerror = () => { this.denoiseOk = false; send({ t: 'denoise', ok: false, error: 'the noise suppressor stopped' }); this.initMic(); };
+        } catch (e) {
+          rn = null;
+          this.denoiseOk = false;
+          send({ t: 'denoise', ok: false, error: String(e && e.message || e).slice(0, 160) });
+        }
+      }
+      if (rn) { src.connect(rn); rn.connect(inGain); } else { src.connect(inGain); }
       let node = null;
       if (this.keyboard) {
         node = new AudioWorkletNode(ctx, 'voice-gate', { numberOfInputs: 1, numberOfOutputs: 1, outputChannelCount: [1],
@@ -403,7 +428,7 @@ class Media {
       } else {
         inGain.connect(dest);
       }
-      this.sendChain = { src, inGain, node, dest };
+      this.sendChain = { src, rn, inGain, node, dest };
       return dest.stream.getAudioTracks()[0];
     } catch (e) {
       this.gate = null;
@@ -424,7 +449,7 @@ class Media {
   dropGate() {
     const c = this.sendChain;
     if (c) {
-      try { c.src.disconnect(); c.inGain.disconnect(); if (c.node) { c.node.disconnect(); c.node.port.onmessage = null; } } catch (_) {}
+      try { c.src.disconnect(); if (c.rn) { c.rn.onprocessorerror = null; c.rn.disconnect(); } c.inGain.disconnect(); if (c.node) { c.node.disconnect(); c.node.port.onmessage = null; } } catch (_) {}
     }
     this.sendChain = null;
     this.gate = null;
@@ -448,7 +473,7 @@ class Media {
   }
 
   sendMic(force) {
-    const m = { t: 'mic', state: this.micState.state, label: this.micState.label, level: Math.round(this.micState.level * 100) / 100, tx: this.txEnabled, pcs: this.peers.size, gate: !!this.gate, hz: Math.round(this.tickHz / 10) * 10, vl: this.selfLevel,
+    const m = { t: 'mic', state: this.micState.state, label: this.micState.label, level: Math.round(this.micState.level * 100) / 100, tx: this.txEnabled, pcs: this.peers.size, gate: !!this.gate, dn: !!(this.sendChain && this.sendChain.rn), hz: Math.round(this.tickHz / 10) * 10, vl: this.selfLevel,
                gopen: this.gate ? this.gate.isOpen : null, gfloor: this.gate ? this.gate.floor : null,
                glevel: this.gate ? this.gate.level : null, gthr: this.gate ? this.gate.thr : null, ldb: this.micDb };
     const key = JSON.stringify(m);
@@ -513,7 +538,7 @@ class Media {
       p.dc.onmessage = (e) => {
         let m = null;
         try { m = JSON.parse(e.data); } catch (_) { return; }
-        if (m && m.t === 'state') send({ t: 'peer', sid: c.sid, ep: c.ep, type: 'vstate', mute: !!m.mute, deaf: !!m.deaf });
+        if (m && m.t === 'state') { p.whisper = !!m.whisper; send({ t: 'peer', sid: c.sid, ep: c.ep, type: 'vstate', mute: !!m.mute, deaf: !!m.deaf }); }
       };
     } catch (e) { p.dc = null; console.warn('data channel', e); }
     if (this.micTrack) {
@@ -639,7 +664,7 @@ class Media {
 
   sendState(p) {
     if (p.dc && p.dc.readyState === 'open') {
-      try { p.dc.send(JSON.stringify({ t: 'state', mute: this.selfMute, deaf: this.selfDeaf })); } catch (_) { /* a closing channel */ }
+      try { p.dc.send(JSON.stringify({ t: 'state', mute: this.selfMute, deaf: this.selfDeaf, whisper: this.selfWhisper })); } catch (_) { /* a closing channel */ }
     }
   }
 
@@ -719,7 +744,7 @@ class Media {
       if (p.dist !== null && p.dist !== undefined) {         // the page's own curve: a raised voice stays louder further out
         // the distance arrives a few times a second: follow it, so the volume (the boost most of all) changes continuously as you walk
         p.distS = p.distS === null ? p.dist : p.distS + (p.dist - p.distS) * (1 - Math.exp(-dtl / VM.FOLLOW.distTau));
-        target = p.gate ? VM.curveGain(p.distS, this.curve, p.loud.s) : 0;
+        target = p.gate ? VM.curveGain(p.distS, this.curve, p.loud.s, p.whisper) : 0;
         step = p.slew;
         smooth = p.gate;                                     // leaving still ramps down in a straight line, so it ends exactly at silence
       }
@@ -750,7 +775,7 @@ class Media {
 
   ensureCtx() {
     try {
-      this.ctx = this.ctx || new (window.AudioContext || window.webkitAudioContext)();
+      this.ctx = this.ctx || newAudioContext();
       if (this.ctx.state === 'suspended') this.ctx.resume().catch(() => {});
       return this.ctx;
     } catch (e) { return null; }

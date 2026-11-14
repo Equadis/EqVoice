@@ -66,6 +66,7 @@ Panel.frame       = nil
 Panel.indicator   = nil
 Panel.capture     = nil      -- the invisible frame that listens for the next key
 Panel.capturing   = false
+Panel.captureFor  = "key"
 Panel.captureEnds = 0
 Panel.seenVersion = -1
 Panel.dirty       = true
@@ -155,6 +156,10 @@ function Panel.Model(now)
 	m.gdb  = pick("gdb", tonumber(f.gdb) or -48, now)
 	m.key  = (string.gsub(f.key or "F9", "_", " "))
 	m.capturing = Panel.capturing and true or false
+	m.capFor = Panel.captureFor or "key"                                           -- which key is being chosen: "key" (push to talk) or "wkey" (whisper)
+	m.wkey = (string.gsub(f.wk or "none", "_", " "))                             -- the whisper key ("none": not set)
+	m.wh   = (f.wh == "1")                                                       -- the whisper key is held
+	m.dn   = pick("dn", f.dn ~= "0", now)                                        -- noise suppression (on unless the app says it is off)
 	m.tx, m.talk = (f.tx == "1"), (f.talk == "1")
 	m.near, m.conn = tonumber(f.near) or 0, tonumber(f.conn) or 0
 	m.mic = f.mic or "starting"
@@ -367,6 +372,10 @@ function Panel.SetSpatial(mode)
 end
 
 -- The microphone test: you hear yourself, nobody else does. It goes on until it is stopped (closing the panel does not stop it).
+function Panel.SetDenoise(on)
+	return Panel.Command("denoise", on and "1" or "0", "dn", on and true or false)
+end
+
 function Panel.SetMicTest(on)
 	return Panel.Command("mictest", on and "1" or "0", "mt", on and true or false)
 end
@@ -465,7 +474,8 @@ end
 -- "Change the key": listen for the next key (or mouse button 3, 4, 5) and hand it to the app, which turns it into the key it
 -- watches. The game's own names for keys are sent as they are (F9, A, NUMPAD1, LSHIFT, BUTTON4 ...). Escape, a left or right
 -- click, or ten seconds of nothing cancels.
-function Panel.CaptureKey()
+function Panel.CaptureKey(which)
+	Panel.captureFor = (which == "wkey") and "wkey" or "key"
 	if not OV.Status.Alive(OV.Now()) then
 		OV.Print("The EqVoice app is not running, so the key cannot be changed. Start EqVoice first.")
 		return false
@@ -478,7 +488,7 @@ function Panel.CaptureKey()
 	Panel.capturing, Panel.captureEnds = true, OV.Now() + Panel.CAPTURE_S
 	Panel.capture:Show()
 	Panel.dirty = true
-	OV.Print("Press the key (or mouse button 3, 4 or 5) to use. Escape or a left or right click cancels.")
+	OV.Print("Press the key (or mouse button 3, 4 or 5) to use" .. (Panel.captureFor == "wkey" and " for whispering. Backspace takes the whisper key away" or "") .. ". Escape or a left or right click cancels.")
 	return true
 end
 
@@ -498,7 +508,13 @@ function Panel.OnCapturedKey(name)
 		Panel.StopCapture("key not changed")
 		return
 	end
+	local which = Panel.captureFor
 	Panel.StopCapture(nil)
+	if which == "wkey" then
+		local none = (name == "BACKSPACE" or name == "DELETE")
+		if Panel.Command("wkey", none and "none" or name) then OV.Print(none and "whisper key removed" or ("whisper key: " .. tostring(name) .. " (the app confirms it in the panel)")) end
+		return
+	end
 	if Panel.Command("key", name) then OV.Print("key: " .. tostring(name) .. " (the app confirms it in the panel)") end
 end
 
@@ -1229,9 +1245,16 @@ function Panel.Build()
 	end)
 	f.meter = f.sGate                                                      -- (the one bar is the meter: there is no second one)
 	f.gateNote = newText(f, "GameFontDisableSmall", 24, -296, 432, 12)
-	f.bTestMic = newButton(f, "EqVoicePanelTestMic", "Test Microphone", 432, 24, -316, function()
+	f.bTestMic = newButton(f, "EqVoicePanelTestMic", "Test Microphone", 120, 24, -316, function()
 		local m = Panel.Model(OV.Now())
 		Panel.SetMicTest(not m.mt)
+	end, 26)
+	f.bDenoise = newButton(f, "EqVoicePanelDenoise", "Noise Suppression: On", 160, 150, -316, function()
+		local m = Panel.Model(OV.Now())
+		Panel.SetDenoise(not m.dn)
+	end, 26)
+	f.bWhisper = newButton(f, "EqVoicePanelWhisper", "Whisper: none", 140, 316, -316, function()
+		if Panel.capturing then Panel.StopCapture("key not changed") else Panel.CaptureKey("wkey") end
 	end, 26)
 
 	-- Speaker: device, volume, where voices are heard from
@@ -1780,13 +1803,22 @@ local function applyModel(f, m)
 	setSelected(f.bMute, m.mute, true)
 	setSelected(f.bDeaf, m.deaf, true)
 	-- the key: what it does depends on the mode (hold to talk, or press to mute and unmute)
-	if m.capturing then
+	if m.capturing and m.capFor == "key" then
 		buttonText(f.bKey, "Press a key...")
 		setSelected(f.bKey, true)
 	else
 		buttonText(f.bKey, "Keybind: " .. m.key)
 		setSelected(f.bKey, false)
 	end
+	if m.capturing and m.capFor == "wkey" then
+		buttonText(f.bWhisper, "Press a key...")
+		setSelected(f.bWhisper, true)
+	else
+		buttonText(f.bWhisper, m.wkey == "none" and "Whisper: none" or ("Whisper: " .. m.wkey))
+		setSelected(f.bWhisper, m.wh)                                                 -- lit while the key is held
+	end
+	buttonText(f.bDenoise, m.dn and "Noise Suppression: On" or "Noise Suppression: Off")
+	setSelected(f.bDenoise, m.dn)
 	-- the sliders (a slider being dragged is left alone: the player's hand is what it shows)
 	if not f.sIn.Busy() then f.sIn.Set(m.input); f.inText:SetText(f.sIn.format(m.input)) end
 	if not f.sVol.Busy() then f.sVol.Set(m.vol); f.volText:SetText(f.sVol.format(m.vol)) end
@@ -1806,7 +1838,7 @@ local function applyModel(f, m)
 	buttonText(f.bSpkDev, short(m.spkName))
 	buttonText(f.bOverhead, "Overhead icons: " .. (Panel.OverheadOn() and "On" or "Off"))
 	setSelected(f.bOverhead, Panel.OverheadOn())
-	local list = { f.bOpen, f.bPtt, f.bMute, f.bDeaf, f.bKey, f.bSetup, f.bGManual, f.bGAuto, f.bGOff, f.bMicDev, f.bSpkDev, f.bReport, f.bTestMic }
+	local list = { f.bOpen, f.bPtt, f.bMute, f.bDeaf, f.bKey, f.bSetup, f.bGManual, f.bGAuto, f.bGOff, f.bMicDev, f.bSpkDev, f.bReport, f.bTestMic, f.bDenoise, f.bWhisper }
 	for i = 1, table.getn(list) do setEnabled(list[i], m.alive) end
 	for mode, b in pairs(f.bSpatial) do setEnabled(b, m.alive) end
 	f.sIn.Enable(m.alive); f.sVol.Enable(m.alive)

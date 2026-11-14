@@ -740,11 +740,13 @@ def test_leaving_range_closes_the_gate_so_even_a_shout_is_silent():
 
 
 def test_the_page_can_be_given_the_curve_it_needs():
-    assert CURVE == {"boost": 2.0, "boost_r": 0.0, "boost_fade": 10.0, "full": 30.0, "full_loud": 45.0, "end": 85.0, "power": 1.6}
+    assert CURVE == {"boost": 2.0, "boost_r": 0.0, "boost_fade": 10.0, "full": 30.0, "full_loud": 45.0, "end": 85.0, "power": 1.6, "points": None, "yell": 0.65}
     assert PeerConfig(**WIDE).wide is True
     plain = PeerConfig(say_radius=41.0, full_radius=10.0)
-    assert plain.curve == {"boost": 1.0, "boost_r": 0.0, "boost_fade": 10.0, "full": 10.0, "full_loud": 10.0, "end": 41.0, "power": 1.6}
+    assert plain.curve == {"boost": 1.0, "boost_r": 0.0, "boost_fade": 10.0, "full": 10.0, "full_loud": 10.0, "end": 41.0, "power": 1.6, "points": None, "yell": 0.65}
     assert plain.wide is False
+    nat = PeerConfig(say_radius=41.0, peak_radius=85.0, natural=True)
+    assert nat.wide is True and nat.curve["points"][2] == [20.0, -6.0206] and nat.curve["end"] == 85.0, "the natural curve is sent as its points"
 
 
 def test_when_there_are_not_enough_call_slots_the_nearest_players_get_them():
