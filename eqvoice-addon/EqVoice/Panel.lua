@@ -1194,6 +1194,16 @@ function Panel.Build()
 	f.logo:SetPoint("TOPLEFT", f, "TOPLEFT", 22, -10)
 	f.title = newText(f, "GameFontNormalLarge", 60, -14, 200, 26)
 	f.title:SetText("EqVoice")
+	do                                                                         -- the version, small and grey, just after the title
+		local v = (GetAddOnMetadata and GetAddOnMetadata("EqVoice", "Version")) or OV.VERSION or ""
+		local w = 84
+		if f.title.GetStringWidth then
+			local ok, sw = pcall(f.title.GetStringWidth, f.title)
+			if ok and type(sw) == "number" and sw > 0 then w = sw end
+		end
+		f.version = newText(f, "GameFontDisableSmall", 60 + w + 6, -23, 80, 12)
+		f.version:SetText("v" .. v)
+	end
 	closeButton(f, "EqVoicePanelClose")
 	f.dot = f:CreateTexture(nil, "OVERLAY")
 	f.dot:SetTexture(WHITE)

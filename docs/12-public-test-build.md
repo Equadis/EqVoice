@@ -83,6 +83,10 @@ Opaque charcoal window, flat compact controls, one purple accent, four groups: a
 
 Not seen in the real game yet: the layout was checked in the test stub (no control overlaps or leaves the window), not on screen.
 
+## 0.6.4 (2026-11, pre-release)
+
+The nameplates are the client's default ones, one to one: EqVoice only switches friendly nameplates on and draws the icon above voice players; it changes nothing on a plate (0.6.3 hid bars and the NPCs' plates). The panel shows the version, small and grey, beside the title.
+
 ## 0.6.3 (2026-11, pre-release)
 
 Nameplates, again: 0.6.2 switched nothing on, so no icons showed. Now the client's default friendly nameplates are on again, but only a voice player's stays visible (the client's own name text, untouched, with the icon above); NPCs and players without EqVoice are hidden.
@@ -132,7 +136,7 @@ your character faces to the other player (so turning the camera does not matter,
 the sides if a client turns out to answer mirrored. Measured in real engines (headphones, 90 degrees right): the right ear is about 3 times louder than the left; mono is equal.
 
 **Icons over heads, honestly.** The names drawn above characters are part of the 3D world: no addon can draw on them. A nameplate is the one thing that sits over a head and can be
-drawn on, so the icon rides on it. From 0.6.3: while a voice player is near, EqVoice switches the client's own friendly nameplates on and keeps only the voice players' visible: their name exactly as the client draws it (font, colour, text and alpha untouched; a test checks) with the icon above; every other friendly plate it caused is hidden. Plates the player already had on (Shift-V) or the Equadis overhaul draws are left alone. Seen in the test stub only; **not seen in the real game**.
+drawn on, so the icon rides on it. From 0.6.4: while a voice player is near, EqVoice switches the client's own friendly nameplates on (the Shift-V switch) and changes nothing on any plate: the default nameplate one to one, with the icon above voice players' names. A test fails if any code touches a plate. Seen in the test stub only; **not seen in the real game**.
 
 **Not done.** The two-ears effect is verified in a real browser engine, not on your ears. Group voice does not exist. Per-player settings are kept by character name, per Windows user.
 
