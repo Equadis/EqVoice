@@ -1383,7 +1383,7 @@ do
 	}
 	for _, sh in ipairs(shapes) do
 		OV.db.dirCal = nil
-		D.learn = { sx = { 0, 0 }, sy = { 0, 0 }, yards = 0 }
+		D.learn = { sx = { 0, 0 }, sy = { 0, 0 }, fx = 0, fy = 0, yards = 0 }
 		local n, w = 0, 0
 		for leg = 1, 4 do
 			local facing = leg * 1.3                                            -- radians, counter-clockwise from north
@@ -1403,8 +1403,33 @@ do
 		local ta, tb = sh.f(10, -10)
 		eq(deg(D.Azimuth(a0, b0, 0, ta, tb, nil, ls, lc)), 45, sh.name .. ": north-east is 45 degrees to the right")
 	end
+	-- a long straight run, facing one way throughout, cannot tell mirrored axes from plain ones: it settles nothing (it used to pick the wrong ones)
+	OV.db.dirCal = nil; D.learn = { sx = { 0, 0 }, sy = { 0, 0 }, fx = 0, fy = 0, yards = 0 }
+	do
+		local n, w = 0, 0
+		for step = 1, 120 do n = n + 0.7; D.Learn(w, n, 0) end                        -- (west-first axes, running north, facing north)
+	end
+	eq(OV.db.dirCal, nil, "80 yards straight ahead settles nothing: the turns are what tell")
+	eq(D.Axes(), -1, "and the first guess stands (four values: ClassicAPI's order)") if false then end
+	-- a reading near a quarter turn snaps to it
+	OV.db.dirCal = nil; D.learn = { sx = { 0, 0 }, sy = { 0, 0 }, fx = 0, fy = 0, yards = 0 }
+	do
+		local n, w = 0, 0
+		for leg = 1, 4 do
+			local facing = leg * 1.3
+			for step = 1, 12 do
+				n, w = n + 0.7 * math.cos(facing), w + 0.7 * math.sin(facing)
+				D.Learn(w, n, facing)                                                 -- west-first, a little off (a 5 degree slip in the heading)
+			end
+		end
+	end
+	check(OV.db.dirCal ~= nil and OV.db.dirCal.v == 2, "settled, marked as learned the new way")
+	check(math.abs(OV.db.dirCal.c - math.pi / 2) < 1e-9, "and the angle snapped to exactly a quarter turn")
+	-- an older saved value (learned before the turns check) is not trusted
+	OV.db.dirCal = { s = 1, c = -2.8 }
+	eq(select(3, D.Axes()), false, "an old learned value is ignored: it may be the wrong one")
 	-- standing still or sidestepping teaches nothing
-	OV.db.dirCal = nil; D.learn = { sx = { 0, 0 }, sy = { 0, 0 }, yards = 0 }
+	OV.db.dirCal = nil; D.learn = { sx = { 0, 0 }, sy = { 0, 0 }, fx = 0, fy = 0, yards = 0 }
 	for i = 1, 300 do D.Learn(5, 5, 1) end
 	eq(OV.db.dirCal, nil, "standing still settles nothing")
 	-- a first guess from the shape of the answer: four values is ClassicAPI's
@@ -1536,6 +1561,42 @@ do
 	check(f.version.pt[4] > f.title.pt[4], "to the right of the title")
 	check(f.version.r < 0.8 and f.version.g < 0.8, "in grey (not the text colour)")
 	_G.GetAddOnMetadata = nil
+end
+
+sec("voice ui: icons from further away: the nameplate range is widened while they are wanted, and put back")
+do
+	local OV = login()
+	local I = OV.Icons
+	OV.db.ui.setupDone = true
+	Stub.cvars.NameplateRange = "41"
+	put(OV, 1, { peers = { "Alice 12.5 1 1 direct s 0" } })
+	Stub.Advance(1)
+	eq(Stub.cvars.NameplateRange, "80", "a voice player is near: nameplates (and so icons) are drawn out to 80 yards")
+	eq(OV.db.ui.plateRangeWas, 41, "the player's own range is remembered")
+	I.SetOverhead(false); Stub.Advance(1)
+	eq(Stub.cvars.NameplateRange, "41", "icons off: the player's own range is back")
+	eq(OV.db.ui.plateRangeWas, nil, "and forgotten")
+	I.SetOverhead(true); Stub.Advance(1)
+	eq(Stub.cvars.NameplateRange, "80", "on again")
+	-- a logout with it widened: put back before the game saves its settings
+	Stub.FireEvent("PLAYER_LOGOUT")
+	eq(Stub.cvars.NameplateRange, "41", "logging out puts the player's range back")
+	-- a crash left it widened: the next login undoes it
+	local OV2 = Stub.Login({ db = OV.db, fileApi = "WriteCustomFile", classic = true })
+	OV2.db.ui.setupDone = true
+	Stub.cvars.NameplateRange = "80"
+	OV2.db.ui.plateRangeWas = 30
+	Stub.Advance(1)
+	eq(Stub.cvars.NameplateRange, "30", "a range left at 80 by a crash is restored from the saved variables")
+	-- a player whose range is already wider keeps it, and a client without the setting is left alone
+	local OV3 = login(); OV3.db.ui.setupDone = true
+	Stub.cvars.NameplateRange = "80"
+	put(OV3, 1, { peers = { "Alice 12.5 1 1 direct s 0" } }); Stub.Advance(1)
+	eq(OV3.db.ui.plateRangeWas, nil, "a range already at 80 is not touched")
+	Stub.cvars.NameplateRange = nil
+	local OV4 = login(); OV4.db.ui.setupDone = true
+	put(OV4, 1, { peers = { "Alice 12.5 1 1 direct s 0" } }); Stub.Advance(1)
+	eq(OV4.db.ui.plateRangeWas, nil, "a client with no NameplateRange setting is left alone")
 end
 
 end

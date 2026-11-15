@@ -32,7 +32,7 @@ Dir.lastWrite = -100
 Dir.last      = {}           -- name -> degrees, as last written
 Dir.stats     = { writes = 0, errors = 0 }
 Dir.LEARN_YARDS = 20         -- yards of running forward before the axes are settled
-Dir.learn     = { sx = { 0, 0 }, sy = { 0, 0 }, yards = 0 }
+Dir.learn     = { sx = { 0, 0 }, sy = { 0, 0 }, fx = 0, fy = 0, yards = 0 }
 
 -- Which way you face, in radians: 0 north, growing counter-clockwise. nil when the client cannot say.
 function Dir.Facing()
@@ -59,7 +59,7 @@ end
 -- `c` (radians) is where straight ahead of a character facing 0 lies in them. SuperWoW's (north, west) is s 1, c 0; ClassicAPI's (west, north) is s -1, c 90 degrees.
 function Dir.Axes()
 	local cal = OV.db and OV.db.dirCal
-	if type(cal) == "table" and type(cal.s) == "number" and type(cal.c) == "number" then return cal.s, cal.c, true end
+	if type(cal) == "table" and cal.v == 2 and type(cal.s) == "number" and type(cal.c) == "number" then return cal.s, cal.c, true end       -- (v 2: learned with the turns check; older ones could be wrong)
 	if type(UnitPosition) == "function" then
 		local ok, a, b, c, d = pcall(UnitPosition, "player")
 		if ok and d ~= nil then return -1, math.pi / 2, false end         -- four values: ClassicAPI's (y, x, z, map)
@@ -104,20 +104,31 @@ function Dir.Learn(pa, pb, facing)
 				L.sx[k] = L.sx[k] + d * math.cos(e)
 				L.sy[k] = L.sy[k] + d * math.sin(e)
 			end
+			L.fx, L.fy = L.fx + d * math.cos(facing), L.fy + d * math.sin(facing)
 			L.yards = L.yards + d
 		end
 	end
 	L.pa, L.pb, L.f = pa, pb, facing
 	if L.yards >= Dir.LEARN_YARDS then
+		-- Running in ONE direction cannot tell a mirrored set of axes from a plain one (both give a steady angle), so the run has to have turned:
+		-- the way you faced must have varied (spread < 0.85) before it counts. A straight run is kept and added to, not decided on.
+		local spread = math.sqrt(L.fx * L.fx + L.fy * L.fy) / L.yards
 		local r1 = math.sqrt(L.sx[1] * L.sx[1] + L.sy[1] * L.sy[1])
 		local r2 = math.sqrt(L.sx[2] * L.sx[2] + L.sy[2] * L.sy[2])
 		local k = (r1 >= r2) and 1 or 2
-		local r = (k == 1) and r1 or r2
-		if r / L.yards >= 0.75 and OV.db then
-			OV.db.dirCal = { s = (k == 1) and 1 or -1, c = math.atan2(L.sy[k], L.sx[k]) }
-			Dir.settled = (Dir.settled or 0) + 1
+		local r, other = (k == 1) and r1 or r2, (k == 1) and r2 or r1
+		if spread <= 0.85 then
+			if r / L.yards >= 0.85 and other / L.yards <= 0.75 and OV.db then
+				local c = math.atan2(L.sy[k], L.sx[k])
+				local q = (math.pi / 2) * math.floor(c / (math.pi / 2) + 0.5)            -- the axes are a quarter-turn apart: a reading near one is that one
+				if math.abs(wrap(c - q)) < 0.3 then c = wrap(q) end
+				OV.db.dirCal = { s = (k == 1) and 1 or -1, c = c, v = 2 }
+				Dir.settled = (Dir.settled or 0) + 1
+			end
+			L.sx, L.sy, L.fx, L.fy, L.yards = { 0, 0 }, { 0, 0 }, 0, 0, 0         -- and look again over the next 20 yards (a patch can change the axes)
+		elseif L.yards >= Dir.LEARN_YARDS * 4 then
+			L.sx, L.sy, L.fx, L.fy, L.yards = { 0, 0 }, { 0, 0 }, 0, 0, 0         -- 80 yards without a turn: start again rather than grow forever
 		end
-		L.sx, L.sy, L.yards = { 0, 0 }, { 0, 0 }, 0                    -- and look again over the next 20 yards (a patch can change the axes)
 	end
 end
 

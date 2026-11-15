@@ -286,6 +286,7 @@ function OV.OnEvent(event, a1, a2, a3, a4)
 		OV.Comm.OnAddon(a1, a2, a3, a4, now)
 		OV.Diag.OnAddon(a1, a2, a3, a4, now)
 	elseif event == "PLAYER_LOGOUT" then
+		if OV.Icons and OV.Icons.RestoreRange then pcall(OV.Icons.RestoreRange) end          -- the player's own nameplate range goes back before the game saves its settings
 		if OV.started then
 			OV.Comm.SendBye(now)
 			OV.Trace("logout: sending the final frame so the desktop client leaves the roster")
@@ -442,8 +443,8 @@ function OV.Slash(msg)
 	elseif cmd == "dir" then
 		if w[2] == "reset" then
 			OV.db.dirCal = nil
-			OV.Direction.learn = { sx = { 0, 0 }, sy = { 0, 0 }, yards = 0 }
-			OV.Print("voice direction: forgot the learned axes; run 20 yards straight ahead to learn them again")
+			OV.Direction.learn = { sx = { 0, 0 }, sy = { 0, 0 }, fx = 0, fy = 0, yards = 0 }
+			OV.Print("voice direction: forgot the learned axes; run 20 yards, with a turn or two, to learn them again")
 		elseif w[2] == "flip" then
 			OV.db.dirFlip = not OV.db.dirFlip and true or nil
 			OV.Print("voice direction: left and right " .. (OV.db.dirFlip and "swapped" or "as the game gives them"))
@@ -457,7 +458,7 @@ function OV.Slash(msg)
 			if not (facing and pn) then OV.Print("this client cannot say where you face or stand: voices will not have a direction")
 			elseif not tn then
 				local as, ac, learned = D.Axes()
-				OV.Print(string.format("you face %d degrees (0 north, 90 west); axes %s (%s). Target a player to see where they are, or run 20 yards straight ahead to let the addon learn the axes",
+				OV.Print(string.format("you face %d degrees (0 north, 90 west); axes %s (%s). Target a player to see where they are, or run about 20 yards, turning once or twice, to let the addon learn the axes",
 					math.floor(facing * 180 / math.pi + 0.5), as == 1 and "turn with you" or "mirrored", learned and "learned from your running" or "a first guess"))
 			else
 				local as, ac = D.Axes()

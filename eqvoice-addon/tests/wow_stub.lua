@@ -348,7 +348,9 @@ function Stub.Boot(opts)
 	_G.GetNumPartyMembers = function() return Stub.party end
 	_G.GetBuildInfo = function() return "1.12.1", "5875", "Sep 19 2006" end
 	_G.GetLocale = function() return "enUS" end
-	_G.GetCVar = function(n) return "x" end
+	Stub.cvars = {}
+	_G.GetCVar = function(n) local v = Stub.cvars[n]; if v == nil then return "x" end; return v end
+	_G.SetCVar = function(n, v) Stub.cvars[n] = tostring(v) end
 	_G.getglobal = function(n) return _G[n] end
 	_G.CreateFrame = function(kind, name, parent, template)
 		if kind == "Slider" and Stub.noSlider then error("Couldn't create a Slider") end            -- a client that will not make one

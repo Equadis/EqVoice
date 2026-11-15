@@ -83,6 +83,16 @@ Opaque charcoal window, flat compact controls, one purple accent, four groups: a
 
 Not seen in the real game yet: the layout was checked in the test stub (no control overlaps or leaves the window), not on screen.
 
+## 0.6.5 (2026-11, pre-release)
+
+**Direction.** The addon learns the position axes from your running, but a run in one direction cannot tell mirrored axes from plain ones, and it used to pick one at random: a wrong
+pick sounded wrong until a later run with turns put it right ("bugged at first, then fixed itself"). It now only settles after a run in which you turned, snaps the angle to a quarter
+turn, and ignores values saved by the old code. The first guess (four-value `UnitPosition`: ClassicAPI's order, west first) was right on the three accounts that had learned it.
+
+**Icons from further away.** A plate, and the icon on it, only exists within the nameplate range (41 yd on this install). While icons are wanted and a voice player is near, EqVoice raises
+SuperWoW's `NameplateRange` to 80 yd (a voice carries to 85) and puts the player's own value back afterwards: when icons go off, at logout, and (from the saved variables) after a crash.
+A side effect to know: other nameplates (enemies) also show out to 80 yd while it is widened.
+
 ## 0.6.4 (2026-11, pre-release)
 
 The nameplates are the client's default ones, one to one: EqVoice only switches friendly nameplates on and draws the icon above voice players; it changes nothing on a plate (0.6.3 hid bars and the NPCs' plates). The panel shows the version, small and grey, beside the title.

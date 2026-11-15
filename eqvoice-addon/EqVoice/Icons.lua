@@ -81,6 +81,8 @@ Icons.UNIT_NAMES = { "TargetName", "PlayerName", "PartyMemberFrame1Name", "Party
 Icons.ECO_PARTY = 4            -- ECO's party frames draw their own names: one more surface for each
 local PLATE_BORDER = "Interface\\Tooltips\\Nameplate-Border"
 
+Icons.RANGE   = 80             -- yards: the nameplate range while icons are wanted (a voice carries to 85; SuperWoW's NameplateRange goes up to 80)
+Icons.rangeSet = false         -- the range was widened by EqVoice (and must be put back)
 Icons.forced  = false          -- friendly nameplates are on because EqVoice switched them on (and only then are plates made quiet)
 Icons.assertAt = -100          -- when they were last switched on (it is repeated: another addon may switch them off)
 Icons.needUntil = -100         -- overhead icons are wanted until then (a voice player was near a moment ago)
@@ -379,8 +381,38 @@ local function findPlates()
 	end
 end
 
+-- The nameplate range: a plate (and so the icon on it) only exists within the client's nameplate range, 41 yards or whatever the player set, and
+-- a voice carries much further. While icons are wanted the range is raised to Icons.RANGE if it is lower, and the player's own value is put back
+-- afterwards (kept in the saved variables too, so a crash or a logout with it widened is undone at the next login). Only where the client has
+-- the setting (SuperWoW's NameplateRange); elsewhere nothing happens.
+local function rangeNow()
+	if not GetCVar then return nil end
+	local ok, v = pcall(GetCVar, "NameplateRange")
+	return ok and tonumber(v) or nil
+end
+
+local function restoreRange()
+	local was = OV.db and OV.db.ui and OV.db.ui.plateRangeWas
+	if was and SetCVar then
+		local cur = rangeNow()
+		if cur == Icons.RANGE or Icons.rangeSet then pcall(SetCVar, "NameplateRange", was) end
+	end
+	if OV.db and OV.db.ui then OV.db.ui.plateRangeWas = nil end
+	Icons.rangeSet = false
+end
+Icons.RestoreRange = restoreRange
+
+local function widenRange()
+	if Icons.rangeSet or not SetCVar then return end
+	local cur = rangeNow()
+	if not cur or cur >= Icons.RANGE then return end
+	if OV.db and OV.db.ui then OV.db.ui.plateRangeWas = cur end
+	if pcall(SetCVar, "NameplateRange", Icons.RANGE) then Icons.rangeSet = true end
+end
+
 local function release(now)
 	Icons.forced = false
+	restoreRange()
 	if not FRIENDNAMEPLATES_ON and type(HideFriendNameplates) == "function" then HideFriendNameplates() end
 end
 
@@ -390,6 +422,11 @@ local function ensurePlates(now, on)
 	local alive = OV.Status.Alive(now)
 	if alive and (OV.Status.npeers or 0) > 0 then Icons.needUntil = now + Icons.NEED_HOLD end
 	local want = on and Icons.OverheadOn() and alive and now < Icons.needUntil
+	if not Icons.rangeChecked then                          -- a range left widened by a crash or a logout: back to the player's own
+		Icons.rangeChecked = true
+		if OV.db and OV.db.ui and OV.db.ui.plateRangeWas and rangeNow() == Icons.RANGE then restoreRange() end
+	end
+	if want then widenRange() elseif Icons.rangeSet then restoreRange() end
 	if FRIENDNAMEPLATES_ON then
 		Icons.forced = false
 		return
