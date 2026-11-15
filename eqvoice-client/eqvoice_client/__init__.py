@@ -1,2 +1,2 @@
 """EqVoice desktop client: proximity-driven peer-to-peer voice."""
-__version__ = "0.5.3"
+__version__ = "0.6.0"

@@ -47,13 +47,10 @@ Panel.REPLAY_ORDER = { "micdev", "spkdev", "mode", "volume", "input", "spatial",
 Panel.SPATIAL_LABEL = { mono = "Mono", speakers = "Speakers", headphones = "Headphones" }
 Panel.SPATIAL_ORDER = { "headphones", "speakers", "mono" }
 Panel.CAPTURE_S = 10         -- seconds "press a key" waits
-Panel.ART       = "Interface\\AddOns\\EqVoice\\"     -- MicroUp, MicroDown, MicGlyph, MicSlash (.tga), drawn by tools/make_micro_art.py
-Panel.BTN_W     = 28                                   -- the size of the client's own micro buttons
-Panel.BTN_H     = 58
-Panel.DOCK_GAP  = 2
-Panel.DOCK_S    = 1                                    -- seconds between looks at where the micro bar is
-Panel.MICRO     = { "CharacterMicroButton", "SpellbookMicroButton", "TalentMicroButton", "QuestLogMicroButton", "SocialsMicroButton",
-										"WorldMapMicroButton", "MainMenuMicroButton", "HelpMicroButton", "LFGMicroButton", "PVPMicroButton", "ShopMicroButton" }
+Panel.ART       = "Interface\\AddOns\\EqVoice\\"     -- MicGlyph, MicSlash, Knob ... (.tga), drawn by tools/make_micro_art.py
+Panel.IND_SIZE  = 40                                   -- the indicator: a square, drawn in the panel's own theme
+Panel.IND_TOP   = 0.15                                 -- where it starts: in the middle of the screen, this far down (a fraction of the height: the top quarter)
+Panel.DOCK_S    = 1                                    -- seconds between looks at the screen size (the default place follows it)
 
 -- What the microphone setup asks of you, in order (the app times each step and says which one it is on).
 Panel.SETUP_STEPS = {
@@ -73,8 +70,7 @@ Panel.seenVersion = -1
 Panel.dirty       = true
 Panel.lastRefresh = -100
 Panel.lastDock    = -100
-Panel.dockedTo    = nil      -- the micro button the indicator is anchored to (false: floating at the top of the screen)
-Panel.dockedScale = nil
+Panel.dockedTo    = nil      -- the screen height the indicator's default place was worked out for
 Panel.dragging    = false
 Panel.error       = nil
 Panel.sliders     = {}       -- every slider made, so that the tick can send the ones that have come to rest
@@ -1902,39 +1898,32 @@ local function applyModel(f, m)
 	end
 end
 
--- The indicator: a microphone button drawn like the client's micro-bar buttons. It sits to the right of the micro bar (wherever
--- the player or a UI addon put that bar) and shows the state by the colour of the microphone: green = live, cyan = talking,
--- yellow = needs a look, red = muted or deafened or broken (a slash over it for muted and deafened), grey = the app is not running.
--- If the micro bar is hidden it floats at the top of the screen instead. Shift-drag moves it for good; /eqvc reset docks it again.
-local function glyphTexture(b, file, layer)
-	local t = b:CreateTexture(nil, layer)
-	t:SetTexture(Panel.ART .. file)
-	t:SetWidth(20)
-	t:SetHeight(20)
-	t:SetPoint("CENTER", b, "CENTER", 0, -9)           -- the middle of the 40-pixel body, not of the 58-pixel frame
-	return t
-end
-
+-- The indicator: a small rounded button in the panel's own theme (deep navy, a ring and a microphone in the colour of the state): green = live,
+-- cyan = talking, yellow = needs a look, red = muted or deafened or broken (a slash over it for muted and deafened), grey = the app is not running.
+-- It starts in the middle of the screen, in the top quarter, and can be dragged anywhere (the place is kept); /eqvc reset puts it back.
 function Panel.BuildIndicator()
 	if Panel.indicator then return Panel.indicator end
 	if not CreateFrame or not UIParent then return nil end
 	local b = CreateFrame("Button", "EqVoiceIndicator", UIParent)
-	b:SetWidth(Panel.BTN_W)
-	b:SetHeight(Panel.BTN_H)
+	b:SetWidth(Panel.IND_SIZE)
+	b:SetHeight(Panel.IND_SIZE)
 	b:SetFrameStrata("MEDIUM")
 	b:EnableMouse(true)
 	b:SetMovable(true)
 	b:SetClampedToScreen(true)
-	if b.SetHitRectInsets then b:SetHitRectInsets(0, 0, 18, 0) end     -- only the visible body takes clicks, as with the real ones
 	b:RegisterForClicks("LeftButtonUp", "RightButtonUp")
 	b:RegisterForDrag("LeftButton")
-	b:SetNormalTexture(Panel.ART .. "MicroUp.tga")
-	b:SetPushedTexture(Panel.ART .. "MicroDown.tga")
-	b:SetHighlightTexture("Interface\\Buttons\\ButtonHilight-Square")
-	local hl = b:GetHighlightTexture()
-	if hl and hl.SetBlendMode then hl:SetBlendMode("ADD") end
-	b.glyph = glyphTexture(b, "MicGlyph.tga", "OVERLAY")
-	b.slash = glyphTexture(b, "MicSlash.tga", "OVERLAY")
+	paint(b, THEME.card, THEME.edge, 10)
+	b.glyph = b:CreateTexture(nil, "OVERLAY")
+	b.glyph:SetTexture(Panel.ART .. "MicGlyph.tga")
+	b.glyph:SetWidth(24)
+	b.glyph:SetHeight(24)
+	b.glyph:SetPoint("CENTER", b, "CENTER", 0, 0)
+	b.slash = b:CreateTexture(nil, "OVERLAY")
+	b.slash:SetTexture(Panel.ART .. "MicSlash.tga")
+	b.slash:SetWidth(24)
+	b.slash:SetHeight(24)
+	b.slash:SetPoint("CENTER", b, "CENTER", 0, 0)
 	b.slash:Hide()
 	b.badgeText = ""
 	local s = OV.db and OV.db.ui and OV.db.ui.indicatorPos
@@ -1942,12 +1931,11 @@ function Panel.BuildIndicator()
 	b:SetScript("OnClick", safe(function()
 		if arg1 == "RightButton" then Panel.ToggleMute() else Panel.Toggle() end
 	end))
-	b:SetScript("OnMouseDown", safe(function() this.glyph:SetPoint("CENTER", this, "CENTER", 1, -10); this.slash:SetPoint("CENTER", this, "CENTER", 1, -10) end))
-	b:SetScript("OnMouseUp", safe(function() this.glyph:SetPoint("CENTER", this, "CENTER", 0, -9); this.slash:SetPoint("CENTER", this, "CENTER", 0, -9) end))
-	-- Shift is needed to drag: in a row of buttons a stray drag would be a nuisance
-	b:SetScript("OnDragStart", function()
-		if IsShiftKeyDown and IsShiftKeyDown() then Panel.dragging = true; this:StartMoving() end
-	end)
+	b:SetScript("OnEnter", function() hover(this, true) end)
+	b:SetScript("OnLeave", function() hover(this, false) end)
+	b:SetScript("OnMouseDown", safe(function() this.glyph:SetPoint("CENTER", this, "CENTER", 1, -1); this.slash:SetPoint("CENTER", this, "CENTER", 1, -1) end))
+	b:SetScript("OnMouseUp", safe(function() this.glyph:SetPoint("CENTER", this, "CENTER", 0, 0); this.slash:SetPoint("CENTER", this, "CENTER", 0, 0) end))
+	b:SetScript("OnDragStart", function() Panel.dragging = true; this:StartMoving() end)
 	b:SetScript("OnDragStop", safe(function()
 		if not Panel.dragging then return end
 		Panel.dragging = false
@@ -1958,51 +1946,22 @@ function Panel.BuildIndicator()
 	return b
 end
 
--- The right-most micro button on screen in the same row as the first one, or nil if the micro bar is not showing.
--- Looked up every time: UI addons gather the micro buttons into a bar of their own, move it, scale it or hide it.
-function Panel.MicroTarget()
-	local first = getglobal(Panel.MICRO[1])
-	if not (first and first.IsVisible and first:IsVisible() and first.GetBottom and first.GetEffectiveScale) then return nil end
-	local fb = first:GetBottom()
-	if not fb then return nil end
-	fb = fb * first:GetEffectiveScale()
-	local best, bestRight
-	for i = 1, table.getn(Panel.MICRO) do
-		local b = getglobal(Panel.MICRO[i])
-		if b and b.IsVisible and b:IsVisible() and b.GetRight and b.GetBottom and b.GetEffectiveScale then
-			local r, bot = b:GetRight(), b:GetBottom()
-			if r and bot then
-				local sc = b:GetEffectiveScale()
-				if math.abs(bot * sc - fb) < 12 and (not bestRight or r * sc > bestRight) then best, bestRight = b, r * sc end
-			end
-		end
-	end
-	return best
-end
-
--- Put the indicator where it belongs: where the player dragged it, else beside the micro bar, else at the top of the screen.
+-- Put the indicator where it belongs: where the player dragged it, else the middle of the screen in the top quarter.
 function Panel.Dock()
 	local b = Panel.indicator
 	if not b then return end
 	local s = OV.db and OV.db.ui and OV.db.ui.indicatorPos
 	if s and s.point then return end
-	local t = Panel.MicroTarget()
-	local scale = 1
-	if t and UIParent.GetEffectiveScale then scale = t:GetEffectiveScale() / UIParent:GetEffectiveScale() end
-	if t == nil then t = false end
-	if t == Panel.dockedTo and scale == Panel.dockedScale then return end
-	Panel.dockedTo, Panel.dockedScale = t, scale
+	local h = (UIParent and UIParent.GetHeight and UIParent:GetHeight()) or 768
+	if h == Panel.dockedTo then return end
+	Panel.dockedTo = h
 	b:ClearAllPoints()
-	b:SetScale(scale)
-	if t then
-		b:SetPoint("BOTTOMLEFT", t, "BOTTOMRIGHT", Panel.DOCK_GAP, 0)
-	else
-		b:SetPoint("TOP", UIParent, "TOP", 0, -64)
-	end
+	b:SetPoint("TOP", UIParent, "TOP", 0, -math.floor(h * Panel.IND_TOP))
 end
 
 local function applyIndicator(b, m)
 	b.badgeText = m.badge
+	paint(b, THEME.card, { m.color[1] * 0.8, m.color[2] * 0.8, m.color[3] * 0.8 }, 10)       -- the ring is the colour of the state
 	b.glyph:SetVertexColor(m.color[1], m.color[2], m.color[3])
 	if m.alive and (m.mute or m.deaf) then
 		b.slash:SetVertexColor(COLORS.bad[1], COLORS.bad[2], COLORS.bad[3])
@@ -2157,7 +2116,7 @@ function Panel.ResetPositions()
 	if Panel.setup then restorePos(Panel.setup, "setupPos", "TOP", 0, -150) end
 	if OV.Wizard and OV.Wizard.ResetPosition then OV.Wizard.ResetPosition() end
 	if Panel.blocklist then restorePos(Panel.blocklist, "blocklistPos", "CENTER", 260, 40) end
-	Panel.dockedTo, Panel.dockedScale = nil, nil            -- forces Dock to place it again
+	Panel.dockedTo = nil                                    -- forces Dock to place it again
 	pcall(Panel.Dock)
 end
 

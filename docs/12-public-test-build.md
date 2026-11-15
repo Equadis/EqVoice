@@ -83,6 +83,13 @@ Opaque charcoal window, flat compact controls, one purple accent, four groups: a
 
 Not seen in the real game yet: the layout was checked in the test stub (no control overlaps or leaves the window), not on screen.
 
+## 0.6.0 (2026-11, pre-release): the test build before 1.0
+
+Everything from 0.5.x (whisper, noise suppression, the natural volume curve, direction that learns its axes, red muted and deafened icons, the player window and
+round slider knobs) plus a new **indicator**: a small rounded button in the panel's own theme (a ring and microphone in the colour of the state) that starts in the middle of
+the screen in the top quarter, draggable anywhere (`/eqvc reset` puts it back). EqVoice never changes the player's nameplate font, colour or text (a test checks it).
+If this build holds up in play it becomes 1.0.
+
 ## 0.5.0 (2026-11): whisper, noise suppression, a natural volume curve, direction that learns
 
 Borrowed from Simple Voice Chat's proximity voice (not its groups): **whispering** (hold a key you choose, Whisper in the panel; you are heard as if twice as far

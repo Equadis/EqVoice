@@ -348,18 +348,13 @@ do
 	Stub.Advance(8)
 	check(string.find(f.status.text, "not running", 1, true), "app gone: " .. f.status.text)
 	eq(f.bOpen.enabled, false, "buttons are disabled"); eq(ind.badgeText, "NO APP", "indicator"); eq(ind.slash.shown, false, "no slash without the app")
-	eq(ind.scripts.OnEnter, nil, "the indicator has no tooltip")
-	eq(Stub.tip.shown, false, "and leaving hides it")
-	-- dragging (with Shift) remembers the place; /eqvc reset forgets it
+	eq(Stub.tip.shown, false, "the indicator has no tooltip")
+	-- dragging remembers the place; /eqvc reset forgets it
 	_G.this = ind
 	ind.scripts.OnDragStart()
-	eq(ind.moving, nil, "a drag without Shift does not move it")
-	Stub.shift = true
-	ind.scripts.OnDragStart()
-	eq(ind.moving, true, "Shift-drag moves it")
+	eq(ind.moving, true, "a drag moves it")
 	ind.pt = { "BOTTOMLEFT", UIParent, "BOTTOMLEFT", 120, 400 }
 	ind.scripts.OnDragStop()
-	Stub.shift = false
 	eq(OV.db.ui.indicatorPos.x, 120, "the indicator's place is saved"); eq(OV.db.ui.indicatorPos.point, "BOTTOMLEFT", "with its anchor")
 	f.pt = { "CENTER", UIParent, "CENTER", 5, 6 }
 	_G.this = f
@@ -384,85 +379,40 @@ do
 	check(EqVoiceIndicator == nil, "no indicator when it was turned off")
 end
 
--- ===================================================================== the micro bar
-sec("panel: the indicator sits beside the micro bar")
+-- ===================================================================== the indicator
+sec("panel: the indicator is a themed button that starts in the middle of the top quarter of the screen")
 do
-	local function enter(scale, setup)
-		local OV = Stub.Boot({ fileApi = "WriteCustomFile", classic = true })
-		local bar = Stub.MicroBar(800, 4, scale or 1)
-		if setup then setup(bar) end
-		Stub.FireEvent("VARIABLES_LOADED")
-		Stub.FireEvent("PLAYER_ENTERING_WORLD")
-		return OV, bar, EqVoiceIndicator
-	end
+	local OV = Stub.Boot({ fileApi = "WriteCustomFile", classic = true })
+	local bar = Stub.MicroBar(800, 4, 1)                                  -- (a micro bar being there changes nothing)
+	Stub.FireEvent("VARIABLES_LOADED")
+	Stub.FireEvent("PLAYER_ENTERING_WORLD")
+	local ind = EqVoiceIndicator
 	local ART = "Interface\\AddOns\\EqVoice\\"
-
-	-- docked to the right-most micro button, drawn like one
-	local OV, bar, ind = enter(1)
-	eq(ind.pt[1], "BOTTOMLEFT", "its bottom-left corner..."); eq(ind.pt[2], bar.HelpMicroButton, "...is anchored to the right-most micro button")
-	eq(ind.pt[3], "BOTTOMRIGHT", "at that button's bottom-right"); eq(ind.pt[4], 2, "two pixels along"); eq(ind.pt[5], 0, "on the same baseline")
-	eq(ind.w, 28, "as wide as a micro button"); eq(ind.h, 58, "and as tall")
-	eq(ind.normalTex, ART .. "MicroUp.tga", "the frame art"); eq(ind.pushedTex, ART .. "MicroDown.tga", "and its pressed art")
-	eq(ind.hl.path, "Interface\\Buttons\\ButtonHilight-Square", "the client's own highlight"); eq(ind.hl.blend, "ADD", "added to the picture")
+	local h = UIParent:GetHeight() or 768
+	eq(ind.pt[1], "TOP", "anchored by its top..."); eq(ind.pt[2], UIParent, "...to the screen"); eq(ind.pt[3], "TOP", "at the top edge"); eq(ind.pt[4], 0, "in the middle, left to right")
+	check(ind.pt[5] < 0 and -ind.pt[5] <= h * 0.25 and -ind.pt[5] > 0, "and a little way down: in the top quarter of the screen (" .. tostring(ind.pt[5]) .. " of " .. h .. ")")
+	eq(ind.w, 40, "a 40 pixel square"); eq(ind.h, 40, "")
+	check(ind.rbox ~= nil and ind.bgc ~= nil, "drawn in the panel's own rounded theme")
+	check(ind.normalTex == nil, "not the client's micro button art any more")
 	eq(ind.glyph.path, ART .. "MicGlyph.tga", "the microphone"); eq(ind.slash.path, ART .. "MicSlash.tga", "and the slash")
-	eq(ind.scale, 1, "at the micro bar's size")
 	eq(OV.Panel.error, nil, "no drawing error")
-	-- pressing it moves the microphone down a pixel, like the real buttons' pressed art
+	-- pressing it moves the microphone a pixel
 	_G.this = ind
-	ind.scripts.OnMouseDown(); eq(ind.glyph.pt[5], -10, "pressed")
-	ind.scripts.OnMouseUp(); eq(ind.glyph.pt[5], -9, "released")
-
-	-- the micro bar is hidden (a UI addon hides it): the indicator floats at the top of the screen, and comes back
-	for name, b in pairs(bar) do b.shown = false end
-	Stub.Advance(1.5)
-	eq(ind.pt[1], "TOP", "with the micro bar hidden it floats at the top"); eq(ind.pt[2], UIParent, "of the screen")
-	for name, b in pairs(bar) do b.shown = true end
-	Stub.Advance(1.5)
-	eq(ind.pt[2], bar.HelpMicroButton, "and docks again when the micro bar returns")
-
-	-- a micro bar gathered into a smaller bar of its own: the indicator takes its size
-	local OV2, bar2, ind2 = enter(0.65)
-	eq(ind2.pt[2], bar2.HelpMicroButton, "a scaled micro bar is found too"); check(math.abs(ind2.scale - 0.65) < 0.001, "and the indicator is scaled to match: " .. tostring(ind2.scale))
-
-	-- more buttons in the row (Turtle's) are part of it; buttons elsewhere on the screen are not
-	local OV3, bar3, ind3 = enter(1)
-	local shop = CreateFrame("Button", "ShopMicroButton", UIParent)
-	shop.layout = { 1060, 4, 1088 }
-	Stub.Advance(1.5)
-	eq(ind3.pt[2], shop, "an extra button on the same row counts: the indicator goes after it")
-	shop.layout = { 1060, 600, 1088 }
-	Stub.Advance(1.5)
-	eq(ind3.pt[2], bar3.HelpMicroButton, "one somewhere else on the screen does not")
-
-	-- the player moves it: that wins over the micro bar until /eqvc reset
-	local OV4, bar4, ind4 = enter(1)
-	_G.this = ind4
-	Stub.shift = true
-	ind4.scripts.OnDragStart()
-	ind4.pt = { "BOTTOMLEFT", UIParent, "BOTTOMLEFT", 300, 500 }
-	ind4.scripts.OnDragStop()
-	Stub.shift = false
-	check(OV4.db.ui.indicatorPos ~= nil and OV4.db.ui.indicatorPos.scale == 1, "the place and the scale are saved")
-	for name, b in pairs(bar4) do b.shown = false end
-	Stub.Advance(1.5)
-	for name, b in pairs(bar4) do b.shown = true end
-	Stub.Advance(1.5)
-	eq(ind4.pt[4], 300, "it stays where the player put it, whatever the micro bar does")
+	ind.scripts.OnMouseDown(); eq(ind.glyph.pt[4], 1, "pressed")
+	ind.scripts.OnMouseUp(); eq(ind.glyph.pt[4], 0, "released")
+	-- the ring is the colour of the state
+	local P = OV.Panel
+	local m = P.Model(Stub.now)
+	check(ind.rbox.edge ~= nil, "it has a ring")
+	-- the player moves it: that wins until /eqvc reset
+	ind.scripts.OnDragStart()
+	ind.pt = { "BOTTOMLEFT", UIParent, "BOTTOMLEFT", 300, 500 }
+	ind.scripts.OnDragStop()
+	check(OV.db.ui.indicatorPos ~= nil, "the place is saved")
+	Stub.Advance(2.5)
+	eq(ind.pt[4], 300, "it stays where the player put it")
 	SlashCmdList["EQVOICEUI"]("reset")
-	eq(OV4.db.ui.indicatorPos, nil, "/eqvc reset forgets that"); eq(ind4.pt[2], bar4.HelpMicroButton, "and docks it beside the micro bar again")
-
-	-- and a client whose frames lack a method the code relies on (a hit rectangle) still draws the button
-	local inset
-	local OV5 = Stub.Boot({ fileApi = "WriteCustomFile", classic = true })
-	local real = _G.CreateFrame
-	_G.CreateFrame = function(kind, name, parent, template)
-		local f = real(kind, name, parent, template)
-		if name == "EqVoiceIndicator" then f.SetHitRectInsets = function(self, l, r, t, b) inset = { l, r, t, b } end end
-		return f
-	end
-	Stub.FireEvent("VARIABLES_LOADED"); Stub.FireEvent("PLAYER_ENTERING_WORLD")
-	check(inset ~= nil and inset[3] == 18, "where the client has it, only the visible body of the button takes clicks")
-	_G.CreateFrame = real
+	eq(OV.db.ui.indicatorPos, nil, "/eqvc reset forgets that"); eq(ind.pt[1], "TOP", "and puts it back in the middle of the top quarter"); eq(ind.pt[4], 0, "")
 end
 
 -- ===================================================================== a drawing failure never stops the voice

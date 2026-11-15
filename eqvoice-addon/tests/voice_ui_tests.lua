@@ -483,7 +483,19 @@ do
 	put(OV, 1, { peers = { "Alice 12.5 1 1 direct s 0" } })
 	local pa = Stub.AddPlate("Alice", "player")
 	local pw = Stub.AddPlate("Boss", "enemy")
+	-- the player's own nameplate font is never touched: any attempt to change a plate's text is an error here
+	local fontCalls = 0
+	for _, plate in ipairs({ pa, pw }) do
+		for _, r in ipairs({ plate.nameText, plate.level }) do
+			r.SetFont = function() fontCalls = fontCalls + 1 end
+			r.SetFontObject = function() fontCalls = fontCalls + 1 end
+			r.SetTextColor = function() fontCalls = fontCalls + 1 end
+			r.SetText = function() fontCalls = fontCalls + 1 end
+		end
+	end
 	Stub.Advance(1)
+	eq(fontCalls, 0, "EqVoice never changes the font, colour or text of a nameplate")
+	eq(I.error, nil, "and the plates raised no error")
 	eq(Stub.friendPlates, true, "a voice player is near: friendly nameplates are switched on")
 	eq(pa.bar.alpha, 0, "and the plate EqVoice caused is quiet: no health bar"); eq(pa.border.alpha, 0, "no border"); eq(pa.level.alpha, 0, "and no level")
 	eq(pw.bar.alpha, 1, "an enemy's plate is left exactly as it was")
