@@ -380,7 +380,7 @@ do
 end
 
 -- ===================================================================== the indicator
-sec("panel: the indicator is a themed button that starts in the middle of the top quarter of the screen")
+sec("panel: the indicator is a slim themed button that starts in the middle of the top quarter of the screen")
 do
 	local OV = Stub.Boot({ fileApi = "WriteCustomFile", classic = true })
 	local bar = Stub.MicroBar(800, 4, 1)                                  -- (a micro bar being there changes nothing)
@@ -391,7 +391,7 @@ do
 	local h = UIParent:GetHeight() or 768
 	eq(ind.pt[1], "TOP", "anchored by its top..."); eq(ind.pt[2], UIParent, "...to the screen"); eq(ind.pt[3], "TOP", "at the top edge"); eq(ind.pt[4], 0, "in the middle, left to right")
 	check(ind.pt[5] < 0 and -ind.pt[5] <= h * 0.25 and -ind.pt[5] > 0, "and a little way down: in the top quarter of the screen (" .. tostring(ind.pt[5]) .. " of " .. h .. ")")
-	eq(ind.w, 40, "a 40 pixel square"); eq(ind.h, 40, "")
+	eq(ind.w, 14, "14 pixels wide (half the width, then 30% smaller)"); eq(ind.h, 28, "and 28 tall")
 	check(ind.rbox ~= nil and ind.bgc ~= nil, "drawn in the panel's own rounded theme")
 	check(ind.normalTex == nil, "not the client's micro button art any more")
 	eq(ind.glyph.path, ART .. "MicGlyph.tga", "the microphone"); eq(ind.slash.path, ART .. "MicSlash.tga", "and the slash")

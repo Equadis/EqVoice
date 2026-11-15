@@ -48,7 +48,8 @@ Panel.SPATIAL_LABEL = { mono = "Mono", speakers = "Speakers", headphones = "Head
 Panel.SPATIAL_ORDER = { "headphones", "speakers", "mono" }
 Panel.CAPTURE_S = 10         -- seconds "press a key" waits
 Panel.ART       = "Interface\\AddOns\\EqVoice\\"     -- MicGlyph, MicSlash, Knob ... (.tga), drawn by tools/make_micro_art.py
-Panel.IND_SIZE  = 40                                   -- the indicator: a square, drawn in the panel's own theme
+Panel.IND_W     = 14                                   -- the indicator: a slim rounded button in the panel's own theme (40 x 40, then half as wide, then 30% smaller)
+Panel.IND_H     = 28
 Panel.IND_TOP   = 0.15                                 -- where it starts: in the middle of the screen, this far down (a fraction of the height: the top quarter)
 Panel.DOCK_S    = 1                                    -- seconds between looks at the screen size (the default place follows it)
 
@@ -1905,24 +1906,24 @@ function Panel.BuildIndicator()
 	if Panel.indicator then return Panel.indicator end
 	if not CreateFrame or not UIParent then return nil end
 	local b = CreateFrame("Button", "EqVoiceIndicator", UIParent)
-	b:SetWidth(Panel.IND_SIZE)
-	b:SetHeight(Panel.IND_SIZE)
+	b:SetWidth(Panel.IND_W)
+	b:SetHeight(Panel.IND_H)
 	b:SetFrameStrata("MEDIUM")
 	b:EnableMouse(true)
 	b:SetMovable(true)
 	b:SetClampedToScreen(true)
 	b:RegisterForClicks("LeftButtonUp", "RightButtonUp")
 	b:RegisterForDrag("LeftButton")
-	paint(b, THEME.card, THEME.edge, 10)
+	paint(b, THEME.card, THEME.edge, 6)
 	b.glyph = b:CreateTexture(nil, "OVERLAY")
 	b.glyph:SetTexture(Panel.ART .. "MicGlyph.tga")
-	b.glyph:SetWidth(24)
-	b.glyph:SetHeight(24)
+	b.glyph:SetWidth(12)
+	b.glyph:SetHeight(12)
 	b.glyph:SetPoint("CENTER", b, "CENTER", 0, 0)
 	b.slash = b:CreateTexture(nil, "OVERLAY")
 	b.slash:SetTexture(Panel.ART .. "MicSlash.tga")
-	b.slash:SetWidth(24)
-	b.slash:SetHeight(24)
+	b.slash:SetWidth(12)
+	b.slash:SetHeight(12)
 	b.slash:SetPoint("CENTER", b, "CENTER", 0, 0)
 	b.slash:Hide()
 	b.badgeText = ""
@@ -1961,7 +1962,7 @@ end
 
 local function applyIndicator(b, m)
 	b.badgeText = m.badge
-	paint(b, THEME.card, { m.color[1] * 0.8, m.color[2] * 0.8, m.color[3] * 0.8 }, 10)       -- the ring is the colour of the state
+	paint(b, THEME.card, { m.color[1] * 0.8, m.color[2] * 0.8, m.color[3] * 0.8 }, 6)       -- the ring is the colour of the state
 	b.glyph:SetVertexColor(m.color[1], m.color[2], m.color[3])
 	if m.alive and (m.mute or m.deaf) then
 		b.slash:SetVertexColor(COLORS.bad[1], COLORS.bad[2], COLORS.bad[3])
