@@ -139,7 +139,7 @@ def through_points(pts, x: float) -> float:
             + (-2 * t3 + 3 * t2) * pts[k + 1][1] + (t3 - t2) * h[k] * m[k + 1])
 
 
-def voice_gain(distance: float, curve: dict, loudness: float = 0.0, whisper: bool = False) -> float:
+def voice_gain(distance: float, curve: dict, loudness: float = 0.0, whisper: bool = False, quiet: float = 0.0) -> float:
     """How loud a voice is at ``distance`` yards, as a multiple of its own loudness (the same curve as ``curveGain`` in ui/voicemodel.js,
     which the page applies itself so that it can use how loud the speaker is being):
 
@@ -149,8 +149,8 @@ def voice_gain(distance: float, curve: dict, loudness: float = 0.0, whisper: boo
         full .. end         falling to nothing at ``end``, as (1 - t) ** power
 
     ``loudness`` (0 = ordinary speech, 1 = shouting) moves ``full`` towards ``full_loud``."""
-    if whisper:
-        distance = distance * float(curve.get("whisper") or 2.0)         # whispering: heard as if twice as far away
+    q = max(0.0, min(1.0, quiet))
+    distance = distance * (float(curve.get("whisper") or 2.0) if whisper else 1.0) * (1.0 + q * (float(curve.get("quiet") or 1.0) - 1.0))   # whispering or speaking quietly: heard as if further away
     if curve.get("points"):
         if distance >= curve["end"]:
             return 0.0
@@ -665,11 +665,11 @@ class PeerManager:
                       ms=evt.get("ms"))
         elif t == "vlevel":
             try:
-                lv = max(0, min(2, int(evt.get("level", 0))))
+                lv = max(0, min(3, int(evt.get("level", 0))))
             except (TypeError, ValueError):
                 return
             if lv != p.vlevel:
-                trace("voice_level", name=p.name, level=("nothing", "speaking", "loud")[lv])
+                trace("voice_level", name=p.name, level=("nothing", "quiet", "speaking", "loud")[lv])
             p.vlevel, p.vlevel_seen = lv, True
         elif t == "stats":
             p.level = float(evt.get("level", 0.0))
@@ -933,9 +933,9 @@ class PeerManager:
 
     def voice_state(self, p: Peer) -> str:
         """What the little icon beside this player's name should show, as one letter (the status file's ``state``):
-        D deafened and muted, p q r deafened with the microphone open (quiet, speaking, raised voice: the game draws the deaf icon and the voice
-        icon), d deafened (microphone state unknown), m muted (or push to talk with the key up), l a raised voice, s speaking, o connected and quiet,
-        - nothing known.
+        D deafened and muted, p n q r deafened with the microphone open (nothing, quiet, speaking, raised voice: the game draws the deaf icon and
+        the voice icon), d deafened (microphone state unknown), m muted (or push to talk with the key up), l a raised voice, s speaking, w speaking
+        quietly, o connected and not talking, - nothing known.
         Their own EqVoice says muted and deafened (instantly, over the voice connection); speaking and loud are what we hear, steadied by
         the page (a breath or a key click does not flip it). Until the page has ever reported, speaking is what packets are arriving."""
         if p.state != PS.CONNECTED:
@@ -946,14 +946,16 @@ class PeerManager:
             return "m"
         letter = "o"
         if p.vlevel_seen:
-            if p.vlevel >= 2:
+            if p.vlevel >= 3:
                 letter = "l"
-            elif p.vlevel == 1:
+            elif p.vlevel == 2:
                 letter = "s"
+            elif p.vlevel == 1:
+                letter = "w"
         elif getattr(p, "audio_rx_on", False):
             letter = "s"
         if p.rdeaf:
-            return {"o": "p", "s": "q", "l": "r"}[letter]            # deafened, but the microphone is open: they still hear nothing and you hear them
+            return {"o": "p", "w": "n", "s": "q", "l": "r"}[letter]            # deafened, but the microphone is open: they still hear nothing and you hear them
         return letter if (p.rmute is not None or letter != "o") else "-"
 
     def snapshot(self) -> list:

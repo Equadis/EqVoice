@@ -161,7 +161,7 @@ function Panel.Model(now)
 	m.tx, m.talk = (f.tx == "1"), (f.talk == "1")
 	m.near, m.conn = tonumber(f.near) or 0, tonumber(f.conn) or 0
 	m.mic = f.mic or "starting"
-	m.voice = tonumber(f.vl) or 0                                                  -- how you sound, steadied by the app: 0 nothing, 1 speaking, 2 a raised voice
+	m.voice = tonumber(f.vl) or 0                                                  -- how you sound, steadied by the app: 0 nothing, 1 quiet, 2 speaking, 3 a raised voice
 	m.micBad = (f.mic ~= nil) and f.mic ~= "ok" and f.mic ~= "starting" and f.mic ~= "no page" and f.mic ~= "no_page"   -- Windows says no, or there is none
 	if alive and f.hub == "0" and f.game == "1" then                               -- cannot reach the voice server: only worth showing after a few seconds
 		Panel.hubDownAt = Panel.hubDownAt or now
@@ -177,7 +177,7 @@ function Panel.Model(now)
 	m.spkName = (m.dout > 0 and m.devOut[m.dout]) or Panel.DefaultName(m.defOut)
 	m.lvl  = tonumber(f.lvl) or 0                                                    -- the microphone's level, 0..100, while a meter is showing
 	m.rpt = f.rpt                                                                    -- the name of the log zip the app has just saved (for twenty-odd seconds)
-	m.loud = (m.voice == 2)                                                          -- your voice is loud enough to carry at yell distance
+	m.loud = (m.voice >= 3)                                                          -- your voice is loud enough to carry at yell distance
 	m.glive = tonumber(f.gl)                                                         -- dB of the signal the gate judges (while a meter is showing), nil if the app does not say
 	m.gthr  = tonumber(f.gt)                                                         -- the bar the gate holds it against now (the room-following bar in auto)
 	m.ghas  = (f.go ~= nil)                                                          -- the app runs a gate and says whether it is open

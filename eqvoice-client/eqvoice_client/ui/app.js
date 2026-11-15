@@ -493,7 +493,7 @@ class Media {
     const dbMic = 20 * Math.log10(rms + 1e-9);
     this.micDb = Math.round(Math.max(-100, dbMic));                          // the broadband level, for the meter when no gate is running
     this.selfLoud.update(dbMic, 0.1);
-    this.selfLevel = this.selfVa.update(dbMic, this.selfLoud.s, 0.1);       // my own icon: nothing / speaking / loud
+    this.selfLevel = this.selfVa.update(dbMic, this.selfLoud.s, 0.1, this.selfLoud.q);       // my own icon: nothing / quiet / speaking / loud
     this.sendMic(false);
   }
 
@@ -714,7 +714,7 @@ class Media {
         p.fx.meter.getFloatTimeDomainData(this.lvBuf);
         const db = VM.levelDb(this.lvBuf), dt = Math.min(0.1, (now - p.loudT) / 1000), rms = Math.pow(10, db / 20);
         p.loud.update(db, dt);
-        const vl = p.va.update(db, p.loud.s, dt);                   // the icon beside their name: nothing / speaking / loud
+        const vl = p.va.update(db, p.loud.s, dt, p.loud.q);         // the icon beside their name: nothing / quiet / speaking / loud
         if (vl !== p.vlevel) { p.vlevel = vl; send({ t: 'peer', sid: p.sid, ep: p.ep, type: 'vlevel', level: vl }); }
         // the browser's own energy and level figures stand still for a voice that goes through Web Audio, so the chain keeps them itself
         p.chainEnergy += rms * rms * dt;
@@ -744,7 +744,7 @@ class Media {
       if (p.dist !== null && p.dist !== undefined) {         // the page's own curve: a raised voice stays louder further out
         // the distance arrives a few times a second: follow it, so the volume (the boost most of all) changes continuously as you walk
         p.distS = p.distS === null ? p.dist : p.distS + (p.dist - p.distS) * (1 - Math.exp(-dtl / VM.FOLLOW.distTau));
-        target = p.gate ? VM.curveGain(p.distS, this.curve, p.loud.s, p.whisper) : 0;
+        target = p.gate ? VM.curveGain(p.distS, this.curve, p.loud.s, p.whisper, p.loud.q) : 0;
         step = p.slew;
         smooth = p.gate;                                     // leaving still ramps down in a straight line, so it ends exactly at silence
       }
@@ -992,8 +992,9 @@ function pill(id, cls, label) {
 
 // The voice icon after a player's name: the same five pictures as the little icons in the game (the addon's Icons.lua).
 const VOICE_ICONS = {
-  s: { file: 'voice-open.png', word: 'speaking' },                                  // vol_mid
-  l: { file: 'voice-speaking.png', word: 'speaking loudly' },                       // vol_high
+  w: { file: 'voice-open.png', word: 'speaking quietly' },                          // one bubble: a quiet voice (it carries less far)
+  s: { file: 'voice-speaking.png', word: 'speaking' },                              // two bubbles: an ordinary voice
+  l: { file: 'voice-speaking.png', word: 'speaking loudly', red: true },            // two bubbles, red: a raised voice (it carries further)
   o: { file: 'voice-known.png', word: 'using EqVoice, not talking' },       // vol_low
   m: { file: 'voice-muted.png', word: 'muted (or push to talk and the key is not held)' },
   d: { file: 'voice-deafened.png', word: 'deafened' },
@@ -1006,6 +1007,7 @@ function voiceIcon(state) {
   img.width = 18; img.height = 18;
   img.className = 'vico';
   if (d.dim) img.style.opacity = String(d.dim);
+  if (d.red) img.style.filter = 'sepia(1) saturate(6) hue-rotate(-30deg)';
   img.alt = d.word;
   img.title = d.word;
   return img;

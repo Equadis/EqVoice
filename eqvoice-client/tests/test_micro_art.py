@@ -11,7 +11,7 @@ ROOT = Path(__file__).resolve().parents[2]
 ADDON = ROOT / "eqvoice-addon" / "EqVoice"
 sys.path.insert(0, str(ROOT / "tools"))
 
-SIZES = {"MicroUp.tga": (32, 64), "MicroDown.tga": (32, 64), "MicGlyph.tga": (32, 32), "MicSlash.tga": (32, 32), "Logo.tga": (64, 64), "RoundFill.tga": (16, 16), "IconClose.tga": (16, 16), "IconDown.tga": (16, 16), "IconLeft.tga": (16, 16), "IconRight.tga": (16, 16),
+SIZES = {"MicroUp.tga": (32, 64), "MicroDown.tga": (32, 64), "MicGlyph.tga": (32, 32), "MicSlash.tga": (32, 32), "Logo.tga": (64, 64), "RoundFill.tga": (16, 16), "Knob.tga": (16, 16), "VoiceX.tga": (32, 32), "IconClose.tga": (16, 16), "IconDown.tga": (16, 16), "IconLeft.tga": (16, 16), "IconRight.tga": (16, 16),
          "VoiceSpeaking.tga": (32, 32), "VoiceOpen.tga": (32, 32), "VoiceKnown.tga": (32, 32), "VoiceMuted.tga": (32, 32), "VoiceDeafened.tga": (32, 32)}
 
 
@@ -60,7 +60,7 @@ def test_the_panel_and_the_name_icons_use_exactly_these_files():
     used = set()
     for lua in ("Panel.lua", "Icons.lua"):
         used |= set(re.findall(r'"(\w+\.tga)"', (ADDON / lua).read_text(encoding="utf-8")))
-    assert used == set(SIZES), used
+    assert used == set(SIZES) - {"MicroUp.tga", "MicroDown.tga"}, used            # (the old micro-button frames are no longer drawn with)
 
 
 def test_the_files_are_the_ones_the_script_makes(tmp_path):

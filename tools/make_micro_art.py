@@ -27,7 +27,7 @@ SS = 8                                                   # supersampling: drawn 
 ICONS = ROOT / "tools" / "art" / "voice-icons"
 VOICE = {"VoiceSpeaking.tga": "speaking", "VoiceOpen.tga": "open", "VoiceKnown.tga": "known", "VoiceMuted.tga": "muted", "VoiceDeafened.tga": "deafened"}
 # vol_high = speaking.png, vol_mid = open.png, vol_low = known.png (see addon Icons.lua)
-NAMES = ("MicroUp.tga", "MicroDown.tga", "MicGlyph.tga", "MicSlash.tga", "Logo.tga", "RoundFill.tga", "Knob.tga", "IconClose.tga", "IconDown.tga", "IconLeft.tga", "IconRight.tga") + tuple(sorted(VOICE))
+NAMES = ("MicroUp.tga", "MicroDown.tga", "MicGlyph.tga", "MicSlash.tga", "Logo.tga", "RoundFill.tga", "Knob.tga", "VoiceX.tga", "IconClose.tga", "IconDown.tga", "IconLeft.tga", "IconRight.tga") + tuple(sorted(VOICE))
 
 
 def write_tga(img: Image.Image, path: Path) -> None:
@@ -136,6 +136,20 @@ def voice_icon(name: str) -> Image.Image:
     return out
 
 
+def voice_x() -> Image.Image:
+    """32 x 32, the same grey as the other voice pictures: a heavy cross with rounded ends (EqVoice is not connected; the addon tints it red)."""
+    big = Image.new("L", (32 * SS, 32 * SS), 0)
+    d = ImageDraw.Draw(big)
+    a, b, wd = 8 * SS, 24 * SS, int(4.6 * SS)
+    d.line([a, a, b, b], fill=255, width=wd)
+    d.line([a, b, b, a], fill=255, width=wd)
+    for p in ((a, a), (b, b), (a, b), (b, a)):
+        d.ellipse([p[0] - wd / 2, p[1] - wd / 2, p[0] + wd / 2, p[1] + wd / 2], fill=255)
+    img = Image.new("RGBA", (32, 32), (227, 227, 227, 0))
+    img.putalpha(big.resize((32, 32), Image.LANCZOS))
+    return img
+
+
 def slash() -> Image.Image:
     """A diagonal bar with a dark edge: white core (tinted by the addon), black outline (stays black)."""
     S = 32
@@ -205,6 +219,7 @@ def make(out: Path = OUT) -> list:
     arts.update({tga: voice_icon(png) for tga, png in VOICE.items()})
     arts["RoundFill.tga"] = round_fill()
     arts["Knob.tga"] = knob()
+    arts["VoiceX.tga"] = voice_x()
     arts["IconClose.tga"], arts["IconDown.tga"] = icon_close(), icon_down()
     arts["IconLeft.tga"], arts["IconRight.tga"] = icon_side(False), icon_side(True)
     arts["Logo.tga"] = Image.open(ICONS.parent / "eqvoice-logo.png").convert("RGBA").resize((64, 64), Image.LANCZOS)      # the panel's header: EqUpdater's icon

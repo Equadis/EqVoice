@@ -83,6 +83,13 @@ Opaque charcoal window, flat compact controls, one purple accent, four groups: a
 
 Not seen in the real game yet: the layout was checked in the test stub (no control overlaps or leaves the window), not on screen.
 
+## 0.6.6 (2026-11, pre-release)
+
+**Four voice levels on the icon.** Nothing: the plain speaker. A **quiet** voice: one bubble, and it carries less far (heard as if up to 1.6 times as far away). An ordinary voice: **two bubbles**, white.
+A raised voice (**yelling**): the same two bubbles in **red**, and it carries further (as before). Quiet and yelling are relative to the speaker's own usual voice (quiet: 7 to 15 dB under their
+average over the last half minute; the average moves slowly so ordinary speech after a shout is not taken for a quiet voice). Not connected is a red **X** (it was the red speaker). Deafened with
+the microphone open shows the deaf icon beside the same four. The status letters are `o w s l` (and `p n q r` beside the deaf icon).
+
 ## 0.6.5 (2026-11, pre-release)
 
 **Direction.** The addon learns the position axes from your running, but a run in one direction cannot tell mirrored axes from plain ones, and it used to pick one at random: a wrong

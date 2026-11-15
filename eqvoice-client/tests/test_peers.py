@@ -826,17 +826,25 @@ def test_the_page_says_how_loud_a_voice_is_and_the_icon_letter_follows_it():
     r.m.on_media(HIGH, ep, {"type": "vlevel", "level": 0})
     assert p.vlevel_seen and r.m.voice_state(p) == "o", "once the page reports, the page decides: packets arriving can be a tail of silence"
     r.m.on_media(HIGH, ep, {"type": "vlevel", "level": 1})
-    assert r.m.voice_state(p) == "s", "ordinary speech (vol_mid)"
+    assert r.m.voice_state(p) == "w", "a quiet voice: one bubble (it carries less far)"
     r.m.on_media(HIGH, ep, {"type": "vlevel", "level": 2})
-    assert r.m.voice_state(p) == "l", "a raised voice (vol_high)"
+    assert r.m.voice_state(p) == "s", "ordinary speech: two bubbles"
+    r.m.on_media(HIGH, ep, {"type": "vlevel", "level": 3})
+    assert r.m.voice_state(p) == "l", "a raised voice: two bubbles, red"
     snap = [s for s in r.m.snapshot() if s["name"] == HIGHN][0]
-    assert snap["vlevel"] == 2 and snap["vstate"] == "l"
+    assert snap["vlevel"] == 3 and snap["vstate"] == "l"
+    r.m.on_media(HIGH, ep, {"type": "vstate", "mute": False, "deaf": True})
+    assert r.m.voice_state(p) == "r", "deafened with the microphone open and yelling: the deaf icon and the red bubbles"
+    r.m.on_media(HIGH, ep, {"type": "vlevel", "level": 1})
+    assert r.m.voice_state(p) == "n", "deafened and quiet"
+    r.m.on_media(HIGH, ep, {"type": "vlevel", "level": 3})
+    r.m.on_media(HIGH, ep, {"type": "vstate", "mute": False, "deaf": False})
     r.m.on_media(HIGH, ep, {"type": "vstate", "mute": True, "deaf": False})
     assert r.m.voice_state(p) == "m", "muted wins over a loud tail"
     r.m.on_media(HIGH, ep, {"type": "vstate", "mute": False, "deaf": False})
     for bad in (7, -3, "x", None):
         r.m.on_media(HIGH, ep, {"type": "vlevel", "level": bad})
-    assert p.vlevel in (0, 2), "a nonsense level is ignored or clamped, never trusted"
+    assert p.vlevel in (0, 3), "a nonsense level is ignored or clamped, never trusted"
     r.m.on_media(HIGH, ep + 1, {"type": "vlevel", "level": 1})
     assert p.vlevel != 1 or p.vlevel_seen, "a report from an earlier connection is ignored"
     r.m.shutdown()

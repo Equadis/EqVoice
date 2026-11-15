@@ -81,7 +81,7 @@ def test_the_window_shows_the_new_settings_and_the_players_voice_icons():
     assert out["names"] == ["Alice", "Bob", "Cy", "Di", "Eve"]
     assert out["icons"] == ["1:speaking", "1:muted (or push to talk and the key is not held)", "1:deafened", "1:has EqVoice", "1:using EqVoice, not talking"], \
         "one icon beside each name: %r" % out["icons"]
-    assert out["files"] == ["/static/voice-open.png", "/static/voice-muted.png", "/static/voice-deafened.png", "/static/voice-known.png",
+    assert out["files"] == ["/static/voice-speaking.png", "/static/voice-muted.png", "/static/voice-deafened.png", "/static/voice-known.png",
                             "/static/voice-known.png"], "the same pictures as in the game"
     assert out["pm"] == ["Mute", "Muted*", "Mute", "Mute", "Mute"]
     assert out["chips"] == ["bob", "carol"] and out["emptyHidden"] is True

@@ -680,11 +680,11 @@ class App:
                           "gate_db": result.gate_db, "input_gain": result.input_gain, "gate_mode": result.gate_mode})
 
     def _self_voice_level(self) -> int:
-        """How I sound on my own microphone (0 nothing, 1 speaking, 2 a raised voice), steadied by the page; 0 while nobody can hear me."""
+        """How I sound on my own microphone (0 nothing, 1 quiet, 2 speaking, 3 a raised voice), steadied by the page; 0 while nobody can hear me."""
         if not self.tx_enabled:
             return 0
         try:
-            return max(0, min(2, int(self.mic.get("vl") or 0)))
+            return max(0, min(3, int(self.mic.get("vl") or 0)))
         except (TypeError, ValueError):
             return 0
 

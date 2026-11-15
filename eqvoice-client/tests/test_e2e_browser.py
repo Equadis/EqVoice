@@ -378,10 +378,11 @@ def test_volume_is_boosted_up_close_full_to_30_yd_quiet_at_60_and_a_shout_stays_
             sampler.cancel()
             runs = [v for i, v in enumerate(seen) if v is not None and (i == 0 or v != seen[i - 1])]
             print("[e2e] the icon beside Alice's name, in order: %s" % runs)
-            assert 2 in runs, "the shout showed as loud (vol_high): %r" % runs
-            first_loud = runs.index(2)
-            assert 1 in runs[:first_loud], "and it was speaking (vol_mid) before that, not idle straight to loud: %r" % runs
-            assert 1 in runs[first_loud:], "and speaking again when the shout was over: %r" % runs
+            assert 3 in runs, "the shout showed as yelling (red bubbles): %r" % runs
+            first_loud = runs.index(3)
+            assert 2 in runs[:first_loud], "and it was speaking (two bubbles) before that, not idle straight to loud: %r" % runs
+            assert 2 in runs[first_loud:], "and speaking again when the shout was over: %r" % runs
+            assert 1 not in runs[first_loud:], "and not mistaken for a quiet voice afterwards: %r" % runs
             assert len(runs) <= 8, "and steady: a handful of changes in all, not a flicker: %r" % runs
             assert (peer(b, "Alice") or {}).get("vstate") in ("s", "o"), "(and the letter the game is told follows it)"
 

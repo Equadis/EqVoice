@@ -24,7 +24,7 @@ def test_the_distance_curve_is_the_same_in_the_page_and_the_app():
         {"boost": 1.0, "boost_r": 3.0, "boost_fade": 8.0, "full": 10.0, "full_loud": 10.0, "end": 41.0, "power": 1.6},
         {"boost": 3.0, "boost_r": 4.0, "boost_fade": 12.0, "full": 20.0, "full_loud": 60.0, "end": 70.0, "power": 2.0},
         {"boost": 1.0, "boost_r": 0.0, "boost_fade": 10.0, "full": 30.0, "full_loud": 45.0, "end": 85.0, "power": 1.6,
-         "points": [[0, 0], [5, 0], [20, -6.0206], [40, -16.4782], [60, -28], [85, -60]], "yell": 0.65},
+         "points": [[0, 0], [5, 0], [20, -6.0206], [40, -16.4782], [60, -28], [85, -60]], "yell": 0.65, "quiet": 1.6, "whisper": 2},
         {"boost": 2.0, "boost_r": 0.0, "boost_fade": 10.0, "full": 30.0, "full_loud": 45.0, "end": 60.0, "power": 1.6,
          "points": [[0, 0], [5, 0], [20, -6.0206], [40, -16.4782], [60, -28], [85, -60]], "yell": 0.5},
     ]
@@ -32,12 +32,14 @@ def test_the_distance_curve_is_the_same_in_the_page_and_the_app():
       const VM = window.VoiceModel, rows = [];
       for (const c of %s)
         for (const s of [0, 0.5, 1])
-          for (const d of %s) rows.push([c, s, d, VM.curveGain(d, c, s)]);
+          for (const w of [false, true])
+            for (const q of [0, 0.6, 1])
+              for (const d of %s) rows.push([c, s, d, VM.curveGain(d, c, s, w, q), w, q]);
       done(rows);
     """ % (json.dumps(curves), json.dumps(grid)))
-    assert len(out) == len(curves) * 3 * len(grid)
-    for c, s, d, js in out:
-        assert js == pytest.approx(voice_gain(d, c, s), abs=1e-9), (c, s, d)
+    assert len(out) == len(curves) * 3 * 6 * len(grid)
+    for c, s, d, js, w, q in out:
+        assert js == pytest.approx(voice_gain(d, c, s, w, q), abs=1e-9), (c, s, d, w, q)
 
 
 def test_the_natural_curve_is_100_to_5_yd_half_at_20_15_percent_at_40_and_a_shout_is_10_percent_at_70():
@@ -184,13 +186,13 @@ def test_silence_and_noise_floor_do_not_count_and_the_range_drains():
     assert out["d1"] > out["d2"] > out["d3"] and out["d3"] == 0 or out["d3"] < 0.05, "it drains to nothing over about a second and a half: %r" % out
 
 
-# ---- the little icon: nothing / speaking / loud (VoiceActivity), steady in front of a simulated speaker
+# ---- the little icon: nothing / quiet / speaking / loud (VoiceActivity), steady in front of a simulated speaker
 
 ICON_JS = SPEAKER_JS % () + """
   // what the page does for every voice, every 20 ms: Loudness, then VoiceActivity on its smoothed level and its raised-voice measure
   function icon(levels) {
     const m = new VoiceModel.Loudness(), va = new VoiceModel.VoiceActivity(), out = [];
-    for (const db of levels) { m.update(db, 0.02); out.push(va.update(db, m.s, 0.02)); }
+    for (const db of levels) { m.update(db, 0.02); out.push(va.update(db, m.s, 0.02, m.q)); }
     return out;
   }
   const silence = (ticks) => new Array(ticks).fill(-80);
@@ -216,8 +218,8 @@ def test_ordinary_talking_is_speaking_all_the_way_through_with_no_flicker_and_ne
       done({ first: lv.findIndex((v) => v >= 1), after: Math.min(...lv.slice(30)), top: Math.max(...lv), changes: changes(lv) });
     """)
     assert 5 <= out["first"] <= 12, "speaking shows within about 0.12 s of the first voice: %r ticks" % out["first"]
-    assert out["after"] == 1, "and never drops to idle again while they talk (the pauses between words are shorter than the hold)"
-    assert out["top"] == 1, "ordinary talking is vol_mid, never vol_high"
+    assert out["after"] == 2, "and never drops to idle again while they talk (the pauses between words are shorter than the hold)"
+    assert out["top"] == 2, "ordinary talking is two bubbles, never the yelling icon (3) and never the quiet one (1)"
     assert out["changes"] == 1, "one change in 30 s: up"
 
 
@@ -225,18 +227,18 @@ def test_a_shout_is_loud_and_it_does_not_flicker_between_loud_and_speaking():
     out = run(ICON_JS + """
       const lv = icon(talk(-18, 1500).concat(talk(-18, 125, 14), talk(-18, 500)));     // 30 s talking, 2.5 s shouting, 10 s talking
       const shoutAt = 1500, end = 1625;
-      const loudAt = lv.findIndex((v, i) => i >= shoutAt && v === 2);
+      const loudAt = lv.findIndex((v, i) => i >= shoutAt && v === 3);
       done({ before: Math.max(...lv.slice(60, shoutAt)), loudAfterTicks: loudAt - shoutAt,
              during: Math.min(...lv.slice(loudAt, end)), changesDuring: changes(lv, shoutAt, end),
-             backAt: lv.findIndex((v, i) => i >= end && v === 1) - end, tail: Math.max(...lv.slice(end + 150)),
+             backAt: lv.findIndex((v, i) => i >= end && v === 2) - end, tail: Math.max(...lv.slice(end + 150)),
              total: changes(lv) });
     """)
-    assert out["before"] == 1, "speaking up to the shout"
+    assert out["before"] == 2, "speaking up to the shout"
     assert 0 <= out["loudAfterTicks"] <= 40, "loud within 0.8 s of the shout starting: %r ticks" % out["loudAfterTicks"]
-    assert out["during"] == 2, "and stays loud for as long as they shout"
+    assert out["during"] == 3, "and stays loud for as long as they shout"
     assert out["changesDuring"] <= 1, "no flicker inside the shout: %r changes" % out["changesDuring"]
     assert 10 <= out["backAt"] <= 120, "it comes back to speaking a second or two after: %r ticks" % out["backAt"]
-    assert out["tail"] == 1, "and stays there"
+    assert out["tail"] == 2, "and stays there"
     assert out["total"] == 3, "up, loud, back: three changes in 45 s, no more: %r" % out["total"]
 
 
@@ -248,7 +250,7 @@ def test_when_they_stop_talking_the_icon_goes_idle_after_the_hold_and_not_before
       done({ dropAfter: dropAt - last, held: lv.slice(last, last + 15) });
     """)
     assert 20 <= out["dropAfter"] <= 40, "idle about 0.45 s after the voice ends, not at once and not much later: %r ticks (20 ms each)" % out["dropAfter"]
-    assert set(out["held"]) == {1}, "speaking is held through the first 0.3 s of quiet"
+    assert set(out["held"]) == {2}, "speaking is held through the first 0.3 s of quiet"
 
 
 def test_a_loud_start_is_only_ordinary_speech_until_the_speaker_has_been_heard_for_a_few_seconds():
@@ -256,7 +258,28 @@ def test_a_loud_start_is_only_ordinary_speech_until_the_speaker_has_been_heard_f
       const lv = icon(talk(-18, 100, 14));                                     // shouting from the very first word, for 2 s
       done({ top: Math.max(...lv) });
     """)
-    assert out["top"] == 1, "raised is relative to their own usual voice, which has to be heard first: %r" % out["top"]
+    assert out["top"] == 2, "raised is relative to their own usual voice, which has to be heard first: %r" % out["top"]
+
+
+def test_a_quiet_voice_is_the_one_bubble_icon_and_carries_less_far_and_ordinary_talk_is_never_quiet():
+    out = run(ICON_JS + """
+      const m = new VoiceModel.Loudness(), va = new VoiceModel.VoiceActivity(), lv = [], qs = [];
+      const feed = (levels) => { for (const db of levels) { m.update(db, 0.02); lv.push(va.update(db, m.s, 0.02, m.q)); qs.push(m.q); } };
+      feed(talk(-18, 1500));                                                   // 30 s of ordinary talking: the speaker's usual voice
+      const ordinary = Math.max(...qs);
+      feed(talk(-18, 250, -14));                                               // 5 s of speaking 14 dB quieter
+      const quietAt = lv.findIndex((v, i) => i >= 1500 && v === 1);
+      const during = lv.slice(quietAt, 1750);
+      feed(talk(-18, 400));                                                    // and back to the usual voice
+      const c = VoiceModel.DEFAULT_CURVE, near = VoiceModel.curveGain(30, c, 0, false, 0), far = VoiceModel.curveGain(30, c, 0, false, 1);
+      done({ ordinary, quietAfter: quietAt - 1500, held: Math.min(...during), tail: Math.min(...lv.slice(-150)), tailMax: Math.max(...lv.slice(-150)), near, far,
+             qPeak: Math.max(...qs.slice(1500, 1750)) });
+    """)
+    assert out["ordinary"] == 0, "ordinary talking never measures as quiet: %r" % out["ordinary"]
+    assert 0 <= out["quietAfter"] <= 60, "the one-bubble icon within about a second of the quiet voice starting: %r ticks" % out["quietAfter"]
+    assert out["held"] == 1 and out["qPeak"] > 0.8, "and it stays one bubble while they speak quietly (%r)" % out
+    assert out["tail"] == 2 and out["tailMax"] == 2, "and ordinary talking is two bubbles again: %r" % out
+    assert out["far"] < out["near"] * 0.7, "a quiet voice carries less far: %.3f against %.3f at 30 yd" % (out["far"], out["near"])
 
 
 def test_the_two_bars_are_different_so_a_hovering_measure_does_not_flip_the_icon():

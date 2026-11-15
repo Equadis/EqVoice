@@ -3,19 +3,20 @@
 -- and party frames and in the panel's list. It shows what that player's EqVoice is doing right now:
 --
 --   o  idle                  vol_low   a plain speaker: they are on the voice channel and could talk, but no voice is coming from them   VoiceKnown.tga
---   s  speaking              vol_mid   a speaker with one wave: ordinary conversational speech                                       VoiceOpen.tga
---   l  loud                  vol_high  a speaker with waves: a raised voice (it also carries further)                               VoiceSpeaking.tga
+--   w  speaking quietly      a speaker with one bubble: a quiet voice (it carries less far)                                       VoiceOpen.tga
+--   s  speaking              a speaker with two bubbles: an ordinary voice                                                         VoiceSpeaking.tga
+--   l  yelling               the same two bubbles, in RED: a raised voice (it carries further)
 --   m  muted                 a microphone with a slash. Also push to talk while the key is not held: the microphone is closed
 --                            either way, and from outside it looks the same   VoiceMuted.tga
 --   b  muted by you          the same, a little dimmer: you put them on your blocklist
 --   d  deafened              headphones with a slash (deafened also means muted)   VoiceDeafened.tga
---   D  deafened and muted    both icons, side by side;  p q r: deafened with the microphone open: the deaf icon and the quiet, speaking or loud voice icon
+--   D  deafened and muted    both icons, side by side;  p n q r: deafened with the microphone open: the deaf icon and the idle, quiet, speaking or yelling icon
 --   (muted and deafened are drawn red)
 --   i  has EqVoice           the plain speaker, dimmed: they are known to have it, but nothing more is known (not connected to them yet,
 --                            or their app is not running)
 --
 -- Only your own icon also has these, drawn in red because something needs a look:
---   x  not connected         your EqVoice program is not running, or it cannot reach the voice server (after a few seconds of trying)
+--   x  not connected         a red X: your EqVoice program is not running, or it cannot reach the voice server (after a few seconds of trying)
 --   e  microphone problem    your microphone cannot be used (Windows says no, or there is none)
 --
 -- The pictures are the ones Ollie chose (tools/art/voice-icons/*.png), made into 32 x 32 textures by tools/make_micro_art.py.
@@ -59,19 +60,21 @@ Icons.EVERY  = 0.25            -- seconds between looks at the screen
 Icons.MAXERR = 3               -- a surface that fails this many times is switched off
 Icons.RED = { 0.95, 0.35, 0.35 }
 Icons.LOOK = {
-	o = { file = "VoiceKnown.tga",    word = "using EqVoice, not talking" },                    -- vol_low
-	s = { file = "VoiceOpen.tga",     word = "speaking" },                                                 -- vol_mid
-	l = { file = "VoiceSpeaking.tga", word = "speaking loudly" },                                          -- vol_high
+	o = { file = "VoiceKnown.tga",    word = "using EqVoice, not talking" },                    -- a speaker, no bubbles
+	w = { file = "VoiceOpen.tga",     word = "speaking quietly" },                                         -- one bubble: a quiet voice carries less far
+	s = { file = "VoiceSpeaking.tga", word = "speaking" },                                                 -- two bubbles: an ordinary voice
+	l = { file = "VoiceSpeaking.tga", word = "yelling", tint = Icons.RED },                                -- two bubbles, red: a raised voice carries further
 	m = { file = "VoiceMuted.tga",    word = "muted", tint = Icons.RED },
 	b = { file = "VoiceMuted.tga",    word = "muted by you", dim = 0.7, tint = Icons.RED },
 	d = { file = "VoiceDeafened.tga", word = "deafened", tint = Icons.RED },
 	-- two icons side by side: deafened and muted (D), or deafened with the microphone open: the deaf icon and the voice icon (quiet p, speaking q, loud r)
 	D = { file = "VoiceDeafened.tga", word = "deafened and muted", tint = Icons.RED, also = "VoiceMuted.tga", alsoTint = Icons.RED },
 	p = { file = "VoiceDeafened.tga", word = "deafened, microphone open", tint = Icons.RED, also = "VoiceKnown.tga" },
-	q = { file = "VoiceDeafened.tga", word = "deafened, speaking", tint = Icons.RED, also = "VoiceOpen.tga" },
-	r = { file = "VoiceDeafened.tga", word = "deafened, speaking loudly", tint = Icons.RED, also = "VoiceSpeaking.tga" },
+	n = { file = "VoiceDeafened.tga", word = "deafened, speaking quietly", tint = Icons.RED, also = "VoiceOpen.tga" },
+	q = { file = "VoiceDeafened.tga", word = "deafened, speaking", tint = Icons.RED, also = "VoiceSpeaking.tga" },
+	r = { file = "VoiceDeafened.tga", word = "deafened, yelling", tint = Icons.RED, also = "VoiceSpeaking.tga", alsoTint = Icons.RED },
 	i = { file = "VoiceKnown.tga",    word = "has EqVoice", dim = 0.45 },
-	x = { file = "VoiceKnown.tga",    word = "EqVoice is not connected", tint = Icons.RED },
+	x = { file = "VoiceX.tga",        word = "EqVoice is not connected", tint = Icons.RED },
 	e = { file = "VoiceMuted.tga",    word = "your microphone cannot be used", tint = Icons.RED },
 }
 
@@ -112,13 +115,15 @@ function Icons.SelfState(now)
 	local closed = m.mute or (m.mode == "ptt" and not m.tx)
 	if m.deaf then                                                               -- deafened: with the microphone shut, both icons; open, the deaf one and the voice one
 		if closed then return "D" end
-		if m.voice >= 2 then return "r" end
-		if m.voice == 1 or m.talk then return "q" end
+		if m.voice >= 3 then return "r" end
+		if m.voice == 2 or (m.voice == 0 and m.talk) then return "q" end
+		if m.voice == 1 then return "n" end
 		return "p"
 	end
 	if closed then return "m" end
-	if m.voice >= 2 then return "l" end
-	if m.voice == 1 or m.talk then return "s" end
+	if m.voice >= 3 then return "l" end
+	if m.voice == 2 or (m.voice == 0 and m.talk) then return "s" end
+	if m.voice == 1 then return "w" end
 	return "o"
 end
 

@@ -28,7 +28,7 @@
   // for an ordinary voice: 100% to 5 yd, 50% at 20 yd, 15% at 40 yd, 4% at 60 yd, and nothing at the end (`end`, 85 yd). A raised voice
   // is heard as if the speaker were `yell` times as far away (0.65: at 70 yd a shout is 10%). The last 10 yd before `end` ease to nothing.
   const NATURAL_POINTS = [[0, 0], [5, 0], [20, -6.0206], [40, -16.4782], [60, -28], [85, -60]];
-  const DEFAULT_CURVE = { boost: 1, boost_r: 0, boost_fade: 10, full: 30, full_loud: 45, end: 85, power: 1.6, points: NATURAL_POINTS, yell: 0.65, whisper: 2 };
+  const DEFAULT_CURVE = { boost: 1, boost_r: 0, boost_fade: 10, full: 30, full_loud: 45, end: 85, power: 1.6, points: NATURAL_POINTS, yell: 0.65, whisper: 2, quiet: 1.6 };
 
   // a smooth curve through the points that never overshoots them (a monotone cubic, Fritsch-Carlson), flat outside the first and last
   function throughPoints(pts, x) {
@@ -69,8 +69,10 @@
   }
 
   // `whisper`: the speaker holds the whisper key: they are heard as if twice as far away (the range is halved, as in Simple Voice Chat)
-  function curveGain(dist0, curve, loudness, whisper) {
-    const dist = whisper ? dist0 * (curve.whisper || 2) : dist0;
+  // `quiet` (0..1): the speaker is speaking quietly: heard as if up to `curve.quiet` (1.6) times as far away, so a quiet voice carries less far
+  function curveGain(dist0, curve, loudness, whisper, quiet) {
+    const qm = 1 + clamp(quiet || 0, 0, 1) * ((curve.quiet || 1) - 1);
+    const dist = dist0 * (whisper ? (curve.whisper || 2) : 1) * qm;
     const boost = boostFor(dist, curve);
     if (Array.isArray(curve.points)) {
       if (dist >= curve.end) return 0;
@@ -104,15 +106,17 @@
   // up and half a dB a second down); how far the current level is above it, past a margin, becomes 0..1 (0 = talking, 1 = shouting).
   // It rises at once and drains over `holdS` so a raised voice is not chopped up between syllables. The first `warmTicks` voiced
   // 20 ms ticks only learn the speaker: nobody is "loud" before they have been heard.
-  const LOUD = { floorDb: -52, smooth: 0.35, q: 0.9, eta: 0.1, warmTicks: 150, l0: 2, l1: 10, holdS: 1.5 };
+  const LOUD = { floorDb: -52, smooth: 0.35, q: 0.9, eta: 0.1, warmTicks: 150, l0: 2, l1: 10, holdS: 1.5, quiet0: 7, quiet1: 15, quietHoldS: 0.5, refVoiced: 1500 };
 
   class Loudness {
     constructor(opts) {
       this.o = Object.assign({}, LOUD, opts || {});
       this.lv = null;       // smoothed level of the voice now (dBFS)
       this.base = null;     // the speaker's usual loud-syllable level (dBFS)
+      this.ref = null;      // their average level over the last half minute of speech (dBFS): what "quiet" is measured against
       this.voiced = 0;
-      this.s = 0;           // 0..1
+      this.s = 0;           // 0..1: how raised the voice is
+      this.q = 0;           // 0..1: how far below their usual level (a quiet voice: it carries less far)
       this.level = -100;    // the last raw level given
     }
 
@@ -123,71 +127,91 @@
     update(db, dt) {
       const o = this.o;
       this.level = db;
-      let target = 0;
+      let target = 0, quiet = 0;
       if (db > o.floorDb) {
         this.lv = this.lv === null ? db : this.lv + o.smooth * (db - this.lv);
         if (this.base === null) this.base = this.lv;
         else this.base += (this.lv > this.base ? o.q : -(1 - o.q)) * o.eta;
         this.voiced++;
-        if (this.voiced >= o.warmTicks) target = clamp((this.lv - this.base - o.l0) / (o.l1 - o.l0), 0, 1);
+        // the average follows the voice slowly (a mean of the first seconds, then 30 s of speech): a shout does not move it far, so ordinary speech
+        // after a shout is not mistaken for a quiet voice, which the quicker, upward-biased `base` would do
+        this.ref = this.ref === null ? this.lv : this.ref + (this.lv - this.ref) * Math.max(1 / this.voiced, 1 / o.refVoiced);
+        if (this.voiced >= o.warmTicks) {
+          target = clamp((this.lv - this.base - o.l0) / (o.l1 - o.l0), 0, 1);
+          quiet = clamp((this.ref - this.lv - o.quiet0) / (o.quiet1 - o.quiet0), 0, 1);       // 7 dB under their average starts it, 15 dB is as quiet as it counts
+        }
       }
       this.s = Math.max(target, this.s - dt / o.holdS);
+      this.q = Math.max(quiet, this.q - dt / o.quietHoldS);
       return this.s;
     }
   }
 
-  // ---- the little voice icon: nothing / ordinary speech / a raised voice, as a steady 0 / 1 / 2.
+  // ---- the little voice icon: nothing / quiet speech / ordinary speech / a raised voice, as a steady 0 / 1 / 2 / 3.
   //
   // Not the raw level (a breath, a key click or one noisy sample would flip it): the level is smoothed here (up in 40 ms, down in 120 ms: it really
-  // falls in silence, which Loudness.lv does not, because that only moves while there is a voice), and the "how raised" measure Loudness keeps
-  // (s, 0..1, which holds for a moment after a shout) goes through hold times and hysteresis.
+  // falls in silence, which Loudness.lv does not, because that only moves while there is a voice), and the two measures Loudness keeps (s: how
+  // raised, q: how quiet, both 0..1 and both relative to this speaker's own usual speech) go through hold times and hysteresis.
   //
-  //   0 -> 1   the smoothed level has been over floorDb for onS (120 ms: a click is shorter than that)
-  //   1 -> 0   it has been under floorDb for holdS (450 ms: the gap between two words is not the end of speech)
-  //   1 -> 2   the raised-voice measure has been at highS (0.55) or more for highOnS (150 ms)
-  //   2 -> 1   it has been under lowS (0.25) for highHoldS (500 ms), a lower bar than the one that raised it (hysteresis), and loud has lasted
-  //            at least minHighS (1 s): the measure dips while a long shout goes on (their baseline catches up), which must not flicker the icon
-  //   2 -> 0   as 1 -> 0
+  //   0 -> speech   the smoothed level has been over floorDb for onS (120 ms: a click is shorter than that)
+  //   speech -> 0   it has been under floorDb for holdS (450 ms: the gap between two words is not the end of speech)
+  //   normal -> 3   the raised-voice measure has been at highS (0.55) or more for highOnS (150 ms)
+  //   3 -> normal   it has been under lowS (0.25) for highHoldS (500 ms), a lower bar than the one that raised it (hysteresis), and loud has lasted
+  //                 at least minHighS (1 s): the measure dips while a long shout goes on (their baseline catches up), which must not flicker the icon
+  //   normal -> 1   the quiet measure has been at quietHighS (0.55) or more for quietOnS (200 ms); 1 -> normal when it has been under quietLowS
+  //                 (0.25) for quietHoldS (400 ms)
   //
-  // "Raised" is relative to this speaker's own usual speech (Loudness keeps their baseline), which is also what lengthens the range of a shout:
-  // so the icon says what the volume curve is doing. A speaker is not "loud" until they have been heard for about three seconds (the baseline
-  // has to exist first); until then ordinary speech shows as ordinary.
-  const VA = { floorDb: -52, onS: 0.12, holdS: 0.45, highS: 0.55, lowS: 0.25, highOnS: 0.15, highHoldS: 0.5, minHighS: 1.0, attackTau: 0.04, releaseTau: 0.12 };
+  // "Raised" and "quiet" are relative to this speaker's own usual speech (Loudness keeps their baseline), which is also what lengthens the range of a
+  // shout and shortens the range of a quiet voice: so the icon says what the volume curve is doing. A speaker is not "loud" or "quiet" until they have
+  // been heard for about three seconds (the baseline has to exist first); until then ordinary speech shows as ordinary.
+  const VA = { floorDb: -52, onS: 0.12, holdS: 0.45, highS: 0.55, lowS: 0.25, highOnS: 0.15, highHoldS: 0.5, minHighS: 1.0, attackTau: 0.04, releaseTau: 0.12,
+               quietHighS: 0.55, quietLowS: 0.25, quietOnS: 0.2, quietHoldS: 0.4 };
 
   class VoiceActivity {
     constructor(opts) {
       this.o = Object.assign({}, VA, opts || {});
-      this.level = 0;
+      this.level = 0;       // 0 nothing, 1 speaking (inside: quiet or ordinary), 2 a raised voice
+      this.quiet = false;   // ... and, while speaking, whether it is a quiet voice
       this.lv = -100;       // the level, smoothed (dBFS)
       this.over = 0;        // seconds the level has been over the floor (only counted while it is not yet speech)
       this.under = 0;       // seconds it has been under the floor (only counted while speaking)
       this.raised = 0;      // seconds the raised-voice measure has been high (while speaking, not yet loud)
       this.calm = 0;        // seconds it has been low (while loud)
       this.loudFor = 0;     // seconds spent loud so far
+      this.qOn = 0;         // seconds the quiet measure has been high (ordinary) or low (quiet)
     }
 
-    // db: the level of the latest block of the voice (dBFS; -100 for nothing); s: the raised-voice measure, 0..1; dt: seconds since the last call
-    update(db, s, dt) {
+    // db: the level of the latest block of the voice (dBFS; -100 for nothing); s: the raised-voice measure, 0..1; dt: seconds since the last call;
+    // q: the quiet-voice measure, 0..1. Returns 0 nothing, 1 quiet, 2 ordinary, 3 raised.
+    update(db, s, dt, q) {
       const o = this.o;
+      q = q || 0;
       const x = Math.max(-100, Number.isFinite(db) ? db : -100);
       this.lv += (x - this.lv) * (1 - Math.exp(-dt / (x > this.lv ? o.attackTau : o.releaseTau)));
       const voiced = this.lv > o.floorDb;
       if (this.level === 0) {
         this.over = voiced ? this.over + dt : 0;
-        if (this.over >= o.onS) { this.level = 1; this.over = 0; this.under = 0; this.raised = 0; this.calm = 0; }
+        if (this.over >= o.onS) { this.level = 1; this.over = 0; this.under = 0; this.raised = 0; this.calm = 0; this.quiet = false; this.qOn = 0; }
       } else {
         this.under = voiced ? 0 : this.under + dt;
-        if (this.under >= o.holdS) { this.level = 0; this.over = 0; this.under = 0; this.raised = 0; this.calm = 0; return 0; }
+        if (this.under >= o.holdS) { this.level = 0; this.over = 0; this.under = 0; this.raised = 0; this.calm = 0; this.quiet = false; this.qOn = 0; return 0; }
         if (this.level === 1) {
           this.raised = s >= o.highS ? this.raised + dt : 0;
-          if (this.raised >= o.highOnS) { this.level = 2; this.raised = 0; this.calm = 0; this.loudFor = 0; }
+          if (this.raised >= o.highOnS) { this.level = 2; this.raised = 0; this.calm = 0; this.loudFor = 0; this.quiet = false; this.qOn = 0; }
+          else if (!this.quiet) {
+            this.qOn = q >= o.quietHighS ? this.qOn + dt : 0;
+            if (this.qOn >= o.quietOnS) { this.quiet = true; this.qOn = 0; }
+          } else {
+            this.qOn = q < o.quietLowS ? this.qOn + dt : 0;
+            if (this.qOn >= o.quietHoldS) { this.quiet = false; this.qOn = 0; }
+          }
         } else {
           this.loudFor += dt;
           this.calm = s < o.lowS ? this.calm + dt : 0;
-          if (this.calm >= o.highHoldS && this.loudFor >= o.minHighS) { this.level = 1; this.raised = 0; this.calm = 0; }
+          if (this.calm >= o.highHoldS && this.loudFor >= o.minHighS) { this.level = 1; this.raised = 0; this.calm = 0; this.quiet = false; this.qOn = 0; }
         }
       }
-      return this.level;
+      return this.level === 0 ? 0 : this.level === 2 ? 3 : (this.quiet ? 1 : 2);
     }
   }
 

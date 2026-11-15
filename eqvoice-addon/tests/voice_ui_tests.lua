@@ -257,7 +257,7 @@ do
 	-- the list of nearby players: icons, and a click mutes
 	put(OV, 3, { peers = { "Alice 12.5 1 1 direct s 0", "Bob 30.0 1 0 direct m 1", "Cy 31.0 0 0 -" }, muted = { "bob" } })
 	eq(f.rowName[1].text, "Alice", "the list"); eq(f.rows[1].icon.state, "s", "Alice's icon: speaking")
-	eq(f.rows[1].icon.tex.path, ART .. "VoiceOpen.tga", "the speaker with one wave (vol_mid): ordinary speech"); eq(f.rows[1].icon.tex.shown, true, "shown")
+	eq(f.rows[1].icon.tex.path, ART .. "VoiceSpeaking.tga", "the speaker with two bubbles: ordinary speech"); eq(f.rows[1].icon.tex.shown, true, "shown")
 	eq(f.rows[1].icon.tex.pt[1], "LEFT", "the icon is to the RIGHT of the name: its left edge ..."); eq(f.rows[1].icon.tex.pt[2], f.rowName[1], "... is at the name's")
 	eq(f.rows[1].icon.tex.pt[3], "LEFT", "left"); eq(f.rows[1].icon.tex.pt[4], string.len("Alice") * 6 + 3, "plus the width of the text and a gap")
 	eq(f.rows[2].icon.state, "b", "Bob: muted by you"); eq(f.rows[2].icon.tex.path, ART .. "VoiceMuted.tga", "the microphone with a slash"); eq(f.rows[2].icon.tex.alpha, 0.7, "a little dimmer than a player who muted themselves")
@@ -558,9 +558,9 @@ do
 	for mode, b in pairs(f.bSpatial) do check(b ~= nil, mode .. " has a button") end
 	Stub.Click(f.bSpatial.mono); eq(lastSent(OV), "spatial mono", "")
 	-- the sensitivity bar turns red when your voice would carry at yell distance
-	put(OV, 8, { fields = "level=ok mode=open mute=0 deaf=0 tx=1 talk=0 vl=2 vol=100 near=0 conn=0 key=F9 mic=ok gate=auto gdb=-48 gl=-25 gt=-52 go=1" })
+	put(OV, 8, { fields = "level=ok mode=open mute=0 deaf=0 tx=1 talk=0 vl=3 vol=100 near=0 conn=0 key=F9 mic=ok gate=auto gdb=-48 gl=-25 gt=-52 go=1" })
 	eq(f.sGate.loud, true, "loud: the bar's live fill is red"); eq(f.sGate.amber.color[1] > 0.8 and f.sGate.amber.color[2] < 0.4, true, "")
-	put(OV, 9, { fields = "level=ok mode=open mute=0 deaf=0 tx=1 talk=0 vl=1 vol=100 near=0 conn=0 key=F9 mic=ok gate=auto gdb=-48 gl=-35 gt=-52 go=1" })
+	put(OV, 9, { fields = "level=ok mode=open mute=0 deaf=0 tx=1 talk=0 vl=2 vol=100 near=0 conn=0 key=F9 mic=ok gate=auto gdb=-48 gl=-35 gt=-52 go=1" })
 	eq(f.sGate.loud, false, "an ordinary voice: amber and green again")
 	eq(P.error, nil, "no drawing error")
 end
@@ -717,7 +717,7 @@ do
 	Stub.Advance(0.5)
 	local ic = I.surf[1] and I.surf[1].icon
 	check(ic ~= nil, "an icon was made on the target frame")
-	eq(ic.tex.shown, true, "and shown"); eq(ic.tex.path, ART .. "VoiceOpen.tga", "the speaker with one wave: she is speaking")
+	eq(ic.tex.shown, true, "and shown"); eq(ic.tex.path, ART .. "VoiceSpeaking.tga", "the speaker with two bubbles: she is speaking")
 	eq(ic.tex.r, 1, "drawn as it is (not tinted)")
 	check(ic.btn ~= nil, "on a unit frame the icon is a button")
 	eq(ic.btn.pt[1], "LEFT", "its left edge ..."); eq(ic.btn.pt[2], name, "... is at the name's"); eq(ic.btn.pt[3], "CENTER", "centre")
@@ -1024,9 +1024,11 @@ do
 	-- another player: the three picture files and the letters that choose them
 	app(BASE, { "Ann 5.0 1 0 direct o 0", "Bea 6.0 1 1 direct s 0", "Cat 7.0 1 1 direct l 0", "Dee 8.0 0 0 -" })
 	eq(I.Resolve("Ann", Stub.now), "o", "connected and silent: idle"); eq(I.Resolve("Bea", Stub.now), "s", "talking normally"); eq(I.Resolve("Cat", Stub.now), "l", "talking loudly")
-	eq(I.LOOK.o.file, "VoiceKnown.tga", "idle is the plain speaker (vol_low)"); eq(I.LOOK.s.file, "VoiceOpen.tga", "speaking is the speaker with one wave (vol_mid)")
-	eq(I.LOOK.l.file, "VoiceSpeaking.tga", "loud is the speaker with waves (vol_high)")
-	eq(I.Describe("l"), "speaking loudly", "and the tooltip says so"); eq(I.Describe("s"), "speaking", "")
+	eq(I.LOOK.o.file, "VoiceKnown.tga", "idle is the plain speaker"); eq(I.LOOK.w.file, "VoiceOpen.tga", "quiet is the speaker with one bubble")
+	eq(I.LOOK.s.file, "VoiceSpeaking.tga", "speaking is the speaker with two bubbles"); eq(I.LOOK.s.tint, nil, "in white")
+	eq(I.LOOK.l.file, "VoiceSpeaking.tga", "yelling is the same two bubbles"); check(I.LOOK.l.tint ~= nil and I.LOOK.l.tint[1] > 0.8 and I.LOOK.l.tint[2] < 0.5, "in red")
+	eq(I.LOOK.x.file, "VoiceX.tga", "not connected is an X"); check(I.LOOK.x.tint ~= nil and I.LOOK.x.tint[1] > 0.8 and I.LOOK.x.tint[2] < 0.5, "in red")
+	eq(I.Describe("l"), "yelling", "and the tooltip says so"); eq(I.Describe("s"), "speaking", ""); eq(I.Describe("w"), "speaking quietly", "")
 	-- the unit frame: a name that goes quiet, speaks, shouts and goes quiet again shows each in turn
 	local tf = CreateFrame("Frame", "TargetFrame", UIParent)
 	local name = tf:CreateFontString("TargetName", "OVERLAY", "GameFontNormalSmall")
@@ -1036,8 +1038,9 @@ do
 		return I.surf[1].icon
 	end
 	local ic = show("o", "Ann"); eq(ic.tex.path, ART .. "VoiceKnown.tga", "Ann is idle: vol_low"); eq(ic.tex.alpha, 1, "at full strength")
-	ic = show("s", "Ann"); eq(ic.tex.path, ART .. "VoiceOpen.tga", "Ann speaks: vol_mid")
-	ic = show("l", "Ann"); eq(ic.tex.path, ART .. "VoiceSpeaking.tga", "Ann shouts: vol_high")
+	ic = show("w", "Ann"); eq(ic.tex.path, ART .. "VoiceOpen.tga", "Ann speaks quietly: one bubble"); eq(ic.tex.r, 1, "white")
+	ic = show("s", "Ann"); eq(ic.tex.path, ART .. "VoiceSpeaking.tga", "Ann speaks: two bubbles"); eq(ic.tex.r, 1, "white")
+	ic = show("l", "Ann"); eq(ic.tex.path, ART .. "VoiceSpeaking.tga", "Ann yells: two bubbles"); check(ic.tex.r > 0.9 and ic.tex.g < 0.5 and ic.tex.b < 0.5, "in red")
 	ic = show("o", "Ann"); eq(ic.tex.path, ART .. "VoiceKnown.tga", "and is idle again")
 	-- you blocked her: whatever she does, the icon says you are not hearing it
 	app(BASE, { "Ann 5.0 1 1 direct l 0" })
@@ -1049,8 +1052,8 @@ do
 	-- your own icon, in the order of what matters
 	local function mine(fields) app(fields); return I.Resolve("Me", Stub.now) end
 	eq(mine(BASE), "o", "ready and quiet")
-	eq(mine(BASE .. " vl=1"), "s", "you are speaking"); eq(mine(BASE .. " vl=2"), "l", "you are speaking loudly")
-	eq(mine(BASE .. " vl=1 mute=1"), "m", "muted wins over speaking"); eq(mine(BASE .. " vl=1 mute=1 deaf=1"), "D", "deafened and muted: both icons"); eq(mine(BASE .. " vl=1 mute=0 deaf=1"), "q", "deafened, microphone open and speaking: the deaf icon and the speaking icon"); eq(mine(BASE .. " vl=0 mute=0 deaf=1"), "p", "quiet: the deaf icon and the quiet one"); eq(mine(BASE .. " vl=2 mute=0 deaf=1"), "r", "loud")
+	eq(mine(BASE .. " vl=1"), "w", "you are speaking quietly"); eq(mine(BASE .. " vl=2"), "s", "you are speaking"); eq(mine(BASE .. " vl=3"), "l", "you are yelling")
+	eq(mine(BASE .. " vl=1 mute=1"), "m", "muted wins over speaking"); eq(mine(BASE .. " vl=1 mute=1 deaf=1"), "D", "deafened and muted: both icons"); eq(mine(BASE .. " vl=1 mute=0 deaf=1"), "n", "deafened, microphone open and speaking quietly"); eq(mine(BASE .. " vl=2 mute=0 deaf=1"), "q", "speaking: the deaf icon and the two bubbles"); eq(mine(BASE .. " vl=0 mute=0 deaf=1"), "p", "quiet: the deaf icon and the quiet one"); eq(mine(BASE .. " vl=3 mute=0 deaf=1"), "r", "yelling")
 	eq(mine("level=ok mode=ptt mute=0 deaf=0 tx=0 talk=0 vol=100 near=0 conn=0 key=F9 game=1 hub=1 mic=ok"), "m", "push to talk with the key up: closed")
 	eq(mine(string.gsub(BASE, "mic=ok", "mic=denied")), "e", "Windows says no to the microphone")
 	eq(mine(string.gsub(BASE, "mic=ok", "mic=no_device")), "e", "or there is none")
@@ -1077,7 +1080,9 @@ do
 	local own = I.surf[2].icon
 	eq(own.state, "x", "your own name has the icon"); check(own.tex.r > 0.9 and own.tex.g < 0.4 and own.tex.b < 0.4, "drawn in red")
 	app(BASE .. " vl=2"); Stub.Advance(0.5)
-	eq(own.state, "l", "and white again, loud"); eq(own.tex.r, 1, "no tint left behind"); eq(own.tex.g, 1, "")
+	eq(own.state, "s", "and white again, speaking"); eq(own.tex.r, 1, "no tint left behind"); eq(own.tex.g, 1, "")
+	app(BASE .. " vl=3"); Stub.Advance(0.5)
+	eq(own.state, "l", "yelling"); check(own.tex.r > 0.9 and own.tex.g < 0.5, "is red")
 	Stub.Click(own.btn)
 	check(EqVoicePanel ~= nil and EqVoicePanel.shown, "clicking your own icon opens the same panel as /eqvc")
 	eq(P.error, nil, "no drawing error")
@@ -1485,7 +1490,7 @@ do
 		local look = I.LOOK[s]
 		check(look.tint ~= nil and look.tint[1] > 0.8 and look.tint[2] < 0.5 and look.tint[3] < 0.5, s .. ": the deaf or muted icon is red")
 	end
-	check(I.LOOK.p.also == "VoiceKnown.tga" and I.LOOK.q.also == "VoiceOpen.tga" and I.LOOK.r.also == "VoiceSpeaking.tga", "deafened with the microphone open: the voice icon beside the deaf one")
+	check(I.LOOK.p.also == "VoiceKnown.tga" and I.LOOK.n.also == "VoiceOpen.tga" and I.LOOK.q.also == "VoiceSpeaking.tga" and I.LOOK.r.also == "VoiceSpeaking.tga", "deafened with the microphone open: the voice icon beside the deaf one")
 	check(I.LOOK.p.alsoTint == nil and I.LOOK.D.alsoTint ~= nil and I.LOOK.D.also == "VoiceMuted.tga", "deafened and muted: the muted icon, red, beside it")
 	local parent = CreateFrame("Frame", nil, UIParent)
 	local ic = I.New(parent, 16, true)
