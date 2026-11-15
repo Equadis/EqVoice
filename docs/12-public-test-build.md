@@ -83,6 +83,10 @@ Opaque charcoal window, flat compact controls, one purple accent, four groups: a
 
 Not seen in the real game yet: the layout was checked in the test stub (no control overlaps or leaves the window), not on screen.
 
+## 0.6.2 (2026-11, pre-release)
+
+Nameplates: EqVoice no longer forces friendly nameplates on (that is what put every friendly NPC's name on screen in the default font). It only adds the icon above the plates the player already has.
+
 ## 0.6.0 (2026-11, pre-release): the test build before 1.0
 
 Everything from 0.5.x (whisper, noise suppression, the natural volume curve, direction that learns its axes, red muted and deafened icons, the player window and
@@ -124,8 +128,7 @@ your character faces to the other player (so turning the camera does not matter,
 the sides if a client turns out to answer mirrored. Measured in real engines (headphones, 90 degrees right): the right ear is about 3 times louder than the left; mono is equal.
 
 **Icons over heads, honestly.** The names drawn above characters are part of the 3D world: no addon can draw on them. A nameplate is the one thing that sits over a head and can be
-drawn on, so the icon rides on it. While a voice player is near and *Overhead icons* is On, EqVoice switches friendly nameplates on itself and makes the ones it caused quiet (only the name).
-Someone who already uses friendly nameplates keeps them untouched. Seen in the test stub only; **not seen in the real game**.
+drawn on, so the icon rides on it. From 0.6.2 EqVoice switches nothing on and changes nothing on a plate (no font, colour, text or art): the icon rides on the friendly nameplates the player already has, and if none shows for a voice player near them the chat says so once (Shift-V, or Show Friendly Players in the Equadis overhaul). A test fails if any code touches a plate. Seen in the test stub only; **not seen in the real game**.
 
 **Not done.** The two-ears effect is verified in a real browser engine, not on your ears. Group voice does not exist. Per-player settings are kept by character name, per Windows user.
 

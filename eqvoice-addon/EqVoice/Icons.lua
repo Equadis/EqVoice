@@ -36,11 +36,11 @@
 -- on your own opens the EqVoice panel. (Nameplates are only drawn on, so a click there still targets the player.)
 --
 -- Over a player's head. The names the game floats over characters are drawn in the 3D world: no addon can draw on them or learn where
--- on the screen they are (this client and its mods have no way to turn a place in the world into a place on the screen). The one thing
--- that does sit over a character's head and can be drawn on is a nameplate. So while a voice player is near and "overhead icons" is on,
--- EqVoice switches friendly nameplates on itself, and makes the ones it caused QUIET: no health bar, no border, no level, not clickable,
--- only the name, with the voice icon above it. A player who has friendly nameplates on already (Shift-V) keeps them exactly as they
--- are and simply gets the icon. Switching "overhead icons" off (the panel, or /eqvc overhead off) puts everything back.
+-- on the screen they are. The one thing that sits over a character's head and can be drawn on is a nameplate. So the icon goes above the
+-- nameplates the player ALREADY has: EqVoice does not switch any nameplate on, hide, restyle or replace anything (not the font, the colour,
+-- the text or the art; a test fails if it ever tries). A voice player shows an icon only where their friendly nameplate is on screen:
+-- friendly player nameplates are one switch in the game (Shift-V) or "Show Friendly Players" in the Equadis overhaul. If none is showing,
+-- EqVoice says so once, in the chat.
 --
 -- Written for the 1.12 client like Panel.lua: Lua 5.0, nothing newer. Every drawing step is inside a pcall, and a surface that
 -- keeps failing is switched off for the session: an icon must never be able to stop the voice. /eqvc icons off removes them.
@@ -80,11 +80,9 @@ Icons.UNIT_NAMES = { "TargetName", "PlayerName", "PartyMemberFrame1Name", "Party
 Icons.ECO_PARTY = 4            -- ECO's party frames draw their own names: one more surface for each
 local PLATE_BORDER = "Interface\\Tooltips\\Nameplate-Border"
 
-Icons.forced  = false          -- friendly nameplates are on because EqVoice switched them on (and only then are plates made quiet)
-Icons.assertAt = -100          -- when they were last switched on (it is repeated: another addon may switch them off)
-Icons.needUntil = -100         -- overhead icons are wanted until then (a voice player was near a moment ago)
-Icons.NEED_HOLD = 10           -- seconds the plates stay after the last voice player left (no flicker at the edge of range)
-Icons.REASSERT = 5
+Icons.nearSince = nil          -- since when a voice player has been near without any icon over a head (for the one-time hint)
+Icons.hinted  = false          -- the hint was given
+Icons.HINT_AFTER = 20          -- seconds
 Icons.surf    = {}             -- the unit-frame names: index -> { icon }
 Icons.plates  = {}             -- nameplates found so far: { frame, name (the client's own FontString), icon }
 Icons.known   = {}             -- WorldFrame children already looked at
@@ -378,109 +376,6 @@ local function findPlates()
 	end
 end
 
-local function plateBar(p)
-	if p.bar == nil then
-		p.bar = false
-		if p.frame.GetChildren then
-			local ok, kid = pcall(p.frame.GetChildren, p.frame)
-			if ok and kid and kid.GetStatusBarColor then p.bar = kid end
-		end
-	end
-	return p.bar or nil
-end
-
--- "player", "npc" or nil: a friendly unit's plate has a blue (player) or green (NPC) health bar; hostile is red, neutral yellow.
-local function friendKind(p)
-	local bar = plateBar(p)
-	if not bar then return nil end
-	local ok, r, g, b = pcall(bar.GetStatusBarColor, bar)
-	if not ok or type(r) ~= "number" then return nil end
-	if r < 0.2 and g < 0.2 and b > 0.9 then return "player" end
-	if r < 0.2 and g > 0.9 and b < 0.2 then return "npc" end
-	return nil
-end
-
-local QUIET = { 1, 2, 4, 5 }       -- border, glow, level, skull: what a quiet plate does not show (the name, 3, and the raid mark, 6, stay)
-
--- A quiet plate: nothing but the name. The client can put the art back when it reuses a plate, so it is said again every half second.
-local function setQuiet(p, on, now)
-	if (p.quiet or false) == on and (not on or now - (p.quietAt or -100) < 0.5) then return end
-	p.quiet, p.quietAt = on, now
-	local a = on and 0 or 1
-	for k = 1, table.getn(QUIET) do
-		local r = p.regions and p.regions[QUIET[k]]
-		if r and r.SetAlpha then r:SetAlpha(a) end
-	end
-	local bar = plateBar(p)
-	if bar and bar.SetAlpha then bar:SetAlpha(a) end
-	if p.frame.EnableMouse then p.frame:EnableMouse(not on) end        -- a quiet plate is not in the way of a click on the world
-end
-
--- Every plate on screen, while EqVoice is the reason friendly plates are on: the friendly ones are made quiet. ECO draws plates itself:
--- its plates are left to it. EqVoice never draws a name of its own on a plate: the player's own nameplates, in their own font, only get an icon above.
-local function quietPass(now)
-	findPlates()
-	local np = eco("nameplates")
-	for i = 1, table.getn(Icons.plates) do
-		local p = Icons.plates[i]
-		if visible(p.frame) then
-			local kind = Icons.forced and friendKind(p) or nil
-			local ep = np and np.plates and np.plates[p.frame] or nil
-			if ep then
-				setQuiet(p, false, now)
-			else
-				setQuiet(p, kind ~= nil, now)
-			end
-		end
-	end
-end
-Icons.QuietPass = quietPass
-
-local function release(now)
-	Icons.forced = false
-	for i = 1, table.getn(Icons.plates) do
-		setQuiet(Icons.plates[i], false, now)
-	end
-	if not FRIENDNAMEPLATES_ON and type(HideFriendNameplates) == "function" then HideFriendNameplates() end
-end
-
-local function buildDriver()
-	if Icons.driver or not CreateFrame then return end
-	local f = CreateFrame("Frame", "EqVoicePlateDriver")
-	f:SetScript("OnUpdate", function()                      -- every frame while plates are ours: a plate that appears is quiet at once, not a quarter second later
-		if not Icons.forced then return end
-		local ok, err = pcall(quietPass, OV.Now())
-		if not ok then fail("plates", err) end
-	end)
-	Icons.driver = f
-end
-
--- Friendly nameplates on or off, as the overhead icons need them. The player's own switch (Shift-V sets FRIENDNAMEPLATES_ON) always wins:
--- while it is on, nothing is forced and nothing is made quiet.
-local function ensurePlates(now, on)
-	local alive = OV.Status.Alive(now)
-	if alive and (OV.Status.npeers or 0) > 0 then Icons.needUntil = now + Icons.NEED_HOLD end
-	local want = on and Icons.OverheadOn() and alive and now < Icons.needUntil
-	if FRIENDNAMEPLATES_ON then
-		if Icons.forced then                                  -- the player switched their own on: hand the plates back as they are
-			Icons.forced = false
-			for i = 1, table.getn(Icons.plates) do
-				setQuiet(Icons.plates[i], false, now)
-			end
-		end
-		return
-	end
-	if want then
-		if type(ShowFriendNameplates) == "function" and (not Icons.forced or now - Icons.assertAt >= Icons.REASSERT) then
-			ShowFriendNameplates()
-			Icons.forced, Icons.assertAt = true, now
-			buildDriver()
-		end
-	elseif Icons.forced then
-		release(now)
-	end
-end
-
 -- The name text of a plate that the player sees: ECO's when ECO styles this plate (it hides the client's), else the client's.
 local function plateText(p)
 	local np = eco("nameplates")
@@ -490,9 +385,9 @@ local function plateText(p)
 end
 
 local function plates(now, on)
-	ensurePlates(now, on)
 	findPlates()
 	local show = on and Icons.OverheadOn()
+	local shown = 0
 	for i = 1, table.getn(Icons.plates) do
 		local p = Icons.plates[i]
 		local fs = plateText(p)
@@ -501,7 +396,18 @@ local function plates(now, on)
 		if state and not p.icon then p.icon = Icons.New(p.frame, Icons.PLATE_SIZE) end
 		if p.icon then
 			Icons.Set(p.icon, state)
-			if state then Icons.PlaceAbove(p.icon, fs) end
+			if state then Icons.PlaceAbove(p.icon, fs); shown = shown + 1 end
+		end
+	end
+	-- voice players are near but no nameplate of theirs is showing: say why, once
+	local near = show and OV.Status.Alive(now) and (OV.Status.npeers or 0) > 0
+	if not near or shown > 0 then
+		Icons.nearSince = nil
+	elseif not Icons.hinted then
+		Icons.nearSince = Icons.nearSince or now
+		if now - Icons.nearSince >= Icons.HINT_AFTER then
+			Icons.hinted = true
+			OV.Print("Overhead icons sit above the friendly nameplates you already have, and EqVoice does not change them. None is showing for the voice players near you: turn friendly player nameplates on (Shift-V, or Show Friendly Players in the Equadis overhaul) to see the icons over their heads. /eqvc overhead off stops this message.")
 		end
 	end
 end
@@ -527,7 +433,7 @@ function Icons.SetEnabled(on)
 	Icons.Tick(OV.Now())
 end
 
--- The icons over players' heads, on or off (kept between sessions). Off also hands friendly nameplates back at once.
+-- The icons over players' heads, on or off (kept between sessions).
 function Icons.SetOverhead(on)
 	if on then OV.db.ui.overhead = nil else OV.db.ui.overhead = false end
 	Icons.lastRun = -100

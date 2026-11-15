@@ -479,11 +479,10 @@ do
 	-- plain device names
 	eq(P.DefaultName("AT2020USB+"), "System default (AT2020USB+)", "the system default shows what it is now"); eq(P.DefaultName(""), "System default", "and plain when it is not known")
 
-	-- overhead icons: friendly nameplates are switched on (quietly) while a voice player is near, and put back
+	-- overhead icons: only on the nameplates the player already has. EqVoice switches nothing on and changes nothing on a plate.
 	put(OV, 1, { peers = { "Alice 12.5 1 1 direct s 0" } })
 	local pa = Stub.AddPlate("Alice", "player")
 	local pw = Stub.AddPlate("Boss", "enemy")
-	-- the player's own nameplate font is never touched: any attempt to change a plate's text is an error here
 	local fontCalls = 0
 	for _, plate in ipairs({ pa, pw }) do
 		for _, r in ipairs({ plate.nameText, plate.level }) do
@@ -491,26 +490,24 @@ do
 			r.SetFontObject = function() fontCalls = fontCalls + 1 end
 			r.SetTextColor = function() fontCalls = fontCalls + 1 end
 			r.SetText = function() fontCalls = fontCalls + 1 end
+			r.SetAlpha = function() fontCalls = fontCalls + 1 end
 		end
+		plate.bar.SetAlpha = function() fontCalls = fontCalls + 1 end
+		plate.border.SetAlpha = function() fontCalls = fontCalls + 1 end
 	end
 	Stub.Advance(1)
-	eq(fontCalls, 0, "EqVoice never changes the font, colour or text of a nameplate")
+	eq(fontCalls, 0, "EqVoice never changes a nameplate: not its font, colour, text, bar, border or level")
 	eq(I.error, nil, "and the plates raised no error")
-	eq(Stub.friendPlates, true, "a voice player is near: friendly nameplates are switched on")
-	eq(pa.bar.alpha, 0, "and the plate EqVoice caused is quiet: no health bar"); eq(pa.border.alpha, 0, "no border"); eq(pa.level.alpha, 0, "and no level")
-	eq(pw.bar.alpha, 1, "an enemy's plate is left exactly as it was")
-	check(I.plates[1].icon ~= nil and I.plates[1].icon.state == "s", "and the voice icon is over Alice's name")
+	eq(Stub.friendPlateCalls, 0, "EqVoice never switches friendly nameplates on")
+	eq(Stub.friendPlates, false, "and they are off, as the player had them")
+	check(I.plates[1].icon ~= nil and I.plates[1].icon.state == "s", "the voice icon is over Alice's name (her plate was showing)")
 	eq(I.plates[1].icon.tex.pt[1], "BOTTOM", "above it")
-	check(I.plates[1].label == nil and I.plates[1].labelOn == nil, "EqVoice draws no name of its own on a plate: the player's nameplate and font are left alone")
+	check(I.plates[1].label == nil and I.plates[1].labelOn == nil, "EqVoice draws no name of its own on a plate")
 	I.SetOverhead(false); Stub.Advance(1)
-	eq(OV.db.ui.overhead, false, "the switch is kept"); eq(Stub.friendPlates, false, "off: friendly plates are put back"); eq(pa.bar.alpha, 1, "and their art"); eq(I.plates[1].icon.state, nil, "and no icon over heads")
+	eq(OV.db.ui.overhead, false, "the switch is kept"); eq(I.plates[1].icon.state, nil, "off: no icon over heads")
 	I.SetOverhead(true); Stub.Advance(1)
-	eq(Stub.friendPlates, true, "on again")
-	-- a player who has friendly nameplates on themselves keeps them untouched
-	I.SetOverhead(false); Stub.Advance(1)
-	_G.FRIENDNAMEPLATES_ON = 1; I.SetOverhead(true); Stub.Advance(1)
-	eq(pa.bar.alpha, 1, "their own friendly plates are not made quiet"); check(I.plates[1].icon.state == "s", "but they get the icon")
-	_G.FRIENDNAMEPLATES_ON = nil
+	check(I.plates[1].icon.state == "s", "on again: the icon is back")
+	eq(Stub.friendPlateCalls, 0, "(and still nothing was switched on)")
 
 	-- the two deafens and the microphone test: what the buttons say
 	Stub.Click(EqVoiceIndicator, "LeftButton")
@@ -1519,6 +1516,25 @@ do
 	pf.sIn.frame.scripts.OnMouseUp(); Stub.Advance(0.5)
 	eq(lastSent(OV), "input 130", "the microphone volume still goes out when it rests")
 	eq(P.error, nil, "no drawing error")
+end
+
+
+sec("voice ui: no nameplate showing for a voice player: the player is told why, once")
+do
+	local OV = login()
+	local I = OV.Icons
+	OV.db.ui.setupDone = true                                                  -- (no first-time setup box in the way)
+	put(OV, 1, { peers = { "Alice 12.5 1 1 direct s 0" } })
+	local said = 0
+	local realPrint = OV.Print
+	OV.Print = function(msg) if string.find(msg, "friendly nameplates you already have", 1, true) then said = said + 1 end end
+	for i = 1, 9 do put(OV, 1 + i, { peers = { "Alice 12." .. i .. " 1 1 direct s 0" } }); Stub.Advance(3) end
+	eq(said, 1, "a voice player is near and no nameplate shows: EqVoice says why, once")
+	local pa = Stub.AddPlate("Alice", "player")
+	Stub.Advance(1)
+	check(I.plates[1] and I.plates[1].icon and I.plates[1].icon.state ~= nil, "and when her plate shows the icon is there")
+	OV.Print = realPrint
+	eq(Stub.friendPlateCalls, 0, "nothing was ever switched on")
 end
 
 end
