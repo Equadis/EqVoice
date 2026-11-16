@@ -37,12 +37,12 @@
 -- on your own opens the EqVoice panel. (Nameplates are only drawn on, so a click there still targets the player.)
 --
 -- Over a player's head. The names the game floats over characters are drawn in the 3D world: no addon can draw on them or learn where
--- on the screen they are. The one thing that sits over a character's head and can be drawn on is a nameplate. So while a voice player is
--- near and "overhead icons" is on, EqVoice switches the client's own friendly nameplates on (the Shift-V switch) and draws the voice icon
--- above the names of voice players. It changes NOTHING on a plate: the default nameplate, one to one (font, colour, text, bar, border, level,
--- alpha and clicks are all the client's; a test fails if any code touches a plate). A player who has friendly nameplates on already keeps
--- them exactly as they are and simply gets the icon; plates the Equadis overhaul draws are left to it. Switching "overhead icons" off (the
--- panel, or /eqvc overhead off) puts the friendly-nameplate switch back as it was.
+-- on the screen they are. The one thing that sits over a character's head and can be drawn on is a nameplate. So the icon goes above the
+-- nameplates the player HAS: EqVoice does not switch any nameplate setting, hide, restyle or replace anything (not the font, the colour, the
+-- text, the art, the range or the friendly/enemy switches; a test fails if any code touches a plate). A voice player shows an icon where
+-- their friendly nameplate is on screen. Friendly player nameplates are one switch in the game (Shift-V) or "Show Friendly Players" in the
+-- Equadis overhaul; when a voice player is near and none is showing, EqVoice says so once in the chat. (Switching the friendly-nameplate
+-- switch on itself, as 0.3 to 0.6.7 did, hid the player's own nameplates; `/eqvc plates on` is an opt-in for that, off by default.)
 --
 -- Written for the 1.12 client like Panel.lua: Lua 5.0, nothing newer. Every drawing step is inside a pcall, and a surface that
 -- keeps failing is switched off for the session: an icon must never be able to stop the voice. /eqvc icons off removes them.
@@ -90,6 +90,9 @@ Icons.assertAt = -100          -- when they were last switched on (it is repeate
 Icons.needUntil = -100         -- overhead icons are wanted until then (a voice player was near a moment ago)
 Icons.NEED_HOLD = 10           -- seconds the plates stay after the last voice player left (no flicker at the edge of range)
 Icons.REASSERT = 20
+Icons.nearSince = nil          -- since when a voice player has been near with no icon over any head (for the one-time hint)
+Icons.hinted  = false
+Icons.HINT_AFTER = 20          -- seconds
 Icons.surf    = {}             -- the unit-frame names: index -> { icon }
 Icons.plates  = {}             -- nameplates found so far: { frame, name (the client's own FontString), icon }
 Icons.known   = {}             -- WorldFrame children already looked at
@@ -408,7 +411,8 @@ end
 local function ensurePlates(now, on)
 	local alive = OV.Status.Alive(now)
 	if alive and (OV.Status.npeers or 0) > 0 then Icons.needUntil = now + Icons.NEED_HOLD end
-	local want = on and Icons.OverheadOn() and alive and now < Icons.needUntil
+	local optIn = OV.db and OV.db.ui and OV.db.ui.forcePlates
+	local want = optIn and on and Icons.OverheadOn() and alive and now < Icons.needUntil
 	if not Icons.rangeChecked then Icons.rangeChecked = true; putBackOldRange() end
 	if FRIENDNAMEPLATES_ON then
 		Icons.forced = false
@@ -436,6 +440,7 @@ local function plates(now, on)
 	ensurePlates(now, on)
 	findPlates()
 	local show = on and Icons.OverheadOn()
+	local shown = 0
 	for i = 1, table.getn(Icons.plates) do
 		local p = Icons.plates[i]
 		local fs = plateText(p)
@@ -444,7 +449,18 @@ local function plates(now, on)
 		if state and not p.icon then p.icon = Icons.New(p.frame, Icons.PLATE_SIZE) end
 		if p.icon then
 			Icons.Set(p.icon, state)
-			if state then Icons.PlaceAbove(p.icon, fs) end
+			if state then Icons.PlaceAbove(p.icon, fs); shown = shown + 1 end
+		end
+	end
+	-- voice players are near but no nameplate of theirs is showing: say how to get one, once
+	local near = show and OV.Status.Alive(now) and (OV.Status.npeers or 0) > 0
+	if not near or shown > 0 then
+		Icons.nearSince = nil
+	elseif not Icons.hinted then
+		Icons.nearSince = Icons.nearSince or now
+		if now - Icons.nearSince >= Icons.HINT_AFTER then
+			Icons.hinted = true
+			OV.Print("Overhead icons sit above the friendly nameplates you have, and EqVoice does not change any nameplate or nameplate setting. None is showing for the voice players near you: turn friendly player nameplates on (Shift-V, or Show Friendly Players in the Equadis overhaul) to see the icons over their heads. /eqvc overhead off stops this message.")
 		end
 	end
 end

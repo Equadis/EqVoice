@@ -826,7 +826,14 @@ local function newSlider(parent, key, x, y, w, minv, maxv, step, show, commit)
 		f:SetScript("OnValueChanged", function()
 			if s.setting then return end
 			local v = arg1
-			if not s.dragging then return end                                                  -- only a hand moves a slider: the client's own settling and layout never send a value
+			if not s.dragging then
+				-- only a hand moves a slider: the client's own settling and layout never send a value. A hand is a mouse button held over the slider: a click on
+				-- the track (not on the knob) moves the knob and sends no OnMouseDown on this client, so the button itself is what is looked at.
+				local down = IsMouseButtonDown and IsMouseButtonDown("LeftButton")
+				local over = (not MouseIsOver) or MouseIsOver(this)
+				if not (down and over) then return end
+				s.dragging = true
+			end
 			if type(v) ~= "number" or math.abs(v - s.value) < step / 2 then return end        -- the echo of Set(), not a drag
 			moved(v)
 		end)
@@ -2232,8 +2239,14 @@ function Panel.Slash(msg)
 	elseif cmd == "overhead" then
 		if w[2] == "on" or w[2] == "off" then Panel.SetOverhead(w[2] == "on"); OV.Print("icons over players' heads: " .. w[2])
 		else OV.Print("usage: /eqvc overhead on or off   (now " .. (Panel.OverheadOn() and "on" or "off") .. ")") end
-	elseif cmd == "vol" and w[2] and w[3] and false then
-		return
+	elseif cmd == "plates" then
+		if w[2] == "on" or w[2] == "off" then
+			OV.db.ui.forcePlates = (w[2] == "on") or nil
+			OV.Print("friendly nameplates switched on by EqVoice while a voice player is near: " .. w[2] .. (w[2] == "on" and " (this can hide your own nameplates: off is the default)" or ""))
+			if OV.Icons then OV.Icons.lastRun = -100 end
+		else
+			OV.Print("usage: /eqvc plates on or off   (now " .. (OV.db.ui.forcePlates and "on" or "off") .. "). Off is the default: EqVoice changes no nameplate setting and puts the icon above the nameplates you have.")
+		end
 	elseif cmd == "vol" or cmd == "volume" then
 		local v = tonumber(w[2] or "")
 		if v then

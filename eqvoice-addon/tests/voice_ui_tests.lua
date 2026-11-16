@@ -479,14 +479,13 @@ do
 	-- plain device names
 	eq(P.DefaultName("AT2020USB+"), "System default (AT2020USB+)", "the system default shows what it is now"); eq(P.DefaultName(""), "System default", "and plain when it is not known")
 
-	-- overhead icons: the client's own friendly nameplates are switched on while a voice player is near, and not touched in any way:
-	-- the default nameplate one to one, with the icon above the voice player's name. Put back when it is off.
+	-- overhead icons: above the nameplates the player has. No nameplate switch is touched and nothing on any plate is changed.
 	put(OV, 1, { peers = { "Alice 12.5 1 1 direct s 0" } })
 	local pa = Stub.AddPlate("Alice", "player")
 	local pn = Stub.AddPlate("Northshire Guard", "npc")
 	local pw = Stub.AddPlate("Boss", "enemy")
 	local touched = 0
-	for _, plate in ipairs({ pa, pn, pw }) do                                      -- no part of any plate may be changed: not font, colour, text, alpha, bar or border
+	for _, plate in ipairs({ pa, pn, pw }) do
 		for _, r in ipairs({ plate.nameText, plate.level, plate.bar, plate.border }) do
 			for _, fn in ipairs({ "SetFont", "SetFontObject", "SetTextColor", "SetText", "SetAlpha", "SetVertexColor", "Hide", "Show" }) do
 				r[fn] = function() touched = touched + 1 end
@@ -496,22 +495,23 @@ do
 	end
 	Stub.Advance(1)
 	eq(I.error, nil, "the plates raised no error")
-	eq(Stub.friendPlates, true, "a voice player is near: the client's friendly nameplates are switched on")
-	eq(touched, 0, "and not a thing on any plate is changed: the default nameplate, one to one")
-	check(I.plates[1].icon ~= nil and I.plates[1].icon.state == "s", "the voice icon is over Alice's name")
+	eq(Stub.friendPlateCalls, 0, "a voice player is near: no nameplate switch is touched (it hid the player's nameplates)")
+	eq(touched, 0, "and not a thing on any plate is changed")
+	check(I.plates[1].icon ~= nil and I.plates[1].icon.state == "s", "the voice icon is over Alice's name (her plate is showing)")
 	eq(I.plates[1].icon.tex.pt[1], "BOTTOM", "above it")
 	check(I.plates[2] == nil or I.plates[2].icon == nil or I.plates[2].icon.state == nil, "and none over the guard's")
 	check(I.plates[1].label == nil and I.plates[1].labelOn == nil, "EqVoice draws no name of its own on a plate")
 	I.SetOverhead(false); Stub.Advance(1)
-	eq(OV.db.ui.overhead, false, "the switch is kept"); eq(Stub.friendPlates, false, "off: the friendly-nameplate switch is put back"); eq(I.plates[1].icon.state, nil, "and no icon over heads")
+	eq(OV.db.ui.overhead, false, "the switch is kept"); eq(I.plates[1].icon.state, nil, "off: no icon over heads")
 	I.SetOverhead(true); Stub.Advance(1)
-	eq(Stub.friendPlates, true, "on again")
-	-- a player who has friendly nameplates on themselves keeps them, and gets the icon
-	I.SetOverhead(false); Stub.Advance(1)
-	_G.FRIENDNAMEPLATES_ON = 1; I.SetOverhead(true); Stub.Advance(1)
-	check(I.plates[1].icon.state == "s", "their own friendly plates get the icon")
-	eq(touched, 0, "and are still untouched")
-	_G.FRIENDNAMEPLATES_ON = nil
+	check(I.plates[1].icon.state == "s", "on again: the icon is back")
+	eq(Stub.friendPlateCalls, 0, "(and still nothing was switched)")
+	eq(touched, 0, "or changed")
+	-- the opt-in for the old behaviour: /eqvc plates on switches the friendly plates on while a voice player is near
+	SlashCmdList["EQVOICEUI"]("plates on"); Stub.Advance(1)
+	eq(OV.db.ui.forcePlates, true, "/eqvc plates on is kept"); eq(Stub.friendPlates, true, "and then the friendly nameplates are switched on")
+	SlashCmdList["EQVOICEUI"]("plates off"); Stub.Advance(1)
+	eq(OV.db.ui.forcePlates, nil, "off again"); eq(Stub.friendPlates, false, "and put back")
 
 	-- the two deafens and the microphone test: what the buttons say
 	Stub.Click(EqVoiceIndicator, "LeftButton")
@@ -1594,5 +1594,45 @@ do
 	eq(Stub.cvars.NameplateRange, "80", "a range the player later chose to set to 80 is theirs: not touched again")
 end
 
+
+sec("voice ui: no nameplate showing for a voice player: the player is told how to get one, once")
+do
+	local OV = login()
+	local I = OV.Icons
+	OV.db.ui.setupDone = true
+	put(OV, 1, { peers = { "Alice 12.5 1 1 direct s 0" } })
+	local said = 0
+	local realPrint = OV.Print
+	OV.Print = function(msg) if string.find(msg, "friendly nameplates you have", 1, true) then said = said + 1 end end
+	for i = 1, 9 do put(OV, 1 + i, { peers = { "Alice 12." .. i .. " 1 1 direct s 0" } }); Stub.Advance(3) end
+	eq(said, 1, "a voice player is near and no nameplate shows: EqVoice says how to get one, once")
+	local pa = Stub.AddPlate("Alice", "player")
+	Stub.Advance(1)
+	check(I.plates[1] and I.plates[1].icon and I.plates[1].icon.state ~= nil, "and when her plate shows the icon is there")
+	OV.Print = realPrint
+	eq(Stub.friendPlateCalls, 0, "nothing was ever switched on")
 end
 
+sec("voice ui: a click on the slider's bar sets the value even though the knob is not dragged")
+do
+	local OV = login()
+	local P = OV.Panel
+	put(OV, 1)
+	Stub.Click(EqVoiceIndicator, "LeftButton")
+	local f = EqVoicePanel
+	local before = table.getn(sent_all(OV))
+	-- a click on the track: the client moves the knob and calls OnValueChanged with the mouse button down, and no OnMouseDown
+	Stub.mouseDown = true
+	f.sVol.frame:SetValue(40)
+	Stub.mouseDown = false
+	Stub.Advance(0.5)
+	eq(lastSent(OV), "volume 40", "the value clicked on the bar is sent (it used to snap back to the old one)")
+	eq(f.sVol.frame:GetValue(), 40, "and the knob stays where it was clicked")
+	-- the client moving it by itself (no button down) still sends nothing
+	local n = table.getn(sent_all(OV))
+	f.sVol.frame:SetValue(10); Stub.Advance(1)
+	eq(table.getn(sent_all(OV)), n, "a move with no hand on the mouse is the client's own and sends nothing")
+	eq(P.error, nil, "no drawing error")
+end
+
+end

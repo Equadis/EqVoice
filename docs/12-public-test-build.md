@@ -83,6 +83,14 @@ Opaque charcoal window, flat compact controls, one purple accent, four groups: a
 
 Not seen in the real game yet: the layout was checked in the test stub (no control overlaps or leaves the window), not on screen.
 
+## 0.6.8 (2026-11, pre-release)
+
+**Nameplates: EqVoice no longer switches any nameplate setting.** With Overhead icons On, 0.6.7 still switched the client's friendly nameplates on while a voice player was near, and the player reported their nameplates
+hiding; that switch is the only nameplate-affecting call left, so it is off by default (`/eqvc plates on` brings it back as an opt-in). The icon goes above the nameplates the player has, and if none shows for a voice
+player near them the chat says how to get friendly player nameplates (Shift-V, or Show Friendly Players in the Equadis overhaul), once.
+
+**Sliders:** a click on a slider's bar (not the knob) now sets the value; it used to be ignored and snap back, because that click sends no mouse-down on this client.
+
 ## 0.6.7 (2026-11, pre-release)
 
 **Indicator: wider.** 26 x 30 (it was 14 x 28), glyph 18 px.
