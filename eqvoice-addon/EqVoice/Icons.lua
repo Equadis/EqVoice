@@ -38,11 +38,11 @@
 --
 -- Over a player's head. The names the game floats over characters are drawn in the 3D world: no addon can draw on them or learn where
 -- on the screen they are. The one thing that sits over a character's head and can be drawn on is a nameplate. So the icon goes above the
--- nameplates the player HAS: EqVoice does not switch any nameplate setting, hide, restyle or replace anything (not the font, the colour, the
--- text, the art, the range or the friendly/enemy switches; a test fails if any code touches a plate). A voice player shows an icon where
--- their friendly nameplate is on screen. Friendly player nameplates are one switch in the game (Shift-V) or "Show Friendly Players" in the
--- Equadis overhaul; when a voice player is near and none is showing, EqVoice says so once in the chat. (Switching the friendly-nameplate
--- switch on itself, as 0.3 to 0.6.7 did, hid the player's own nameplates; `/eqvc plates on` is an opt-in for that, off by default.)
+-- nameplate as an ANCHOR: it is never changed, hidden, restyled or replaced (not the font, the colour, the text, the art or the range; a test
+-- fails if any code touches a plate), and nothing is added to it: the icon is on a frame of its own, 4 px above the plate's name, on a small
+-- steel-blue tile. The only thing EqVoice does about plates is the client's own friendly-nameplate switch (the Shift-V one): a voice player
+-- has a plate to be anchored to only while friendly nameplates are on, so it is switched on while one is near and put back after; `/eqvc plates
+-- off` stops that (then icons show only on plates the player already has, and the chat says so once).
 --
 -- Written for the 1.12 client like Panel.lua: Lua 5.0, nothing newer. Every drawing step is inside a pcall, and a surface that
 -- keeps failing is switched off for the session: an icon must never be able to stop the voice. /eqvc icons off removes them.
@@ -54,6 +54,8 @@ OV.Icons = Icons
 Icons.ART    = "Interface\\AddOns\\EqVoice\\"
 Icons.SIZE   = 16
 Icons.PLATE_SIZE = 16          -- over a nameplate: half the size it was (32); a glance is enough
+Icons.TILE      = { 0.20, 0.43, 0.58, 1 }      -- the steel-blue tile behind the overhead icon
+Icons.TILE_PAD  = 3            -- pixels of tile round the picture
 Icons.PLATE_GAP  = 4           -- pixels between the icon and the top of the name: a fixed distance above it
 Icons.GAP    = 3               -- pixels between the end of a name and its icon
 Icons.EVERY  = 0.25            -- seconds between looks at the screen
@@ -411,7 +413,7 @@ end
 local function ensurePlates(now, on)
 	local alive = OV.Status.Alive(now)
 	if alive and (OV.Status.npeers or 0) > 0 then Icons.needUntil = now + Icons.NEED_HOLD end
-	local optIn = OV.db and OV.db.ui and OV.db.ui.forcePlates
+	local optIn = not (OV.db and OV.db.ui and OV.db.ui.forcePlates == false)             -- on unless the player said /eqvc plates off
 	local want = optIn and on and Icons.OverheadOn() and alive and now < Icons.needUntil
 	if not Icons.rangeChecked then Icons.rangeChecked = true; putBackOldRange() end
 	if FRIENDNAMEPLATES_ON then
@@ -434,6 +436,18 @@ local function plateText(p)
 	local plate = np and np.plates and np.plates[p.frame] or nil
 	if plate and plate.name and plate.name.GetText then return plate.name end
 	return p.name
+end
+
+-- The tile behind an icon (or a pair of icons): a few pixels bigger than the pictures all round.
+function Icons.FitTile(p, on)
+	local tile, ic = p.tile, p.icon
+	if not tile or not ic then return end
+	if not on then tile:Hide(); return end
+	local last = (ic.two and ic.tex2) or ic.tex
+	tile:ClearAllPoints()
+	tile:SetPoint("TOPLEFT", ic.tex, "TOPLEFT", -Icons.TILE_PAD, Icons.TILE_PAD)
+	tile:SetPoint("BOTTOMRIGHT", last, "BOTTOMRIGHT", Icons.TILE_PAD, -Icons.TILE_PAD)
+	tile:Show()
 end
 
 -- The icon's frame is shown while its plate is showing and an icon is wanted (looked at every frame, so the icon goes with the plate at once).
@@ -473,6 +487,9 @@ local function plates(now, on)
 			p.host:SetWidth(1); p.host:SetHeight(1)
 			p.host:SetPoint("CENTER", UIParent, "CENTER", 0, 0)
 			if p.host.SetFrameStrata then p.host:SetFrameStrata("MEDIUM") end
+			p.tile = p.host:CreateTexture(nil, "BACKGROUND")                      -- the steel-blue tile behind the icon
+			p.tile:SetTexture("Interface\\Buttons\\WHITE8X8")
+			p.tile:SetVertexColor(Icons.TILE[1], Icons.TILE[2], Icons.TILE[3], Icons.TILE[4])
 			p.icon = Icons.New(p.host, Icons.PLATE_SIZE)
 			Icons.BuildPlateDriver()
 		end
@@ -480,6 +497,7 @@ local function plates(now, on)
 			Icons.Set(p.icon, state)
 			p.want = (state ~= nil)
 			if state then Icons.PlaceAbove(p.icon, fs); shown = shown + 1 end
+			Icons.FitTile(p, state ~= nil)
 			Icons.ShowHost(p)
 		end
 	end

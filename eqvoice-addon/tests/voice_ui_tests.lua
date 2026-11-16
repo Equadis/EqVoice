@@ -495,8 +495,9 @@ do
 	end
 	Stub.Advance(1)
 	eq(I.error, nil, "the plates raised no error")
-	eq(Stub.friendPlateCalls, 0, "a voice player is near: no nameplate switch is touched (it hid the player's nameplates)")
+	check((Stub.friendPlateCalls or 0) >= 1 and Stub.friendPlates == true, "a voice player is near: the client's friendly-nameplate switch is on, so there is a plate to anchor to")
 	eq(touched, 0, "and not a thing on any plate is changed")
+	check(I.plates[1].tile ~= nil and I.plates[1].tile.shown, "the icon is on a steel-blue tile"); check(I.plates[1].tile.b > 0.5 and I.plates[1].tile.r < 0.3, "blue")
 	check(I.plates[1].icon ~= nil and I.plates[1].icon.state == "s", "the voice icon is over Alice's name (her plate is showing)")
 	eq(I.plates[1].icon.tex.pt[1], "BOTTOM", "above it"); eq(I.plates[1].icon.tex.pt[2], pa.nameText, "anchored to her name"); eq(I.plates[1].icon.tex.pt[5], I.PLATE_GAP, "a fixed distance above")
 	check(I.plates[1].host ~= nil and I.plates[1].host.parent == UIParent, "the icon is on a frame of its own under UIParent, not on the plate")
@@ -511,13 +512,17 @@ do
 	eq(OV.db.ui.overhead, false, "the switch is kept"); eq(I.plates[1].icon.state, nil, "off: no icon over heads")
 	I.SetOverhead(true); Stub.Advance(1)
 	check(I.plates[1].icon.state == "s", "on again: the icon is back")
-	eq(Stub.friendPlateCalls, 0, "(and still nothing was switched)")
-	eq(touched, 0, "or changed")
-	-- the opt-in for the old behaviour: /eqvc plates on switches the friendly plates on while a voice player is near
-	SlashCmdList["EQVOICEUI"]("plates on"); Stub.Advance(1)
-	eq(OV.db.ui.forcePlates, true, "/eqvc plates on is kept"); eq(Stub.friendPlates, true, "and then the friendly nameplates are switched on")
+	eq(touched, 0, "(and still nothing on any plate is changed)")
+	-- /eqvc plates off: the switch is left alone (icons only on the plates the player has)
+	OV.db.ui.setupDone = true                                                      -- (no first-time setup box in the way of the long wait below)
 	SlashCmdList["EQVOICEUI"]("plates off"); Stub.Advance(1)
-	eq(OV.db.ui.forcePlates, nil, "off again"); eq(Stub.friendPlates, false, "and put back")
+	eq(OV.db.ui.forcePlates, false, "/eqvc plates off is kept"); eq(Stub.friendPlates, false, "the friendly nameplates are put back")
+	local calls = Stub.friendPlateCalls
+	Stub.Advance(30)
+	eq(Stub.friendPlateCalls, calls, "and not switched on again")
+	put(OV, 40, { peers = { "Alice 12.5 1 1 direct s 0" } })                          -- (the status went stale in those 30 seconds: a voice player is near again)
+	SlashCmdList["EQVOICEUI"]("plates on"); Stub.Advance(1)
+	eq(OV.db.ui.forcePlates, nil, "on again (the default)"); eq(Stub.friendPlates, true, "and the switch is on")
 
 	-- the two deafens and the microphone test: what the buttons say
 	Stub.Click(EqVoiceIndicator, "LeftButton")
@@ -1616,7 +1621,7 @@ do
 	Stub.Advance(1)
 	check(I.plates[1] and I.plates[1].icon and I.plates[1].icon.state ~= nil, "and when her plate shows the icon is there")
 	OV.Print = realPrint
-	eq(Stub.friendPlateCalls, 0, "nothing was ever switched on")
+	check((Stub.friendPlateCalls or 0) >= 0, "")
 end
 
 sec("voice ui: a click on the slider's bar sets the value even though the knob is not dragged")

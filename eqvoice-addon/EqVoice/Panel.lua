@@ -2241,11 +2241,11 @@ function Panel.Slash(msg)
 		else OV.Print("usage: /eqvc overhead on or off   (now " .. (Panel.OverheadOn() and "on" or "off") .. ")") end
 	elseif cmd == "plates" then
 		if w[2] == "on" or w[2] == "off" then
-			OV.db.ui.forcePlates = (w[2] == "on") or nil
-			OV.Print("friendly nameplates switched on by EqVoice while a voice player is near: " .. w[2] .. (w[2] == "on" and " (this can hide your own nameplates: off is the default)" or ""))
+			if w[2] == "off" then OV.db.ui.forcePlates = false else OV.db.ui.forcePlates = nil end        -- (nil: on, the default)
+			OV.Print("friendly nameplates switched on by EqVoice while a voice player is near (so a plate is there to hold the icon): " .. w[2])
 			if OV.Icons then OV.Icons.lastRun = -100 end
 		else
-			OV.Print("usage: /eqvc plates on or off   (now " .. (OV.db.ui.forcePlates and "on" or "off") .. "). Off is the default: EqVoice changes no nameplate setting and puts the icon above the nameplates you have.")
+			OV.Print("usage: /eqvc plates on or off   (now " .. (OV.db.ui.forcePlates == false and "off" or "on") .. "). On switches the client's friendly nameplates on while a voice player is near, so there is a plate to hold the icon; off puts icons only on the plates you already have.")
 		end
 	elseif cmd == "vol" or cmd == "volume" then
 		local v = tonumber(w[2] or "")

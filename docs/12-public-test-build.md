@@ -83,6 +83,12 @@ Opaque charcoal window, flat compact controls, one purple accent, four groups: a
 
 Not seen in the real game yet: the layout was checked in the test stub (no control overlaps or leaves the window), not on screen.
 
+## 0.7.0 (2026-11, pre-release)
+
+The overhead icon is on a small **steel-blue tile**, 4 px above the plate's name, on its own frame (the plate is only an anchor and nothing is added to it or changed on it). The client's friendly-nameplate switch (the
+Shift-V one) is switched on again while a voice player is near, so there is a plate to anchor to (0.6.8 and 0.6.9 left it off and no icon showed unless the player had friendly plates on themselves); `/eqvc plates off` stops
+that. **After installing, type /reload in the game**: the addon is only read at login, and an old copy still running (0.6.3 hid plates) can look like a bug in the new one.
+
 ## 0.6.9 (2026-11, pre-release)
 
 **The icon is anchored to the nameplate, not part of it.** It now lives on a frame of its own under UIParent and is placed 4 px above the plate's name text (the plate is only a point to measure from), so nothing the plate or another
