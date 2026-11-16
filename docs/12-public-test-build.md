@@ -83,6 +83,11 @@ Opaque charcoal window, flat compact controls, one purple accent, four groups: a
 
 Not seen in the real game yet: the layout was checked in the test stub (no control overlaps or leaves the window), not on screen.
 
+## 0.6.9 (2026-11, pre-release)
+
+**The icon is anchored to the nameplate, not part of it.** It now lives on a frame of its own under UIParent and is placed 4 px above the plate's name text (the plate is only a point to measure from), so nothing the plate or another
+addon does to its regions or alpha reaches the icon, and EqVoice adds nothing to the plate. It is shown while the plate is, checked every frame.
+
 ## 0.6.8 (2026-11, pre-release)
 
 **Nameplates: EqVoice no longer switches any nameplate setting.** With Overhead icons On, 0.6.7 still switched the client's friendly nameplates on while a voice player was near, and the player reported their nameplates

@@ -54,7 +54,7 @@ OV.Icons = Icons
 Icons.ART    = "Interface\\AddOns\\EqVoice\\"
 Icons.SIZE   = 16
 Icons.PLATE_SIZE = 16          -- over a nameplate: half the size it was (32); a glance is enough
-Icons.PLATE_GAP  = 2           -- pixels between the icon and the top of the name
+Icons.PLATE_GAP  = 4           -- pixels between the icon and the top of the name: a fixed distance above it
 Icons.GAP    = 3               -- pixels between the end of a name and its icon
 Icons.EVERY  = 0.25            -- seconds between looks at the screen
 Icons.MAXERR = 3               -- a surface that fails this many times is switched off
@@ -436,6 +436,26 @@ local function plateText(p)
 	return p.name
 end
 
+-- The icon's frame is shown while its plate is showing and an icon is wanted (looked at every frame, so the icon goes with the plate at once).
+function Icons.ShowHost(p)
+	local on = p.want and visible(p.frame)
+	if p.hostShown == on then return end
+	p.hostShown = on
+	if on then p.host:Show() else p.host:Hide() end
+end
+
+function Icons.BuildPlateDriver()
+	if Icons.plateDriver or not CreateFrame then return end
+	local f = CreateFrame("Frame", "EqVoicePlateIcons")
+	f:SetScript("OnUpdate", function()
+		for i = 1, table.getn(Icons.plates) do
+			local p = Icons.plates[i]
+			if p.host then Icons.ShowHost(p) end
+		end
+	end)
+	Icons.plateDriver = f
+end
+
 local function plates(now, on)
 	ensurePlates(now, on)
 	findPlates()
@@ -446,10 +466,21 @@ local function plates(now, on)
 		local fs = plateText(p)
 		local state = nil
 		if show and visible(p.frame) then state = Icons.Resolve(fs:GetText(), now) end
-		if state and not p.icon then p.icon = Icons.New(p.frame, Icons.PLATE_SIZE) end
+		if state and not p.icon then
+			-- the icon lives on a frame of its own under UIParent, never on the plate: the plate is only the anchor (a point to measure from) and is not
+			-- touched, and nothing the plate or another addon does to its own regions or alpha reaches the icon
+			p.host = CreateFrame("Frame", nil, UIParent)
+			p.host:SetWidth(1); p.host:SetHeight(1)
+			p.host:SetPoint("CENTER", UIParent, "CENTER", 0, 0)
+			if p.host.SetFrameStrata then p.host:SetFrameStrata("MEDIUM") end
+			p.icon = Icons.New(p.host, Icons.PLATE_SIZE)
+			Icons.BuildPlateDriver()
+		end
 		if p.icon then
 			Icons.Set(p.icon, state)
+			p.want = (state ~= nil)
 			if state then Icons.PlaceAbove(p.icon, fs); shown = shown + 1 end
+			Icons.ShowHost(p)
 		end
 	end
 	-- voice players are near but no nameplate of theirs is showing: say how to get one, once
