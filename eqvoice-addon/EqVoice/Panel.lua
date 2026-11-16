@@ -48,8 +48,8 @@ Panel.SPATIAL_LABEL = { mono = "Mono", speakers = "Speakers", headphones = "Head
 Panel.SPATIAL_ORDER = { "headphones", "speakers", "mono" }
 Panel.CAPTURE_S = 10         -- seconds "press a key" waits
 Panel.ART       = "Interface\\AddOns\\EqVoice\\"     -- MicGlyph, MicSlash, Knob ... (.tga), drawn by tools/make_micro_art.py
-Panel.IND_W     = 14                                   -- the indicator: a slim rounded button in the panel's own theme (40 x 40, then half as wide, then 30% smaller)
-Panel.IND_H     = 28
+Panel.IND_W     = 26                                   -- the indicator: a rounded button in the panel's own theme (14 x 28 was too slim: about 26 x 30 now)
+Panel.IND_H     = 30
 Panel.IND_TOP   = 0.15                                 -- where it starts: in the middle of the screen, this far down (a fraction of the height: the top quarter)
 Panel.DOCK_S    = 1                                    -- seconds between looks at the screen size (the default place follows it)
 
@@ -1924,16 +1924,16 @@ function Panel.BuildIndicator()
 	b:SetClampedToScreen(true)
 	b:RegisterForClicks("LeftButtonUp", "RightButtonUp")
 	b:RegisterForDrag("LeftButton")
-	paint(b, THEME.card, THEME.edge, 6)
+	paint(b, THEME.card, THEME.edge, 8)
 	b.glyph = b:CreateTexture(nil, "OVERLAY")
 	b.glyph:SetTexture(Panel.ART .. "MicGlyph.tga")
-	b.glyph:SetWidth(12)
-	b.glyph:SetHeight(12)
+	b.glyph:SetWidth(18)
+	b.glyph:SetHeight(18)
 	b.glyph:SetPoint("CENTER", b, "CENTER", 0, 0)
 	b.slash = b:CreateTexture(nil, "OVERLAY")
 	b.slash:SetTexture(Panel.ART .. "MicSlash.tga")
-	b.slash:SetWidth(12)
-	b.slash:SetHeight(12)
+	b.slash:SetWidth(18)
+	b.slash:SetHeight(18)
 	b.slash:SetPoint("CENTER", b, "CENTER", 0, 0)
 	b.slash:Hide()
 	b.badgeText = ""
@@ -1972,7 +1972,7 @@ end
 
 local function applyIndicator(b, m)
 	b.badgeText = m.badge
-	paint(b, THEME.card, { m.color[1] * 0.8, m.color[2] * 0.8, m.color[3] * 0.8 }, 6)       -- the ring is the colour of the state
+	paint(b, THEME.card, { m.color[1] * 0.8, m.color[2] * 0.8, m.color[3] * 0.8 }, 8)       -- the ring is the colour of the state
 	b.glyph:SetVertexColor(m.color[1], m.color[2], m.color[3])
 	if m.alive and (m.mute or m.deaf) then
 		b.slash:SetVertexColor(COLORS.bad[1], COLORS.bad[2], COLORS.bad[3])

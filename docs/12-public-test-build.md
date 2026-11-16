@@ -85,6 +85,8 @@ Not seen in the real game yet: the layout was checked in the test stub (no contr
 
 ## 0.6.7 (2026-11, pre-release)
 
+**Indicator: wider.** 26 x 30 (it was 14 x 28), glyph 18 px.
+
 **Nameplates: the range change is gone.** 0.6.5 and 0.6.6 raised SuperWoW's `NameplateRange` to 80 yd while a voice player was near; players reported all nameplates hiding when someone with EqVoice was nearby,
 and that was the newest nameplate-related change, so it is removed: EqVoice never changes the nameplate range any more (a range left at 80 by those versions is put back once from the saved value). Icons are seen as
 far away as the player's own range lets plates be (SuperAPI options: Nameplate range, up to 80). The friendly-nameplate switch is re-asserted every 20 s instead of 5.
