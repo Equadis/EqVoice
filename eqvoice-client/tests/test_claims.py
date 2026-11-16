@@ -96,6 +96,34 @@ def test_a_claimed_character_is_let_go_when_its_game_goes_quiet_and_another_can_
     src.claims.release_all()
 
 
+def test_changing_character_is_followed_within_seconds_not_minutes(tmp_path):
+    """Log out and in as another character in the same game: this copy lets the old one go as soon as the new one is writing (no restart, no long wait)."""
+    data = game(tmp_path, "Nue")
+    pre = prefix()
+    src = ClaimingFileSource(str(tmp_path), claims=Claims(pre))
+    src.poll_once()
+    assert src.claimed == "Nue"
+    old = time.time() - 10                                           # Nue logged out ten seconds ago (the long release is two minutes)
+    os.utime(data / "eqvoice-Nue.txt", (old, old))
+    src.poll_once()
+    assert src.claimed == "Nue", "nobody else is playing yet: keep Nue (a log-out to the character screen is not a reason to let go)"
+    game(tmp_path, "Zed")                                            # the new character's game starts writing (a name that sorts AFTER Nue)
+    src.poll_once()
+    assert src.claimed == "", "Nue is let go as soon as Zed is playing"
+    src.poll_once()
+    assert src.claimed == "Zed", "and this copy now serves Zed, not Nue again (Nue's file is still fresh for a few seconds)"
+    # a character another copy already has is not a reason to leave one's own
+    other = Claims(pre)
+    assert other.try_claim("Third")
+    game(tmp_path, "Third")
+    old = time.time() - 10
+    os.utime(data / "eqvoice-Zed.txt", (old, old))
+    src.poll_once()
+    assert src.claimed == "Zed", "Third belongs to another copy: Zed is kept"
+    src.claims.release_all()
+    other.release_all()
+
+
 def test_a_character_without_a_per_character_file_falls_back_to_the_shared_file(tmp_path):
     """Names with accents or digits get no per-character file from the addon: the shared eqvoice.txt is all there is."""
     game(tmp_path, plain=True)

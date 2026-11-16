@@ -1568,7 +1568,7 @@ do
 	_G.GetAddOnMetadata = nil
 end
 
-sec("voice ui: icons from further away: the nameplate range is widened while they are wanted, and put back")
+sec("voice ui: EqVoice never changes the nameplate range; one left widened by 0.6.5 or 0.6.6 is put back once")
 do
 	local OV = login()
 	local I = OV.Icons
@@ -1576,32 +1576,23 @@ do
 	Stub.cvars.NameplateRange = "41"
 	put(OV, 1, { peers = { "Alice 12.5 1 1 direct s 0" } })
 	Stub.Advance(1)
-	eq(Stub.cvars.NameplateRange, "80", "a voice player is near: nameplates (and so icons) are drawn out to 80 yards")
-	eq(OV.db.ui.plateRangeWas, 41, "the player's own range is remembered")
-	I.SetOverhead(false); Stub.Advance(1)
-	eq(Stub.cvars.NameplateRange, "41", "icons off: the player's own range is back")
-	eq(OV.db.ui.plateRangeWas, nil, "and forgotten")
-	I.SetOverhead(true); Stub.Advance(1)
-	eq(Stub.cvars.NameplateRange, "80", "on again")
-	-- a logout with it widened: put back before the game saves its settings
+	eq(Stub.cvars.NameplateRange, "41", "a voice player is near: the player's own nameplate range is left exactly as it is")
+	eq(OV.db.ui.plateRangeWas, nil, "and nothing is remembered about it")
+	I.SetOverhead(false); Stub.Advance(1); I.SetOverhead(true); Stub.Advance(1)
 	Stub.FireEvent("PLAYER_LOGOUT")
-	eq(Stub.cvars.NameplateRange, "41", "logging out puts the player's range back")
-	-- a crash left it widened: the next login undoes it
+	eq(Stub.cvars.NameplateRange, "41", "through off, on and logout")
+	-- an older version left it at 80 with the saved value: the next login puts it back, once
 	local OV2 = Stub.Login({ db = OV.db, fileApi = "WriteCustomFile", classic = true })
 	OV2.db.ui.setupDone = true
 	Stub.cvars.NameplateRange = "80"
 	OV2.db.ui.plateRangeWas = 30
 	Stub.Advance(1)
-	eq(Stub.cvars.NameplateRange, "30", "a range left at 80 by a crash is restored from the saved variables")
-	-- a player whose range is already wider keeps it, and a client without the setting is left alone
-	local OV3 = login(); OV3.db.ui.setupDone = true
+	eq(Stub.cvars.NameplateRange, "30", "a range left at 80 by 0.6.5 or 0.6.6 is put back")
+	eq(OV2.db.ui.plateRangeWas, nil, "and the note is cleared")
 	Stub.cvars.NameplateRange = "80"
-	put(OV3, 1, { peers = { "Alice 12.5 1 1 direct s 0" } }); Stub.Advance(1)
-	eq(OV3.db.ui.plateRangeWas, nil, "a range already at 80 is not touched")
-	Stub.cvars.NameplateRange = nil
-	local OV4 = login(); OV4.db.ui.setupDone = true
-	put(OV4, 1, { peers = { "Alice 12.5 1 1 direct s 0" } }); Stub.Advance(1)
-	eq(OV4.db.ui.plateRangeWas, nil, "a client with no NameplateRange setting is left alone")
+	Stub.Advance(1)
+	eq(Stub.cvars.NameplateRange, "80", "a range the player later chose to set to 80 is theirs: not touched again")
 end
 
 end
+

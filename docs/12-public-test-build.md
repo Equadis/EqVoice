@@ -83,6 +83,16 @@ Opaque charcoal window, flat compact controls, one purple accent, four groups: a
 
 Not seen in the real game yet: the layout was checked in the test stub (no control overlaps or leaves the window), not on screen.
 
+## 0.6.7 (2026-11, pre-release)
+
+**Nameplates: the range change is gone.** 0.6.5 and 0.6.6 raised SuperWoW's `NameplateRange` to 80 yd while a voice player was near; players reported all nameplates hiding when someone with EqVoice was nearby,
+and that was the newest nameplate-related change, so it is removed: EqVoice never changes the nameplate range any more (a range left at 80 by those versions is put back once from the saved value). Icons are seen as
+far away as the player's own range lets plates be (SuperAPI options: Nameplate range, up to 80). The friendly-nameplate switch is re-asserted every 20 s instead of 5.
+
+**Changing character no longer needs EqVoice restarted, and no longer waits two minutes.** The app was pinned to the first character's game file and only let it go after 120 s of silence. Now, when that
+file has been quiet for 6 s and another character's file is being written to right now (and no other copy of EqVoice has that character), it switches to the new one. It does not take back the character it
+just left (that file stays "fresh" for 20 s). Logging out to the character screen with nobody else playing keeps the claim, as before.
+
 ## 0.6.6 (2026-11, pre-release)
 
 **Four voice levels on the icon.** Nothing: the plain speaker. A **quiet** voice: one bubble, and it carries less far (heard as if up to 1.6 times as far away). An ordinary voice: **two bubbles**, white.

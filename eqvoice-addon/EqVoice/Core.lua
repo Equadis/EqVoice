@@ -286,7 +286,6 @@ function OV.OnEvent(event, a1, a2, a3, a4)
 		OV.Comm.OnAddon(a1, a2, a3, a4, now)
 		OV.Diag.OnAddon(a1, a2, a3, a4, now)
 	elseif event == "PLAYER_LOGOUT" then
-		if OV.Icons and OV.Icons.RestoreRange then pcall(OV.Icons.RestoreRange) end          -- the player's own nameplate range goes back before the game saves its settings
 		if OV.started then
 			OV.Comm.SendBye(now)
 			OV.Trace("logout: sending the final frame so the desktop client leaves the roster")

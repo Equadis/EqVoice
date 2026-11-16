@@ -170,6 +170,7 @@ class ClaimingFileSource(FileSource):
 
     FRESH_S = 20.0               # a file written this recently belongs to a game that is running
     RELEASE_S = 120.0            # a claimed character whose game has been silent this long is let go
+    SWITCH_S = 6.0               # ... but when another character's game IS writing, this long is enough: you changed character, follow it
     PLAIN_AFTER_S = 4.0          # no per-character file but a fresh shared one for this long: use the shared one
 
     def __init__(self, wow_dir: str, poll_hz: float = 10.0, claims: Optional[Claims] = None):
@@ -179,14 +180,16 @@ class ClaimingFileSource(FileSource):
         self.claimed = ""                      # the character this copy serves ("" = none yet; "*" = the shared file)
         self._plain_since: Optional[float] = None
         self._pinned_at = 0.0
+        self._left: dict = {}                  # a character this copy followed away from -> until when its stale file is not taken again
         self.status.update({"claimed": "", "taken_by_others": [], "fresh": []})
 
     def _roots(self) -> list:
         return [Path(self.wow_dir) / "CustomData", Path(self.wow_dir) / "Imports"]
 
-    def fresh_characters(self, now: Optional[float] = None) -> list:
-        """Names of the characters whose game is writing a per-character file right now (sorted)."""
+    def fresh_characters(self, now: Optional[float] = None, within: Optional[float] = None) -> list:
+        """Names of the characters whose game is writing a per-character file right now (sorted): written to within ``within`` seconds (FRESH_S)."""
         now = time.time() if now is None else now
+        within = self.FRESH_S if within is None else within
         out = set()
         for root in self._roots():
             try:
@@ -196,7 +199,7 @@ class ClaimingFileSource(FileSource):
             for f in files:
                 m = _CHAR_FILE.fullmatch(f.name)
                 try:
-                    if m and now - f.stat().st_mtime <= self.FRESH_S and is_bridge_file(f):
+                    if m and now - f.stat().st_mtime <= within and is_bridge_file(f):
                         out.add(m.group(1))
                 except OSError:
                     continue
@@ -220,8 +223,10 @@ class ClaimingFileSource(FileSource):
         self.status.update({"claimed": name, "paths": [str(p) for p in self.paths], "searching": True})
         log.info("this EqVoice serves %s", "the shared game file" if name == "*" else name)
 
-    def _let_go(self) -> None:
-        log.info("the game for %s has been silent for %.0f s: letting the character go", self.claimed, self.RELEASE_S)
+    def _let_go(self, why: str = "", leave_alone: bool = False) -> None:
+        if leave_alone and self.claimed:
+            self._left[self.claimed.lower()] = time.time() + self.FRESH_S + 5.0
+        log.info(why or "the game for %s has been silent for %.0f s: letting the character go" % (self.claimed, self.RELEASE_S))
         self.claims.release(self.claimed if self.claimed != "*" else "*plain*")
         self.claimed, self.character, self.paths = "", "", []
         self._plain_since = None
@@ -230,7 +235,7 @@ class ClaimingFileSource(FileSource):
     def poll_once(self) -> Optional[BridgeState]:
         now = time.time()
         if not self.claimed:
-            names = self.fresh_characters(now)
+            names = [n for n in self.fresh_characters(now) if self._left.get(n.lower(), 0.0) < now]        # (not the one just left: its file is still "fresh")
             mine = next((n for n in names if self.claims.try_claim(n)), None)
             self.status["fresh"] = names
             self.status["taken_by_others"] = [n for n in names if n != mine and n.lower() not in self.claims.held]
@@ -254,4 +259,11 @@ class ClaimingFileSource(FileSource):
             newest = m if newest is None else max(newest, m)
         if (newest is not None and now - newest > self.RELEASE_S) or (newest is None and now - self._pinned_at > self.RELEASE_S):
             self._let_go()                                       # the game went quiet (or its file never came / was deleted) for this long
+        elif newest is not None and now - newest > self.SWITCH_S and self.claimed != "*":
+            # this character's game stopped writing a few seconds ago and another character's game is writing: the player logged out and in as
+            # someone else. Follow them now instead of waiting out the long release (no need to start EqVoice again).
+            mine = self.claimed.lower()
+            others = [n for n in self.fresh_characters(now, within=self.SWITCH_S) if n.lower() != mine and not self.claims.taken_by_other(n)]       # (writing right now)
+            if others:
+                self._let_go("%s has stopped writing and %s is playing: switching to %s" % (self.claimed, others[0], others[0]), leave_alone=True)
         return state
