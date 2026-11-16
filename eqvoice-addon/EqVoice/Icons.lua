@@ -92,6 +92,8 @@ Icons.assertAt = -100          -- when they were last switched on (it is repeate
 Icons.needUntil = -100         -- overhead icons are wanted until then (a voice player was near a moment ago)
 Icons.NEED_HOLD = 10           -- seconds the plates stay after the last voice player left (no flicker at the edge of range)
 Icons.REASSERT = 20
+Icons.FORCE_AFTER = 3          -- seconds of a voice player being near before the switch is considered
+Icons.FORCE_WITHIN = 25        -- yards: a voice player this close with no plate on screen means friendly plates are off
 Icons.nearSince = nil          -- since when a voice player has been near with no icon over any head (for the one-time hint)
 Icons.hinted  = false
 Icons.HINT_AFTER = 20          -- seconds
@@ -405,11 +407,59 @@ end
 
 local function release(now)
 	Icons.forced = false
-	if not FRIENDNAMEPLATES_ON and type(HideFriendNameplates) == "function" then HideFriendNameplates() end
+	if type(HideFriendNameplates) == "function" and not FRIENDNAMEPLATES_ON then HideFriendNameplates() end
 end
 
--- Friendly nameplates on or off, as the overhead icons need them. The player's own switch (Shift-V sets FRIENDNAMEPLATES_ON) always wins:
--- while it is on, nothing is forced. Only the switch is used: no plate is ever changed.
+-- What the icon is measured from: the name the player SEES (the overhaul's when it draws this plate, else the client's). When neither is
+-- drawn (a plate the overhaul hides) the client's name text is still where the name would be: the icon is above where the player stands.
+local function plateAnchor(p)
+	local np = eco("nameplates")
+	local plate = np and np.plates and np.plates[p.frame] or nil
+	if plate and plate.name and plate.overlay and visible(plate.overlay) and plate.name.GetText then
+		local text = plate.name:GetText()
+		if text and text ~= "" then return plate.name end
+	end
+	return p.name
+end
+
+-- The name a plate belongs to: the one the player sees; otherwise the client's own name text (it holds the unit's name even when the Equadis
+-- overhaul hides the plate and draws nothing: reading the overhaul's text first missed every plate it chose not to draw, an empty text, so no icon).
+local function plateName(p)
+	local text = plateAnchor(p):GetText()
+	if text and text ~= "" then return text end
+	local np = eco("nameplates")
+	local plate = np and np.plates and np.plates[p.frame] or nil
+	if plate and plate.name and plate.name.GetText then return plate.name:GetText() end
+	return nil
+end
+
+-- Is the plate of some voice player on screen?
+local function voicePlateShowing(now)
+	for i = 1, table.getn(Icons.plates) do
+		local p = Icons.plates[i]
+		if visible(p.frame) then
+			local name = plateName(p)
+			if name and name ~= OV.character and Icons.Resolve(name, now) ~= nil then return true end
+		end
+	end
+	return false
+end
+
+-- How far the nearest voice player is, in yards (nil: not known).
+local function nearestVoice()
+	local S = OV.Status
+	local best = nil
+	for i = 1, (S.npeers or 0) do
+		local d = S.peers[i] and S.peers[i].dist
+		if d and (best == nil or d < best) then best = d end
+	end
+	return best
+end
+
+-- The client's friendly-nameplate switch, used as little as possible. It may be a toggle rather than a "show" on this client (the player's
+-- plates vanished when it was called while they were already on), and nothing says whether they are on, so: it is only used when a voice
+-- player is CLOSE and no plate of any voice player is on screen (the plates are then off, or the player is out of sight), and then once for
+-- the whole time voice players stay near; the player's own plates are never switched off by it.
 local function ensurePlates(now, on)
 	local alive = OV.Status.Alive(now)
 	if alive and (OV.Status.npeers or 0) > 0 then Icons.needUntil = now + Icons.NEED_HOLD end
@@ -420,22 +470,20 @@ local function ensurePlates(now, on)
 		Icons.forced = false
 		return
 	end
+	Icons.wantSince = want and (Icons.wantSince or now) or nil
 	if want then
-		if type(ShowFriendNameplates) == "function" and (not Icons.forced or now - Icons.assertAt >= Icons.REASSERT) then
+		if Icons.forced then return end                                                   -- once only (a second call could switch them off again)
+		if now - Icons.wantSince < Icons.FORCE_AFTER then return end                      -- a voice player has to have been near for a moment (plates take a moment to appear)
+		if type(ShowFriendNameplates) ~= "function" then return end
+		if voicePlateShowing(now) then return end                                         -- a plate is there already: nothing to switch on
+		local d = nearestVoice()
+		if d and d <= Icons.FORCE_WITHIN then
 			ShowFriendNameplates()
 			Icons.forced, Icons.assertAt = true, now
 		end
 	elseif Icons.forced then
 		release(now)
 	end
-end
-
--- The name text of a plate that the player sees: ECO's when ECO styles this plate (it hides the client's), else the client's.
-local function plateText(p)
-	local np = eco("nameplates")
-	local plate = np and np.plates and np.plates[p.frame] or nil
-	if plate and plate.name and plate.name.GetText then return plate.name end
-	return p.name
 end
 
 -- The tile behind an icon (or a pair of icons): a few pixels bigger than the pictures all round.
@@ -471,15 +519,15 @@ function Icons.BuildPlateDriver()
 end
 
 local function plates(now, on)
-	ensurePlates(now, on)
 	findPlates()
+	ensurePlates(now, on)
 	local show = on and Icons.OverheadOn()
 	local shown = 0
 	for i = 1, table.getn(Icons.plates) do
 		local p = Icons.plates[i]
-		local fs = plateText(p)
+		local fs = plateAnchor(p)
 		local state = nil
-		if show and visible(p.frame) then state = Icons.Resolve(fs:GetText(), now) end
+		if show and visible(p.frame) then state = Icons.Resolve(plateName(p), now) end
 		if state and not p.icon then
 			-- the icon lives on a frame of its own under UIParent, never on the plate: the plate is only the anchor (a point to measure from) and is not
 			-- touched, and nothing the plate or another addon does to its own regions or alpha reaches the icon

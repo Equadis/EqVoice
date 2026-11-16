@@ -480,6 +480,7 @@ do
 	eq(P.DefaultName("AT2020USB+"), "System default (AT2020USB+)", "the system default shows what it is now"); eq(P.DefaultName(""), "System default", "and plain when it is not known")
 
 	-- overhead icons: above the nameplates the player has. No nameplate switch is touched and nothing on any plate is changed.
+	Stub.friendPlateCalls = 0                                                      -- (earlier in this section no plate was showing and the switch was used)
 	put(OV, 1, { peers = { "Alice 12.5 1 1 direct s 0" } })
 	local pa = Stub.AddPlate("Alice", "player")
 	local pn = Stub.AddPlate("Northshire Guard", "npc")
@@ -495,7 +496,7 @@ do
 	end
 	Stub.Advance(1)
 	eq(I.error, nil, "the plates raised no error")
-	check((Stub.friendPlateCalls or 0) >= 1 and Stub.friendPlates == true, "a voice player is near: the client's friendly-nameplate switch is on, so there is a plate to anchor to")
+	eq(Stub.friendPlateCalls, 0, "her plate is showing already: the friendly-nameplate switch is NOT touched (it may be a toggle: it hid the player's plates)")
 	eq(touched, 0, "and not a thing on any plate is changed")
 	check(I.plates[1].tile ~= nil and I.plates[1].tile.shown, "the icon is on a steel-blue tile"); check(I.plates[1].tile.b > 0.5 and I.plates[1].tile.r < 0.3, "blue")
 	check(I.plates[1].icon ~= nil and I.plates[1].icon.state == "s", "the voice icon is over Alice's name (her plate is showing)")
@@ -517,12 +518,8 @@ do
 	OV.db.ui.setupDone = true                                                      -- (no first-time setup box in the way of the long wait below)
 	SlashCmdList["EQVOICEUI"]("plates off"); Stub.Advance(1)
 	eq(OV.db.ui.forcePlates, false, "/eqvc plates off is kept"); eq(Stub.friendPlates, false, "the friendly nameplates are put back")
-	local calls = Stub.friendPlateCalls
-	Stub.Advance(30)
-	eq(Stub.friendPlateCalls, calls, "and not switched on again")
-	put(OV, 40, { peers = { "Alice 12.5 1 1 direct s 0" } })                          -- (the status went stale in those 30 seconds: a voice player is near again)
-	SlashCmdList["EQVOICEUI"]("plates on"); Stub.Advance(1)
-	eq(OV.db.ui.forcePlates, nil, "on again (the default)"); eq(Stub.friendPlates, true, "and the switch is on")
+	SlashCmdList["EQVOICEUI"]("plates on")
+	eq(OV.db.ui.forcePlates, nil, "on again (the default)")
 
 	-- the two deafens and the microphone test: what the buttons say
 	Stub.Click(EqVoiceIndicator, "LeftButton")

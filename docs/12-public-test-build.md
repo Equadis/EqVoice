@@ -83,6 +83,15 @@ Opaque charcoal window, flat compact controls, one purple accent, four groups: a
 
 Not seen in the real game yet: the layout was checked in the test stub (no control overlaps or leaves the window), not on screen.
 
+## 0.7.1 (2026-11, pre-release)
+
+**Overhead icons On hid the ally's nameplate** (a screenshot pair: the plate was there with the icons Off and gone with them On, and there was no icon either). The suspect is the client's friendly-nameplate switch, which EqVoice
+called whenever a voice player was near: on this client it seems to act as a toggle, so calling it while the player's own friendly plates were already on switched them off. Now: the switch is only used when a voice player has
+been within 25 yd for 3 s and NO plate of any voice player is on screen, and then only once while voice players stay near (and put back after); if a voice player's plate is showing it is never touched.
+
+**The icon appears whatever draws the plate.** The Equadis overhaul hides the plates it does not draw and its own name text is then empty, so no icon was found for them; the client's own name text (which holds the unit's name
+either way) is read now, and the icon is placed above where that name is.
+
 ## 0.7.0 (2026-11, pre-release)
 
 The overhead icon is on a small **steel-blue tile**, 4 px above the plate's name, on its own frame (the plate is only an anchor and nothing is added to it or changed on it). The client's friendly-nameplate switch (the
