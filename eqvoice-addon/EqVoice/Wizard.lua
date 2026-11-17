@@ -169,7 +169,7 @@ function Wizard.Build()
 	end
 	p6.summary = newText(f, "GameFontNormal", 24, -176, 392, 60)
 	p6.hint = newText(f, "GameFontDisableSmall", 24, -240, 392, 60)
-	p6.hint:SetText("Later, change anything by clicking the microphone beside your name, or type /eqvoice or /eqvc. If something goes wrong, the Export Logs button there makes a zip you can drag into a chat.")
+	p6.hint:SetText("Later, left-click the voice icon beside your name to open settings, or right-click to mute/unmute. You can also type /eqvoice or /eqvc. If something goes wrong, the Export Logs button there makes a zip you can drag into a chat.")
 	f.pages[7] = p6
 
 	f.bBack = newButton(f, "EqVoiceWizardBack", "Back", 90, 24, -322, function() Wizard.Go(Wizard.page - 1) end)

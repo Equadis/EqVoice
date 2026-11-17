@@ -488,6 +488,17 @@ function Stub.Click(f, button)
 	if f.scripts.OnClick then f.scripts.OnClick() end
 end
 
+-- Supply a stock PlayerName in tests which exercise the own-name control.
+function Stub.PlayerVoiceButton(OV)
+	if not PlayerName then
+		local f = CreateFrame("Frame", nil, UIParent)
+		local name = f:CreateFontString("PlayerName", "OVERLAY", "GameFontNormalSmall")
+		name:SetText(UnitName("player"))
+	end
+	OV.Icons.RefreshSelf(Stub.now, not OV.DependencyReady())
+	return OV.Icons.surf[2].icon.btn
+end
+
 -- Turn the mouse wheel over a frame: dir is 1 (up) or -1 (down), as arg1 on the client.
 function Stub.Wheel(f, dir)
 	_G.this, _G.arg1 = f, dir

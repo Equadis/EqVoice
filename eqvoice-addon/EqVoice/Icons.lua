@@ -35,7 +35,7 @@
 -- Whatever the text's alignment (centred, left, right), the icon goes just after the end of the words.
 --
 -- The icons on the unit frames are buttons: a click on another player's icon opens that player's settings (volume, mute, block); a click
--- on your own opens the EqVoice panel. (Nameplates are only drawn on, so a click there still targets the player.)
+-- on your own opens the EqVoice panel, or right-click toggles your mute. (Nameplates are only drawn on, so a click there still targets the player.)
 --
 -- Overhead voice textures follow a native projected head-name point exposed by the ClassicAPI extension.
 -- No nameplate frame is enumerated, modified, enabled or required. Unit-frame icons remain unchanged.
@@ -71,6 +71,7 @@ Icons.LOOK = {
 	q = { file = "VoiceDeafened.tga", word = "deafened, speaking", tint = Icons.RED, also = "VoiceSpeaking.tga" },
 	r = { file = "VoiceDeafened.tga", word = "deafened, yelling", tint = Icons.RED, also = "VoiceSpeaking.tga", alsoTint = Icons.RED },
 	i = { file = "VoiceKnown.tga",    word = "has EqVoice", dim = 0.45 },
+	u = { file = "VoiceMuted.tga", word = "ClassicAPI required", tint = {0.45, 0.45, 0.45} },
 	x = { file = "VoiceX.tga",        word = "EqVoice is not connected", tint = Icons.RED },
 	e = { file = "VoiceMuted.tga",    word = "your microphone cannot be used", tint = Icons.RED },
 }
@@ -162,16 +163,27 @@ function Icons.New(parent, size, clickable)
 		b:SetHeight(size)
 		if b.SetFrameLevel and parent.GetFrameLevel then b:SetFrameLevel((parent:GetFrameLevel() or 1) + 3) end
 		b:EnableMouse(true)
-		b:RegisterForClicks("LeftButtonUp")
+		b:RegisterForClicks("LeftButtonUp", "RightButtonUp")
 		ic.btn = b
 		ic.tex = b:CreateTexture(nil, "OVERLAY")
 		ic.tex:SetWidth(size)
 		ic.tex:SetHeight(size)
 		ic.tex:SetPoint("LEFT", b, "LEFT", 0, 0)
 		b:SetScript("OnClick", function()
+			local button = arg1
 			local ok, err = pcall(function()
 				if not OV.Panel then return end
-				if ic.who and ic.who ~= OV.character and OV.Panel.OpenPlayer then OV.Panel.OpenPlayer(ic.who) else OV.Panel.Toggle() end
+				if ic.own then
+					if not OV.DependencyReady() then OV.Panel.Toggle(); return end
+					if button == "RightButton" then
+						if OV.Panel.ToggleMute() then
+							Icons.Set(ic, Icons.SelfState(OV.Now()))
+							Icons.lastRun = -100
+						end
+					else OV.Panel.Toggle() end
+				elseif button ~= "RightButton" then
+					if ic.who and ic.who ~= OV.character and OV.Panel.OpenPlayer then OV.Panel.OpenPlayer(ic.who) else OV.Panel.Toggle() end
+				end
 			end)
 			if not ok then OV.Trace("icon click error: " .. tostring(err)) end
 		end)
@@ -318,31 +330,46 @@ local function surfaceText(i)
 	return f and f.nameText or nil
 end
 
+-- The sole local control lives beside PlayerName, even when the dependency
+-- check fails. Recreate on a new unit-frame owner and hide any stale button.
+local function drawSurface(i, now, on, unavailable)
+	local fs = surfaceText(i)
+	local s = Icons.surf[i]
+	local parent = fs and fs.GetParent and fs:GetParent() or nil
+	if not (fs and fs.GetText and parent and parent.CreateTexture) then
+		if s then Icons.Set(s.icon, nil) end
+		return
+	end
+	if s and s.parent ~= parent then Icons.Set(s.icon, nil); s = nil end
+	if not s then
+		s = { icon = Icons.New(parent, nil, true), parent = parent }
+		Icons.surf[i] = s
+	end
+	local own = (i == 2)
+	local name = own and (OV.character or (UnitName and UnitName("player"))) or fs:GetText()
+	local state
+	if on and showing(fs) then
+		if own then state = unavailable and "u" or Icons.SelfState(now)
+		else state = Icons.Resolve(name, now) end
+	end
+	s.icon.own = own
+	s.icon.who = state and name or nil
+	Icons.Set(s.icon, state)
+	if state then Icons.PlaceBeside(s.icon, fs) end
+end
+
+function Icons.RefreshSelf(now, unavailable)
+	local on = unavailable or (Icons.Enabled() and not (OV.db and OV.db.ui and OV.db.ui.hideSelfIcon))
+	drawSurface(2, now, on, unavailable)
+end
+
 local function unitFrames(now, on)
 	local total = table.getn(Icons.UNIT_NAMES) + Icons.ECO_PARTY
 	for i = 1, total do
-		local fs = surfaceText(i)
-		if fs and fs.GetText then
-			local s = Icons.surf[i]
-			if not s then
-				local parent = fs.GetParent and fs:GetParent() or nil
-				if parent and parent.CreateTexture then
-					s = { icon = Icons.New(parent, nil, true) }
-					Icons.surf[i] = s
-				end
-			end
-			if s then
-				local name = fs:GetText()
-				local state = on and showing(fs) and Icons.Resolve(name, now) or nil
-				s.icon.who = state and name or nil                 -- whose icon this is now: a click opens that player's settings
-				Icons.Set(s.icon, state)
-				if state then Icons.PlaceBeside(s.icon, fs) end
-			end
-		end
+		if i == 2 then Icons.RefreshSelf(now, false)
+		else drawSurface(i, now, on, false) end
 	end
 end
-
--- ----------------------------------------------------------------------- over a player's head
 
 function Icons.OverheadOn()
 	return not (OV.db and OV.db.ui and OV.db.ui.overhead == false)

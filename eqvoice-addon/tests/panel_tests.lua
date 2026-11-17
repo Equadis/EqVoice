@@ -273,26 +273,24 @@ sec("panel: the frames")
 do
 	local OV = login()
 	local P = OV.Panel
-	local ind = EqVoiceIndicator
-	check(ind ~= nil, "the indicator exists after login")
-	eq(ind.badgeText, "NO APP", "and says the app is missing")
-	check(ind.glyph.r > 0.6 and ind.glyph.r < 0.7 and ind.glyph.g == ind.glyph.r, "with a grey microphone")
-	eq(ind.slash.shown, false, "and no slash")
-	eq(ind.kind, "Button", "it is a button"); eq(ind.mouse, true, "that takes the mouse"); eq(ind.movable, true, "can be moved")
+	local ind = Stub.PlayerVoiceButton(OV)
+	local own = OV.Icons.surf[2].icon
+	check(EqVoiceIndicator == nil, "there is no floating indicator")
+	eq(own.state, "x", "the own-name icon reports that the app is missing")
+	eq(ind.kind, "Button", "a clickable icon")
+	eq(ind.pt[2], PlayerName, "anchored beside the player name")
 	Stub.fs["eqvoice-st-Me.txt"] = status(OV, 1)
 	Stub.Advance(1)
-	eq(ind.badgeText, "MIC ON", "the indicator follows the status")
-	check(ind.glyph.g > 0.9 and ind.glyph.r < 0.5, "a green microphone")
-	Stub.fs["eqvoice-st-Me.txt"] = status(OV, 2, "Me", { fields = "level=ok mode=open mute=0 deaf=0 tx=1 talk=1 vol=100 near=2 conn=1 key=F9 mic=ok" })
+	eq(own.state, "o", "the icon follows status")
+	Stub.fs["eqvoice-st-Me.txt"] = status(OV, 2, "Me", { fields = "level=ok mode=open mute=0 deaf=0 tx=1 talk=1 vl=2 vol=100 near=2 conn=1 key=F9 mic=ok" })
 	Stub.Advance(1)
-	eq(ind.badgeText, "TALKING", "it shows talking")
-	check(ind.glyph.b > 0.9 and ind.glyph.r < 0.6, "a cyan microphone")
+	eq(own.state, "s", "speech")
 	-- right click mutes, and shows it at once
 	Stub.Click(ind, "RightButton")
 	eq(parseControl(OV, Stub.fs["eqvoice-ctl-Me.txt"]).cmds[1].cmd, "mute", "right-click sends mute")
 	Stub.Advance(0.25)
-	eq(ind.badgeText, "MUTED", "and the indicator shows it before the app answers")
-	eq(ind.slash.shown, true, "with a red slash over the microphone"); check(ind.glyph.r > 0.9 and ind.glyph.g < 0.4, "which is red")
+	eq(own.state, "m", "right-click shows self-mute immediately")
+	eq(own.tex.g, 1, "self-mute stays white")
 	-- left click opens the panel
 	check(EqVoicePanel == nil, "the panel is built on first use")
 	Stub.Click(ind, "LeftButton")
@@ -347,72 +345,42 @@ do
 	-- the app stops: the panel says so and its buttons are off
 	Stub.Advance(8)
 	check(string.find(f.status.text, "not running", 1, true), "app gone: " .. f.status.text)
-	eq(f.bOpen.enabled, false, "buttons are disabled"); eq(ind.badgeText, "NO APP", "indicator"); eq(ind.slash.shown, false, "no slash without the app")
+	eq(f.bOpen.enabled, false, "buttons are disabled"); eq(own.state, "x", "own-name icon is disconnected")
 	eq(Stub.tip.shown, false, "the indicator has no tooltip")
-	-- dragging remembers the place; /eqvc reset forgets it
-	_G.this = ind
-	ind.scripts.OnDragStart()
-	eq(ind.moving, true, "a drag moves it")
-	ind.pt = { "BOTTOMLEFT", UIParent, "BOTTOMLEFT", 120, 400 }
-	ind.scripts.OnDragStop()
-	eq(OV.db.ui.indicatorPos.x, 120, "the indicator's place is saved"); eq(OV.db.ui.indicatorPos.point, "BOTTOMLEFT", "with its anchor")
+	-- Only the panel remains movable. The name icon follows its font string.
 	f.pt = { "CENTER", UIParent, "CENTER", 5, 6 }
 	_G.this = f
 	f.scripts.OnDragStop()
-	eq(OV.db.ui.panelPos.y, 6, "the panel's place is saved")
-	SlashCmdList["EQVOICEUI"]("reset")
-	eq(OV.db.ui.indicatorPos, nil, "/eqvc reset forgets both"); eq(ind.pt[1], "TOP", "the indicator is back at the top")
-	-- hide and show the indicator
+	eq(OV.db.ui.panelPos.y, 6, "panel position is saved")
 	SlashCmdList["EQVOICEUI"]("hide")
-	eq(ind.shown, false, "/eqvc hide"); eq(OV.db.ui.hideIndicator, true, "remembered")
+	eq(ind.shown, false, "hide the own-name icon")
 	SlashCmdList["EQVOICEUI"]("show")
-	eq(ind.shown, true, "/eqvc show"); eq(OV.db.ui.hideIndicator, nil, "remembered")
-	eq(OV.Panel.error, nil, "and still no drawing error")
-	-- a saved position is used on the next login
-	local db = OV.db
-	db.ui.indicatorPos = { point = "TOPLEFT", rel = "TOPLEFT", x = 33, y = -44 }
-	local OV3 = Stub.Login({ db = db, fileApi = "WriteCustomFile", classic = true })
-	eq(EqVoiceIndicator.pt[4], 33, "the saved indicator position is restored at login")
-	-- hidden at login when the player turned it off
-	db.ui.hideIndicator = true
-	local OV4 = Stub.Login({ db = db, fileApi = "WriteCustomFile", classic = true })
-	check(EqVoiceIndicator == nil, "no indicator when it was turned off")
+	eq(ind.shown, true, "show the own-name icon")
+	SlashCmdList["EQVOICEUI"]("reset")
+	eq(OV.db.ui.panelPos, nil, "reset forgets the panel position")
+	check(EqVoiceIndicator == nil, "no floating button created by any command")
 end
 
--- ===================================================================== the indicator
-sec("panel: the indicator is a slim themed button that starts in the middle of the top quarter of the screen")
+sec("panel: own-name right-click toggles mute and unmute")
 do
-	local OV = Stub.Boot({ fileApi = "WriteCustomFile", classic = true })
-	local bar = Stub.MicroBar(800, 4, 1)                                  -- (a micro bar being there changes nothing)
-	Stub.FireEvent("VARIABLES_LOADED")
-	Stub.FireEvent("PLAYER_ENTERING_WORLD")
-	local ind = EqVoiceIndicator
-	local ART = "Interface\\AddOns\\EqVoice\\"
-	local h = UIParent:GetHeight() or 768
-	eq(ind.pt[1], "TOP", "anchored by its top..."); eq(ind.pt[2], UIParent, "...to the screen"); eq(ind.pt[3], "TOP", "at the top edge"); eq(ind.pt[4], 0, "in the middle, left to right")
-	check(ind.pt[5] < 0 and -ind.pt[5] <= h * 0.25 and -ind.pt[5] > 0, "and a little way down: in the top quarter of the screen (" .. tostring(ind.pt[5]) .. " of " .. h .. ")")
-	eq(ind.w, 26, "26 pixels wide (wider than the 14 it was)"); eq(ind.h, 30, "and 30 tall")
-	check(ind.rbox ~= nil and ind.bgc ~= nil, "drawn in the panel's own rounded theme")
-	check(ind.normalTex == nil, "not the client's micro button art any more")
-	eq(ind.glyph.path, ART .. "MicGlyph.tga", "the microphone"); eq(ind.slash.path, ART .. "MicSlash.tga", "and the slash")
-	eq(OV.Panel.error, nil, "no drawing error")
-	-- pressing it moves the microphone a pixel
-	_G.this = ind
-	ind.scripts.OnMouseDown(); eq(ind.glyph.pt[4], 1, "pressed")
-	ind.scripts.OnMouseUp(); eq(ind.glyph.pt[4], 0, "released")
-	-- the ring is the colour of the state
-	local P = OV.Panel
-	local m = P.Model(Stub.now)
-	check(ind.rbox.edge ~= nil, "it has a ring")
-	-- the player moves it: that wins until /eqvc reset
-	ind.scripts.OnDragStart()
-	ind.pt = { "BOTTOMLEFT", UIParent, "BOTTOMLEFT", 300, 500 }
-	ind.scripts.OnDragStop()
-	check(OV.db.ui.indicatorPos ~= nil, "the place is saved")
-	Stub.Advance(2.5)
-	eq(ind.pt[4], 300, "it stays where the player put it")
-	SlashCmdList["EQVOICEUI"]("reset")
-	eq(OV.db.ui.indicatorPos, nil, "/eqvc reset forgets that"); eq(ind.pt[1], "TOP", "and puts it back in the middle of the top quarter"); eq(ind.pt[4], 0, "")
+	local OV = login()
+	local ind = Stub.PlayerVoiceButton(OV)
+	local function command()
+		local c = parseControl(OV, Stub.fs["eqvoice-ctl-Me.txt"])
+		return c.cmds[table.getn(c.cmds)]
+	end
+	Stub.fs["eqvoice-st-Me.txt"] = status(OV, 1)
+	Stub.Advance(1)
+	Stub.Click(ind, "RightButton")
+	eq(command().cmd, "mute", "right click sends mute")
+	eq(command().arg, "1", "mute")
+	eq(OV.Icons.surf[2].icon.state, "m", "white mute icon")
+	Stub.Click(ind, "RightButton")
+	eq(command().arg, "0", "second right click unmutes")
+	eq(OV.Icons.surf[2].icon.state, "o", "unmuted again")
+	check(EqVoicePanel == nil, "right click never opens the panel")
+	Stub.Click(ind, "LeftButton")
+	check(EqVoicePanel and EqVoicePanel:IsShown(), "left click opens settings")
 end
 
 -- ===================================================================== a drawing failure never stops the voice
@@ -427,7 +395,6 @@ do
 	Stub.FireEvent("VARIABLES_LOADED")
 	Stub.FireEvent("PLAYER_ENTERING_WORLD")
 	check(OV.started, "the addon started")
-	check(OV.Panel.error ~= nil, "the failure was noted: " .. tostring(OV.Panel.error))
 	local frames = OV.Bridge.stats.frames
 	Stub.Advance(3)
 	check(OV.Bridge.stats.frames > frames, "and the bridge keeps publishing")

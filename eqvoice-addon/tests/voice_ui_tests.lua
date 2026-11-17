@@ -208,7 +208,7 @@ do
 	local OV = login()
 	local P = OV.Panel
 	put(OV, 1, { peers = { "Alice 12.5 1 1 direct s 0", "Bob 30.0 1 0 direct m 1", "Cy 31.0 0 0 -" }, muted = { "bob" } })
-	Stub.Click(EqVoiceIndicator, "LeftButton")
+	Stub.Click(Stub.PlayerVoiceButton(OV), "LeftButton")
 	local f = EqVoicePanel
 	check(f ~= nil and f:IsShown(), "the panel opens")
 	eq(f.w, 480, "wide"); eq(f.h, 642, "and tall enough for its four groups: header, microphone, speaker, nearby")
@@ -299,7 +299,7 @@ sec("voice ui: nothing in the panel hangs over the edge or lies on top of anothe
 do
 	local OV = login()
 	put(OV, 1, { peers = { "Alice 12.5 1 1 direct s 0" } })
-	Stub.Click(EqVoiceIndicator, "LeftButton")
+	Stub.Click(Stub.PlayerVoiceButton(OV), "LeftButton")
 	local f = EqVoicePanel
 	local function rect(w)                                       -- (left, top, right, bottom) in the panel's own pixels, y down; nil if not placed at its top left
 		local pt = w.pt
@@ -349,7 +349,7 @@ do
 	local function status(seq, mode, tx, gate, gl, gt, go)
 		put(OV, seq, { fields = string.format(FIELDS, mode, tx, gate, gl, gt, go) })
 	end
-	Stub.Click(EqVoiceIndicator, "LeftButton")
+	Stub.Click(Stub.PlayerVoiceButton(OV), "LeftButton")
 	local f = EqVoicePanel
 	local bar = f.sGate
 	local function width(box) return box.w or 0 end                        -- the bar's colours are rounded boxes: how wide each is laid out (0: hidden)
@@ -404,7 +404,7 @@ do
 	local OV = login()
 	local P = OV.Panel
 	put(OV, 1)
-	Stub.Click(EqVoiceIndicator, "LeftButton")
+	Stub.Click(Stub.PlayerVoiceButton(OV), "LeftButton")
 	local f = EqVoicePanel
 	local n = table.getn(sent(OV))
 	f.sIn.frame:SetValue(0); f.sVol.frame:SetValue(0); Stub.Advance(1)
@@ -423,7 +423,7 @@ do
 	eq(OV.Status.POLL, P.LIVE_S, "with the panel open the status is read at the fast rate")
 	f:Hide(); Stub.Advance(4)
 	eq(OV.Status.POLL, 0.5, "and at the slow one when nothing needs it")
-	Stub.Click(EqVoiceIndicator, "LeftButton")
+	Stub.Click(Stub.PlayerVoiceButton(OV), "LeftButton")
 	-- the bar eases between readings
 	local bar = EqVoicePanel.sGate
 	bar.Set(-30, -52, "auto", true)
@@ -446,7 +446,7 @@ do
 	local OV = login()
 	local P = OV.Panel
 	put(OV, 1)
-	Stub.Click(EqVoiceIndicator, "LeftButton")
+	Stub.Click(Stub.PlayerVoiceButton(OV), "LeftButton")
 	local f = EqVoicePanel
 	eq(f.bReport.text, "Export Logs", "there is a button for it")
 	eq(f.bReport.enabled, true, "it works while the app runs")
@@ -503,7 +503,7 @@ do
 	OV.db.ui.setupDone = true
 
 	-- the two deafens and the microphone test: what the buttons say
-	Stub.Click(EqVoiceIndicator, "LeftButton")
+	Stub.Click(Stub.PlayerVoiceButton(OV), "LeftButton")
 	local f = EqVoicePanel
 	put(OV, 2, { fields = "level=ok mode=open mute=1 deaf=1 tx=0 talk=0 vol=100 near=0 conn=0 key=F9 mic=ok gate=auto gdb=-48" })
 	eq(f.bDeaf.text, "Undeafen", "deafened"); eq(f.bDeaf.highlight, true, "Deafen is lit"); eq(f.bMute.highlight, true, "and so is the microphone button: deafening mutes the microphone")
@@ -540,7 +540,7 @@ do
 	eq(f.bTestMic.text, "Test Microphone", "the test button"); eq(f.bTestMic.highlight, false, "")
 	Stub.Click(f.bTestMic); Stub.Advance(0.25); eq(lastSent(OV), "mictest 1", "starts the test"); eq(f.bTestMic.text, "Stop Testing", "and says how to stop it"); eq(f.bTestMic.highlight, true, "in red")
 	f:Hide(); put(OV, 7, { fields = "level=ok mode=open mute=0 deaf=0 tx=0 talk=0 vol=100 near=0 conn=0 key=F9 mic=ok gate=auto gdb=-48 mt=1" })
-	Stub.Click(EqVoiceIndicator, "LeftButton")
+	Stub.Click(Stub.PlayerVoiceButton(OV), "LeftButton")
 	eq(f.bTestMic.text, "Stop Testing", "the test went on while the panel was closed"); eq(f.bTestMic.highlight, true, "")
 	Stub.Click(f.bTestMic); eq(lastSent(OV), "mictest 0", "stops it")
 	-- the sound mode
@@ -604,7 +604,7 @@ do
 	local OV = login()
 	local P = OV.Panel
 	put(OV, 1)
-	Stub.Click(EqVoiceIndicator, "LeftButton")
+	Stub.Click(Stub.PlayerVoiceButton(OV), "LeftButton")
 	local f = EqVoicePanel
 	_G.arg1 = nil
 	check(EqVoiceKeyCapture == nil, "nothing listens for keys until asked")
@@ -832,7 +832,7 @@ do
 	local P = OV.Panel
 	local BASE = "level=ok mode=open mute=0 deaf=0 tx=1 talk=0 vol=100 near=0 conn=0 key=F9 mic=ok boost=normal gate=auto gdb=-48 ing=100"
 	put(OV, 1, { fields = BASE .. " cal=idle calt=0 calq=- cald=0" })
-	Stub.Click(EqVoiceIndicator, "LeftButton")
+	Stub.Click(Stub.PlayerVoiceButton(OV), "LeftButton")
 	local f = EqVoicePanel
 	check(EqVoiceSetup == nil, "no overlay until the setup runs")
 	check(string.find(f.hint.text, "Calibrate once", 1, true), "a player who has never done it is nudged: " .. f.hint.text)
@@ -897,7 +897,7 @@ do
 	local OV = login()
 	local P = OV.Panel
 	put(OV, 1, { peers = { "Alice 12.5 1 1 direct s 0" }, muted = { "zed", "bob", "carol" } })
-	Stub.Click(EqVoiceIndicator, "LeftButton")
+	Stub.Click(Stub.PlayerVoiceButton(OV), "LeftButton")
 	local f = EqVoicePanel
 	eq(f.bBlock.text, "Blocklist (3)", "the panel's button counts them")
 	check(EqVoiceBlocklist == nil, "the window is built on first use")
@@ -966,7 +966,7 @@ do
 	local OV = login({ noSlider = true })
 	local P = OV.Panel
 	put(OV, 1)
-	Stub.Click(EqVoiceIndicator, "LeftButton")
+	Stub.Click(Stub.PlayerVoiceButton(OV), "LeftButton")
 	local f = EqVoicePanel
 	check(f ~= nil and f:IsShown(), "the panel still opens")
 	eq(f.sVol.frame, nil, "there is no slider"); check(f.sVol.down ~= nil and f.sVol.up ~= nil, "but a minus and a plus instead")
@@ -1250,7 +1250,7 @@ do
 	local OV = login()
 	local P = OV.Panel
 	put(OV, 1, { fields = "level=ok mode=open mute=0 deaf=0 tx=1 talk=0 vol=100 near=0 conn=0 key=F9 game=1 hub=1 mic=ok din=2 dout=0 lvl=35", devices = DEV })
-	Stub.Click(EqVoiceIndicator, "LeftButton")
+	Stub.Click(Stub.PlayerVoiceButton(OV), "LeftButton")
 	local f = EqVoicePanel
 	eq(f.bMicDev.text, "Headset Mic (USB)", "the panel shows the microphone in use"); eq(f.bSpkDev.text, "System default", "and the speakers")
 	Stub.Advance(0.5)
@@ -1303,7 +1303,7 @@ do
 	Stub.Advance(2)
 	put(OV, 5)
 	local n = table.getn(Stub.sent)
-	Stub.Click(EqVoiceIndicator, "RightButton")             -- mute
+	Stub.Click(Stub.PlayerVoiceButton(OV), "RightButton")             -- mute
 	Stub.Advance(2)
 	check(table.getn(Stub.sent) > n, "muting sends a heartbeat within two seconds")
 	eq(lastFlags(), 11, "carrying the muted flag")
@@ -1320,7 +1320,7 @@ do
 	for i = 1, 9 do names[i] = string.format("Player%d %d.0 1 0 direct", i, i * 3) end
 	put(OV, 2, { peers = names })
 	Stub.Advance(1)
-	Stub.Click(EqVoiceIndicator, "LeftButton"); local f = EqVoicePanel
+	Stub.Click(Stub.PlayerVoiceButton(OV), "LeftButton"); local f = EqVoicePanel
 	Stub.Advance(1)
 	check(f.bSpatial.headphones.pt[4] < f.bSpatial.speakers.pt[4] and f.bSpatial.speakers.pt[4] < f.bSpatial.mono.pt[4], "Sound reads Headphones, Speakers, Mono from the left")
 	for i = 1, P.ROWS do check(not f.rows[i].sel.shown, "no glow on row " .. i .. " until a player is chosen") end
@@ -1431,7 +1431,7 @@ do
 	local OV = login()
 	local P = OV.Panel
 	put(OV, 1, { fields = "level=ok mode=open mute=0 deaf=0 tx=1 talk=0 vol=100 near=0 conn=0 key=F9 mic=ok wk=none wh=0 dn=1" })
-	Stub.Click(EqVoiceIndicator, "LeftButton")
+	Stub.Click(Stub.PlayerVoiceButton(OV), "LeftButton")
 	local f = EqVoicePanel
 	Stub.Advance(0.5)
 	eq(f.bWhisper.text, "Whisper: none", "no whisper key to begin with"); eq(f.bWhisper.highlight, false, "")
@@ -1514,7 +1514,7 @@ do
 	f.sVol.frame.scripts.OnMouseUp(); Stub.Advance(0.5)
 	eq(lastSent(OV), "pvol alice 175", "letting go sends nothing more: it was already sent")
 	-- a slider that is not live waits until it rests
-	Stub.Click(EqVoiceIndicator, "LeftButton")
+	Stub.Click(Stub.PlayerVoiceButton(OV), "LeftButton")
 	local pf = EqVoicePanel
 	-- every slider's knob is a disc on a square: a perfect circle
 	local n = 0
@@ -1543,7 +1543,7 @@ do
 	_G.GetAddOnMetadata = function(addon, field) if addon == "EqVoice" and field == "Version" then return "9.9.9" end end
 	local OV = login()
 	put(OV, 1)
-	Stub.Click(EqVoiceIndicator, "LeftButton")
+	Stub.Click(Stub.PlayerVoiceButton(OV), "LeftButton")
 	local f = EqVoicePanel
 	eq(f.title.text, "EqVoice", "the title")
 	eq(f.version.text, "v9.9.9", "and the version from the addon's own file, beside it")
@@ -1570,7 +1570,7 @@ do
 	local OV = login()
 	local P = OV.Panel
 	put(OV, 1)
-	Stub.Click(EqVoiceIndicator, "LeftButton")
+	Stub.Click(Stub.PlayerVoiceButton(OV), "LeftButton")
 	local f = EqVoicePanel
 	local before = table.getn(sent_all(OV))
 	-- a click on the track: the client moves the knob and calls OnValueChanged with the mouse button down, and no OnMouseDown

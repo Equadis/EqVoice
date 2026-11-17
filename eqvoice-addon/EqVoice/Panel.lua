@@ -48,10 +48,6 @@ Panel.SPATIAL_LABEL = { mono = "Mono", speakers = "Speakers", headphones = "Head
 Panel.SPATIAL_ORDER = { "headphones", "speakers", "mono" }
 Panel.CAPTURE_S = 10         -- seconds "press a key" waits
 Panel.ART       = "Interface\\AddOns\\EqVoice\\"     -- MicGlyph, MicSlash, Knob ... (.tga), drawn by tools/make_micro_art.py
-Panel.IND_W     = 26                                   -- the indicator: a rounded button in the panel's own theme (14 x 28 was too slim: about 26 x 30 now)
-Panel.IND_H     = 30
-Panel.IND_TOP   = 0.15                                 -- where it starts: in the middle of the screen, this far down (a fraction of the height: the top quarter)
-Panel.DOCK_S    = 1                                    -- seconds between looks at the screen size (the default place follows it)
 
 -- What the microphone setup asks of you, in order (the app times each step and says which one it is on).
 Panel.SETUP_STEPS = {
@@ -62,7 +58,6 @@ Panel.SETUP_STEPS = {
 
 Panel.pending     = {}       -- key -> { value, untilT }
 Panel.frame       = nil
-Panel.indicator   = nil
 Panel.capture     = nil      -- the invisible frame that listens for the next key
 Panel.capturing   = false
 Panel.captureFor  = "key"
@@ -70,8 +65,6 @@ Panel.captureEnds = 0
 Panel.seenVersion = -1
 Panel.dirty       = true
 Panel.lastRefresh = -100
-Panel.lastDock    = -100
-Panel.dockedTo    = nil      -- the screen height the indicator's default place was worked out for
 Panel.dragging    = false
 Panel.error       = nil
 Panel.sliders     = {}       -- every slider made, so that the tick can send the ones that have come to rest
@@ -1919,79 +1912,6 @@ local function applyModel(f, m)
 	end
 end
 
--- The indicator: a small rounded button in the panel's own theme (deep navy, a ring and a microphone in the colour of the state): green = live,
--- cyan = talking, yellow = needs a look, red = muted or deafened or broken (a slash over it for muted and deafened), grey = the app is not running.
--- It starts in the middle of the screen, in the top quarter, and can be dragged anywhere (the place is kept); /eqvc reset puts it back.
-function Panel.BuildIndicator()
-	if Panel.indicator then return Panel.indicator end
-	if not CreateFrame or not UIParent then return nil end
-	local b = CreateFrame("Button", "EqVoiceIndicator", UIParent)
-	b:SetWidth(Panel.IND_W)
-	b:SetHeight(Panel.IND_H)
-	b:SetFrameStrata("MEDIUM")
-	b:EnableMouse(true)
-	b:SetMovable(true)
-	b:SetClampedToScreen(true)
-	b:RegisterForClicks("LeftButtonUp", "RightButtonUp")
-	b:RegisterForDrag("LeftButton")
-	paint(b, THEME.card, THEME.edge, 8)
-	b.glyph = b:CreateTexture(nil, "OVERLAY")
-	b.glyph:SetTexture(Panel.ART .. "MicGlyph.tga")
-	b.glyph:SetWidth(18)
-	b.glyph:SetHeight(18)
-	b.glyph:SetPoint("CENTER", b, "CENTER", 0, 0)
-	b.slash = b:CreateTexture(nil, "OVERLAY")
-	b.slash:SetTexture(Panel.ART .. "MicSlash.tga")
-	b.slash:SetWidth(18)
-	b.slash:SetHeight(18)
-	b.slash:SetPoint("CENTER", b, "CENTER", 0, 0)
-	b.slash:Hide()
-	b.badgeText = ""
-	local s = OV.db and OV.db.ui and OV.db.ui.indicatorPos
-	if s and s.point then restorePos(b, "indicatorPos", "TOP", 0, -64) end        -- otherwise Panel.Dock places it
-	b:SetScript("OnClick", safe(function()
-		if arg1 == "RightButton" then Panel.ToggleMute() else Panel.Toggle() end
-	end))
-	b:SetScript("OnEnter", function() hover(this, true) end)
-	b:SetScript("OnLeave", function() hover(this, false) end)
-	b:SetScript("OnMouseDown", safe(function() this.glyph:SetPoint("CENTER", this, "CENTER", 1, -1); this.slash:SetPoint("CENTER", this, "CENTER", 1, -1) end))
-	b:SetScript("OnMouseUp", safe(function() this.glyph:SetPoint("CENTER", this, "CENTER", 0, 0); this.slash:SetPoint("CENTER", this, "CENTER", 0, 0) end))
-	b:SetScript("OnDragStart", function() Panel.dragging = true; this:StartMoving() end)
-	b:SetScript("OnDragStop", safe(function()
-		if not Panel.dragging then return end
-		Panel.dragging = false
-		this:StopMovingOrSizing()
-		savePos(Panel.indicator, "indicatorPos")
-	end))
-	Panel.indicator = b
-	return b
-end
-
--- Put the indicator where it belongs: where the player dragged it, else the middle of the screen in the top quarter.
-function Panel.Dock()
-	local b = Panel.indicator
-	if not b then return end
-	local s = OV.db and OV.db.ui and OV.db.ui.indicatorPos
-	if s and s.point then return end
-	local h = (UIParent and UIParent.GetHeight and UIParent:GetHeight()) or 768
-	if h == Panel.dockedTo then return end
-	Panel.dockedTo = h
-	b:ClearAllPoints()
-	b:SetPoint("TOP", UIParent, "TOP", 0, -math.floor(h * Panel.IND_TOP))
-end
-
-local function applyIndicator(b, m)
-	b.badgeText = m.badge
-	paint(b, THEME.card, { m.color[1] * 0.8, m.color[2] * 0.8, m.color[3] * 0.8 }, 8)       -- the ring is the colour of the state
-	b.glyph:SetVertexColor(m.color[1], m.color[2], m.color[3])
-	if m.alive and (m.mute or m.deaf) then
-		b.slash:SetVertexColor(COLORS.bad[1], COLORS.bad[2], COLORS.bad[3])
-		b.slash:Show()
-	else
-		b.slash:Hide()
-	end
-end
-
 -- Redraw whatever is on screen from the current status.
 -- The fast path: while a meter is on screen the status file is read twenty times a second (Status.POLL) and, when it brings news, only the
 -- meter is redrawn (the whole panel is redrawn at the slower tick).
@@ -2034,7 +1954,7 @@ function Panel.Refresh()
 	local m = Panel.Model(now)
 	Panel.model = m
 	Panel.TrackSetup(m)
-	if Panel.indicator then applyIndicator(Panel.indicator, m) end
+
 	if Panel.frame and Panel.frame:IsShown() then applyModel(Panel.frame, m) end
 	if Panel.player and Panel.player:IsShown() then applyPlayer(Panel.player, m, now) end
 	local okW, errW = pcall(Panel.CheckDeafWarning, now)
@@ -2082,14 +2002,9 @@ function Panel.DependencyPanel()
 end
 
 function Panel.DependencyInit()
-	if Panel.dependencyIndicator then return end
-	local b = Panel.BuildIndicator()
-	if b then
-		b.glyph:SetVertexColor(0.45, 0.45, 0.45)
-		b:SetScript("OnClick", function() Panel.DependencyPanel() end)
-		Panel.Dock()
-		b:Show()
-		Panel.dependencyIndicator = b
+	if OV.Icons and OV.Icons.RefreshSelf then
+		local ok, err = pcall(OV.Icons.RefreshSelf, OV.Now(), true)
+		if not ok then fail(err) end
 	end
 end
 
@@ -2109,23 +2024,17 @@ function Panel.Init()
 	if not (OV.db and OV.db.ui) then return end
 	local okLive, errLive = pcall(Panel.BuildLive)
 	if not okLive then fail(errLive) end
-	if OV.db.ui.hideIndicator then return end
-	local ok, err = pcall(Panel.BuildIndicator)
+	-- Old floating-indicator preferences must not hide the replacement.
+	OV.db.ui.hideIndicator, OV.db.ui.indicatorPos = nil, nil
+	local ok, err = pcall(Panel.Refresh)
 	if not ok then fail(err) end
-	ok, err = pcall(Panel.Dock)
-	if not ok then fail(err) end
-	ok, err = pcall(Panel.Refresh)          -- never show a bare button while waiting for the first tick
+	ok, err = pcall(OV.Icons.RefreshSelf, OV.Now(), false)
 	if not ok then fail(err) end
 	Panel.dirty = true
 end
 
 -- Called every Core tick (0.25 s): keeps the screen in step with the status, and the pending clicks honest.
 function Panel.Tick(now)
-	if now - Panel.lastDock >= Panel.DOCK_S then
-		Panel.lastDock = now
-		local ok, err = pcall(Panel.Dock)       -- the micro bar can be moved or hidden at any time
-		if not ok then fail(err) end
-	end
 	if Panel.capturing and now >= Panel.captureEnds then Panel.StopCapture("key not changed (no key was pressed)") end
 	for i = 1, table.getn(Panel.sliders) do                       -- a slider that has come to rest sends its value
 		local ok, err = pcall(Panel.sliders[i].Flush, now)
@@ -2160,15 +2069,12 @@ function Panel.Tick(now)
 	end
 end
 
+-- Retain /eqvc show and hide, but apply them to the own-name icon only.
 function Panel.SetIndicator(on)
-	OV.db.ui.hideIndicator = (not on) or nil
-	if on then
-		pcall(Panel.BuildIndicator)
-		pcall(Panel.Dock)
-		if Panel.indicator then Panel.indicator:Show() end
-	elseif Panel.indicator then
-		Panel.indicator:Hide()
-	end
+	OV.db.ui.hideSelfIcon = (not on) or nil
+	if on and not OV.Icons.Enabled() then OV.Icons.SetEnabled(true) end
+	local ok, err = pcall(OV.Icons.RefreshSelf, OV.Now(), false)
+	if not ok then fail(err) end
 	Panel.dirty = true
 end
 
@@ -2178,8 +2084,6 @@ function Panel.ResetPositions()
 	if Panel.setup then restorePos(Panel.setup, "setupPos", "TOP", 0, -150) end
 	if OV.Wizard and OV.Wizard.ResetPosition then OV.Wizard.ResetPosition() end
 	if Panel.blocklist then restorePos(Panel.blocklist, "blocklistPos", "CENTER", 260, 40) end
-	Panel.dockedTo = nil                                    -- forces Dock to place it again
-	pcall(Panel.Dock)
 end
 
 -- ------------------------------------------------------------------- commands
@@ -2193,8 +2097,8 @@ local function helpText()
 	OV.Print("/eqvc sound mono, speakers or headphones   where voices are heard from      /eqvc overhead on or off   icons over players' heads")
 	OV.Print("/eqvc mute <name>, unmute <name>, mute target   add or take someone off your blocklist      /eqvc muted   list it      /eqvc blocklist   open it")
 	OV.Print("/eqvc gate auto, manual or off   the noise gate      /eqvc gate -50   the manual bar in dB (-80 very sensitive .. -20)")
-	OV.Print("/eqvc icons on or off   the little voice icons beside player names (click one on a unit frame to open this panel)")
-	OV.Print("/eqvc status   what the app says          /eqvc show or hide   the small indicator      /eqvc reset   put the windows back")
+	OV.Print("/eqvc icons on or off   the little voice icons beside player names (left-click your own icon for the panel; right-click to toggle mute)")
+	OV.Print("/eqvc status   what the app says          /eqvc show or hide   your name icon      /eqvc reset   put the windows back")
 end
 
 local function printStatus()
@@ -2324,7 +2228,7 @@ function Panel.Slash(msg)
 		Panel.SetIndicator(true)
 	elseif cmd == "hide" then
 		Panel.SetIndicator(false)
-		OV.Print("indicator hidden; /eqvc show brings it back")
+		OV.Print("your name icon is hidden; /eqvc show brings it back")
 	elseif cmd == "reset" then
 		Panel.ResetPositions()
 		OV.Print("windows put back")

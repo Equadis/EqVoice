@@ -252,7 +252,10 @@ end
 -- -------------------------------------------------------------------- tick
 
 function OV.Tick(now)
-	if not OV.started then return end
+	if not OV.started then
+		if OV.dependencyWarned and OV.Panel.DependencyInit then OV.Panel.DependencyInit() end
+		return
+	end
 	if OV.nearby then
 		local gone, n = OV.nearby:Expire(now)
 		for i = 1, n do
