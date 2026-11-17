@@ -244,56 +244,84 @@ def find_wow_dir(saved: str = "", ask: Optional[Callable[[], Optional[Path]]] = 
 
 
 def classicapi_present(wow: Path) -> bool:
-    return (Path(wow) / "ClassicAPI.dll").exists()
+    wow = Path(wow)
+    return any(p.is_file() for p in (wow / "ClassicAPI.dll", wow / "Mods" / "ClassicAPI.dll"))
+
 
 def offer_classicapi(wow: Path) -> bool:
-    """Install the bundled extension only with consent, never replace a DLL.
-    ClassicAPI upstream loads from the game root via dlls.txt.
-    A launcher-managed copy is left alone.
+    """Offer official ClassicAPI and the independent EqVoice.dll with consent.
+    Preserve any launcher-managed ClassicAPI and all other mod entries.
     """
-    import shutil
+    import tempfile
     wow = Path(wow)
-    dll = wow / "ClassicAPI.dll"
-    if dll.exists() or (wow / "Mods" / "ClassicAPI.dll").exists():
-        return False
     bundle = bundle_dir()
-    source = bundle / "classicapi" / "ClassicAPI.dll" if bundle else None
-    if source is None or not source.is_file():
+    if not bundle:
         return False
-    if game_is_open(wow):
-        notice("EqVoice", "Close WoW before installing ClassicAPI, then restart EqVoice.")
+    official = bundle / "classicapi" / "ClassicAPI.dll"
+    native = bundle / "classicapi" / "EqVoice.dll"
+    if not official.is_file() or not native.is_file():
         return False
-    if not ask_yes_no("EqVoice", "Install ClassicAPI v1.21.1 with the experimental EqVoice overhead extension?\\n\\n"
-                      "This adds ClassicAPI.dll to your game folder and dlls.txt.\\n"
-                      "Source: https://github.com/brues-code/ClassicAPI\\n\\n"
-                      "Restart WoW after installation."):
-        return False
+    classic = wow / "ClassicAPI.dll"
+    eq = wow / "EqVoice.dll"
     path = wow / "dlls.txt"
     try:
         old = path.read_bytes() if path.exists() else b""
-        if not any(line.strip().lower() == b"classicapi.dll" for line in old.splitlines()):
-            updated = old + (b"\\r\\n" if old and not old.endswith((b"\\n", b"\\r")) else b"") + b"ClassicAPI.dll\\r\\n"
-        else:
-            updated = old
-        # Exclusive creation avoids replacing a launcher/user copy.
-        created = False
+        lines = {line.strip().lower() for line in old.removeprefix(b"\\xef\\xbb\\xbf").splitlines()}
+        need_classic = not classicapi_present(wow)
+        # Never overwrite an existing ClassicAPI.dll, even if its version is old.
+        write_eq = not eq.is_file() or eq.read_bytes() != native.read_bytes()
+        add = []
+        if need_classic or classic.is_file():
+            if b"classicapi.dll" not in lines:
+                add.append(b"ClassicAPI.dll")
+        if b"eqvoice.dll" not in lines:
+            add.append(b"EqVoice.dll")
+        if not need_classic and not write_eq and not add:
+            return False
+        if game_is_open(wow):
+            notice("EqVoice", "Close WoW before installing or updating the EqVoice native extension; then restart EqVoice.")
+            return False
+        description = ("Install official ClassicAPI v1.21.1 and the EqVoice.dll extension?" if need_classic
+                       else "Install or update the independent EqVoice.dll extension? Your existing ClassicAPI.dll will not be replaced.")
+        if not ask_yes_no("EqVoice", description + "\\n\\nThis also enables the required DLLs in dlls.txt. Restart WoW afterwards."):
+            return False
+        # Prepare every payload first. Exclusive creation protects a concurrently installed ClassicAPI.
+        previous_eq = eq.read_bytes() if eq.is_file() else None
+        created_classic = changed_eq = False
+        def atomic_write(dest, data):
+            with tempfile.NamedTemporaryFile(dir=wow, delete=False) as f:
+                temp = Path(f.name)
+                f.write(data)
+            try:
+                temp.replace(dest)
+            finally:
+                temp.unlink(missing_ok=True)
         try:
-            with source.open("rb") as src, dll.open("xb") as out:
-                created = True
-                shutil.copyfileobj(src, out)
-            if updated != old:
-                tmp = path.with_name("dlls.txt.eqvoice.tmp")
-                tmp.write_bytes(updated)
-                tmp.replace(path)
+            if need_classic:
+                data = official.read_bytes()
+                with classic.open("xb") as f:
+                    created_classic = True
+                    f.write(data)
+            if write_eq:
+                atomic_write(eq, native.read_bytes())
+                changed_eq = True
+            if add:
+                updated = old + (b"\\r\\n" if old and not old.endswith((b"\\n", b"\\r")) else b"")
+                updated += b"\\r\\n".join(add) + b"\\r\\n"
+                atomic_write(path, updated)
         except OSError:
-            if created:
-                dll.unlink(missing_ok=True)
+            if created_classic:
+                classic.unlink(missing_ok=True)
+            if changed_eq:
+                if previous_eq is None:
+                    eq.unlink(missing_ok=True)
+                else:
+                    atomic_write(eq, previous_eq)
             raise
     except OSError as e:
-        notice("EqVoice", "ClassicAPI installation failed: %s" % e, "error")
+        notice("EqVoice", "Native extension installation failed: %s" % e, "error")
         return False
     return True
-
 
 
 # ------------------------------------------------------------------------------------------- the addon
