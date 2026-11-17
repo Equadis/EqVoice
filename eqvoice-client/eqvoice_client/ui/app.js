@@ -714,7 +714,8 @@ class Media {
         p.fx.meter.getFloatTimeDomainData(this.lvBuf);
         const db = VM.levelDb(this.lvBuf), dt = Math.min(0.1, (now - p.loudT) / 1000), rms = Math.pow(10, db / 20);
         p.loud.update(db, dt);
-        const vl = p.va.update(db, p.loud.s, dt, p.loud.q);         // the icon beside their name: nothing / quiet / speaking / loud
+        const measured = p.va.update(db, p.loud.s, dt, p.loud.q);
+        const vl = p.whisper && measured > 0 ? 1 : measured;      // whispering uses the one-bubble icon, without changing audio gain
         if (vl !== p.vlevel) { p.vlevel = vl; send({ t: 'peer', sid: p.sid, ep: p.ep, type: 'vlevel', level: vl }); }
         // the browser's own energy and level figures stand still for a voice that goes through Web Audio, so the chain keeps them itself
         p.chainEnergy += rms * rms * dt;

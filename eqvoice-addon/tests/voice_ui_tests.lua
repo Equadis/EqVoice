@@ -498,7 +498,7 @@ do
 	eq(I.error, nil, "the plates raised no error")
 	eq(Stub.friendPlateCalls, 0, "her plate is showing already: the friendly-nameplate switch is NOT touched (it may be a toggle: it hid the player's plates)")
 	eq(touched, 0, "and not a thing on any plate is changed")
-	check(I.plates[1].tile ~= nil and I.plates[1].tile.shown, "the icon is on a steel-blue tile"); check(I.plates[1].tile.b > 0.5 and I.plates[1].tile.r < 0.3, "blue")
+	check(I.plates[1].tile == nil, "the existing transparent icon is drawn without a background tile")
 	check(I.plates[1].icon ~= nil and I.plates[1].icon.state == "s", "the voice icon is over Alice's name (her plate is showing)")
 	eq(I.plates[1].icon.tex.pt[1], "BOTTOM", "above it"); eq(I.plates[1].icon.tex.pt[2], pa.nameText, "anchored to her name"); eq(I.plates[1].icon.tex.pt[5], I.PLATE_GAP, "a fixed distance above")
 	check(I.plates[1].host ~= nil and I.plates[1].host.parent == UIParent, "the icon is on a frame of its own under UIParent, not on the plate")
@@ -861,6 +861,19 @@ do
 	eq(I.plates[1].icon.btn, nil, "a nameplate's icon is only drawn on: a click there still targets the player")
 	mine:SetText("Bob"); adv()
 	eq(I.plates[1].icon.state, "o", "a plate ECO reuses for someone else follows ECO's text")
+	-- The visible name can have a different owner from the hidden native plate.
+	local nameOnly = CreateFrame("Frame", nil, UIParent)
+	local label = nameOnly:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
+	label:SetText("Bo")
+	pa.nameText:SetText("Bob")
+	_G.EquadisClassicOverhaul.modules.nameplates.plates[pa] = { name = label, overlay = nameOnly, original = { name = pa.nameText } }
+	pa:Hide(); adv()
+	eq(I.plates[1].icon.state, "o", "a live name anchor still works with the native plate hidden")
+	eq(I.plates[1].icon.tex.pt[2], label, "position follows the visible name while identity uses its full name")
+	check(I.plates[1].host.shown, "the transparent icon is visible")
+	nameOnly:Hide(); adv()
+	check(not I.plates[1].host.shown, "no stale icon when both anchors disappear")
+	pa.nameText:SetText("Wolf"); pa:Show()
 	_G.EquadisClassicOverhaul = nil; adv()
 	eq(I.plates[1].icon.state, nil, "without ECO the client's own text (Wolf, no EqVoice) is used again")
 end
@@ -1060,6 +1073,10 @@ do
 	-- your own icon, in the order of what matters
 	local function mine(fields) app(fields); return I.Resolve("Me", Stub.now) end
 	eq(mine(BASE), "o", "ready and quiet")
+	eq(mine(BASE .. " vl=3 wh=1"), "w", "whisper key: even a loud microphone uses VoiceOpen")
+	eq(mine(BASE .. " vl=0 wh=1"), "o", "holding the whisper key silently is idle")
+	eq(mine(BASE .. " vl=3 wh=1 deaf=1"), "n", "deafened whisper uses the quiet voice secondary icon")
+	eq(mine(BASE .. " vl=3 wh=1 mute=1"), "m", "muted wins over the whisper icon")
 	eq(mine(BASE .. " vl=1"), "w", "you are speaking quietly"); eq(mine(BASE .. " vl=2"), "s", "you are speaking"); eq(mine(BASE .. " vl=3"), "l", "you are yelling")
 	eq(mine(BASE .. " vl=1 mute=1"), "m", "muted wins over speaking"); eq(mine(BASE .. " vl=1 mute=1 deaf=1"), "D", "deafened and muted: both icons"); eq(mine(BASE .. " vl=1 mute=0 deaf=1"), "n", "deafened, microphone open and speaking quietly"); eq(mine(BASE .. " vl=2 mute=0 deaf=1"), "q", "speaking: the deaf icon and the two bubbles"); eq(mine(BASE .. " vl=0 mute=0 deaf=1"), "p", "quiet: the deaf icon and the quiet one"); eq(mine(BASE .. " vl=3 mute=0 deaf=1"), "r", "yelling")
 	eq(mine("level=ok mode=ptt mute=0 deaf=0 tx=0 talk=0 vol=100 near=0 conn=0 key=F9 game=1 hub=1 mic=ok"), "m", "push to talk with the key up: closed")
