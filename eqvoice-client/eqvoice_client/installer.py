@@ -248,6 +248,25 @@ def classicapi_present(wow: Path) -> bool:
     return any(p.is_file() for p in (wow / "ClassicAPI.dll", wow / "Mods" / "ClassicAPI.dll"))
 
 
+def _repair_native_dll_list(raw: bytes) -> bytes:
+    """Repair only malformed EqVoice/ClassicAPI entries from the 0.7.4 installer."""
+    bom = b"\xef\xbb\xbf" if raw.startswith(b"\xef\xbb\xbf") else b""
+    body = raw[len(bom):]
+    # Previous builds appended escaped CRLFs instead of line breaks.
+    body = re.sub(rb"(?:\\r\\n(?:EqVoice|ClassicAPI)\.dll)+(?:\\r\\n)?",
+                  lambda m: m.group().replace(b"\\r\\n", b"\r\n"), body, flags=re.I)
+    seen = set()
+    kept = []
+    for line in body.splitlines(keepends=True):
+        key = line.strip().lower()
+        if key in (b"eqvoice.dll", b"classicapi.dll"):
+            if key in seen:
+                continue
+            seen.add(key)
+        kept.append(line)
+    return bom + b"".join(kept)
+
+
 def offer_classicapi(wow: Path) -> bool:
     """Offer official ClassicAPI and the independent EqVoice.dll with consent.
     Preserve any launcher-managed ClassicAPI and all other mod entries.
@@ -266,7 +285,8 @@ def offer_classicapi(wow: Path) -> bool:
     path = wow / "dlls.txt"
     try:
         old = path.read_bytes() if path.exists() else b""
-        lines = {line.strip().lower() for line in old.removeprefix(b"\\xef\\xbb\\xbf").splitlines()}
+        repaired = _repair_native_dll_list(old)
+        lines = {line.strip().lower() for line in repaired.removeprefix(b"\xef\xbb\xbf").splitlines()}
         need_classic = not classicapi_present(wow)
         # Never overwrite an existing ClassicAPI.dll, even if its version is old.
         write_eq = not eq.is_file() or eq.read_bytes() != native.read_bytes()
@@ -276,14 +296,14 @@ def offer_classicapi(wow: Path) -> bool:
                 add.append(b"ClassicAPI.dll")
         if b"eqvoice.dll" not in lines:
             add.append(b"EqVoice.dll")
-        if not need_classic and not write_eq and not add:
+        if not need_classic and not write_eq and not add and repaired == old:
             return False
         if game_is_open(wow):
             notice("EqVoice", "Close WoW before installing or updating the EqVoice native extension; then restart EqVoice.")
             return False
         description = ("Install official ClassicAPI v1.21.1 and the EqVoice.dll extension?" if need_classic
                        else "Install or update the independent EqVoice.dll extension? Your existing ClassicAPI.dll will not be replaced.")
-        if not ask_yes_no("EqVoice", description + "\\n\\nThis also enables the required DLLs in dlls.txt. Restart WoW afterwards."):
+        if not ask_yes_no("EqVoice", description + "\n\nThis also enables the required DLLs in dlls.txt. Restart WoW afterwards."):
             return False
         # Prepare every payload first. Exclusive creation protects a concurrently installed ClassicAPI.
         previous_eq = eq.read_bytes() if eq.is_file() else None
@@ -305,9 +325,11 @@ def offer_classicapi(wow: Path) -> bool:
             if write_eq:
                 atomic_write(eq, native.read_bytes())
                 changed_eq = True
+            updated = repaired
             if add:
-                updated = old + (b"\\r\\n" if old and not old.endswith((b"\\n", b"\\r")) else b"")
-                updated += b"\\r\\n".join(add) + b"\\r\\n"
+                updated = repaired + (b"\r\n" if repaired and not repaired.endswith((b"\n", b"\r")) else b"")
+                updated += b"\r\n".join(add) + b"\r\n"
+            if updated != old:
                 atomic_write(path, updated)
         except OSError:
             if created_classic:

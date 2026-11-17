@@ -377,3 +377,22 @@ def test_native_extension_preserves_launcher_managed_classicapi(tmp_path, monkey
     assert not (wow / "ClassicAPI.dll").exists()
     assert (wow / "Mods" / "ClassicAPI.dll").read_bytes() == b"launcher-owned"
     assert (wow / "EqVoice.dll").read_bytes() == b"native"
+
+
+def test_repair_literal_crlf_and_duplicates(tmp_path, monkeypatch):
+    wow = make_game(tmp_path / "game")
+    bundle = tmp_path / "bundle"
+    (bundle / "classicapi").mkdir(parents=True)
+    (bundle / "classicapi" / "ClassicAPI.dll").write_bytes(b"official")
+    (bundle / "classicapi" / "EqVoice.dll").write_bytes(b"native")
+    (wow / "ClassicAPI.dll").write_bytes(b"existing")
+    (wow / "EqVoice.dll").write_bytes(b"native")
+    original = b"nampower.dll\r\nClassicAPI.dll\r\ncomfyatmos.dll\r\n\\r\\nEqVoice.dll\\r\\nEqVoice.dll\\r\\n"
+    (wow / "dlls.txt").write_bytes(original)
+    monkeypatch.setattr(installer, "bundle_dir", lambda: bundle)
+    monkeypatch.setattr(installer, "game_is_open", lambda _: False)
+    monkeypatch.setattr(installer, "ask_yes_no", lambda *_: True)
+    assert installer.offer_classicapi(wow)
+    assert (wow / "dlls.txt").read_bytes() == b"nampower.dll\r\nClassicAPI.dll\r\ncomfyatmos.dll\r\n\r\nEqVoice.dll\r\n"
+    assert not installer.offer_classicapi(wow)
+    assert (wow / "ClassicAPI.dll").read_bytes() == b"existing"
