@@ -486,6 +486,7 @@ do
 	local row = I.overhead.Alice
 	check(row and row.host.shown, "native name overhead icon works without any plate")
 	eq(row.icon.state, "s", "voice state preserved")
+	eq(row.icon.tex.w, 32, "only the overhead texture doubles to 32 pixels")
 	eq(row.host.pt[2], WorldFrame, "projected point is relative to the world")
 	eq(row.host.pt[4], 100, "native horizontal point")
 	eq(row.host.pt[5], 100 + I.PLATE_GAP, "native vertical point and gap")
@@ -665,7 +666,7 @@ do
 	-- yourself: from the panel's model, so a click shows at once
 	eq(I.Resolve("Me", Stub.now), "o", "you: microphone open")
 	put(OV, 2, { fields = "level=ok mode=open mute=0 deaf=0 tx=1 talk=1 vol=100 near=0 conn=0 key=F9 mic=ok" })
-	eq(I.Resolve("Me", Stub.now), "s", "you: speaking")
+	eq(I.Resolve("Me", Stub.now), "w", "activity without a classified level uses the quiet icon")
 	put(OV, 3, { fields = "level=ok mode=open mute=1 deaf=0 tx=0 talk=0 vol=100 near=0 conn=0 key=F9 mic=ok" })
 	eq(I.Resolve("Me", Stub.now), "m", "you: muted")
 	put(OV, 4, { fields = "level=ok mode=open mute=1 deaf=1 tx=0 talk=0 vol=100 near=0 conn=0 key=F9 mic=ok" })
@@ -1020,6 +1021,8 @@ do
 	-- your own icon, in the order of what matters
 	local function mine(fields) app(fields); return I.Resolve("Me", Stub.now) end
 	eq(mine(BASE), "o", "ready and quiet")
+	eq(mine(BASE .. " talk=1 vl=0"), "w", "unclassified active transmission uses VoiceOpen")
+	eq(mine(BASE .. " talk=1 vl=0 deaf=1"), "n", "deafened unclassified transmission uses VoiceOpen")
 	eq(mine(BASE .. " vl=3 wh=1"), "w", "whisper key: even a loud microphone uses VoiceOpen")
 	eq(mine(BASE .. " vl=0 wh=1"), "o", "holding the whisper key silently is idle")
 	eq(mine(BASE .. " vl=3 wh=1 deaf=1"), "n", "deafened whisper uses the quiet voice secondary icon")

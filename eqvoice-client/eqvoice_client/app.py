@@ -680,14 +680,31 @@ class App:
                           "gate_db": result.gate_db, "input_gain": result.input_gain, "gate_mode": result.gate_mode})
 
     def _self_voice_level(self) -> int:
-        """How I sound on my own microphone (0 nothing, 1 quiet, 2 speaking, 3 a raised voice), steadied by the page; 0 while nobody can hear me."""
+        """Visual speech state only: 0 silent, 1 quiet, 2 ordinary, 3 raised.
+
+        At a permissive gate setting a real low-level signal can pass below
+        the voice activity detector's floor. Do not show the idle speaker
+        for that signal. Keep intentional silence and a shut gate idle.
+        """
         if not self.tx_enabled:
             return 0
+        m = self.mic
         try:
-            level = max(0, min(3, int(self.mic.get("vl") or 0)))
-            return 1 if self.whisper_down and level > 0 else level
+            level = max(0, min(3, int(m.get("vl") or 0)))
         except (TypeError, ValueError):
+            level = 0
+        gated = bool(m.get("gate"))
+        if gated and m.get("gopen") is False:
             return 0
+        # With the gate running, use the same measurement as its green bar,
+        # whether or not the in-game panel happens to be open.
+        db = m.get("glevel") if gated and m.get("gopen") is True else m.get("ldb")
+        if isinstance(db, (int, float)) and -65 <= db <= -40 and level < 3:
+            # A quiet signal that is really passing: never infer activity
+            # from the mere fact that the microphone is enabled.
+            if (gated and m.get("gopen") is True) or not gated:
+                level = 1
+        return 1 if self.whisper_down and level > 0 else level
 
     # ------------------------------------------------------------ the game's device pickers
 
@@ -728,10 +745,11 @@ class App:
 
     def _ui_fields(self, view, summary: dict) -> dict:
         a = self.cfg.audio
-        talking = self.tx_enabled and float(self.mic.get("level") or 0.0) > 0.05
+        voice_level = self._self_voice_level()
+        talking = voice_level > 0
         return {"level": summary["level"], "mode": a.mode, "mute": int(bool(a.muted)), "deaf": int(bool(a.deafened)),
                 "sp": self._spatial(), "mt": int(self.mic_test),
-                "tx": int(self.tx_enabled), "talk": int(talking), "vl": self._self_voice_level(), "vol": int(round(float(a.master_volume) * 100)), "ing": int(round(self._input_gain() * 100)),
+                "tx": int(self.tx_enabled), "talk": int(talking), "vl": voice_level, "vol": int(round(float(a.master_volume) * 100)), "ing": int(round(self._input_gain() * 100)),
                 "near": self.peers.nearby_count(), "conn": self.peers.counts()["CONNECTED"], "key": a.ptt_label or "?",
                 "wk": (a.get("whisper_label") or "none"), "wh": int(self.whisper_down), "dn": int(bool(a.get("denoise", True))),
                 "game": int(view.status == "live"), "hub": int(self.signalling.state == "registered"),

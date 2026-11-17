@@ -177,3 +177,23 @@ def test_the_save_logs_button_makes_the_zip_and_the_game_is_told_its_name(tmp_pa
             await until(lambda: read_status(game).fields.get("rpt") == "EqVoice-logs-20261108-101010.zip", 5, "the game is told the file's name")
             assert made and told and "Discord" in told[0] and "EqVoice-logs-20261108-101010.zip" in told[0], told
     run(go(), 90)
+
+
+def test_quiet_transmit_below_vad_floor_uses_one_bubble():
+    from types import SimpleNamespace
+    from eqvoice_client.app import App
+
+    def level(**overrides):
+        m = dict(vl=0, gate=True, gopen=True, glevel=-55, ldb=-56)
+        m.update(overrides)
+        return App._self_voice_level(SimpleNamespace(tx_enabled=True, mic=m, whisper_down=False))
+
+    assert level() == 1
+    assert level(vl=2, glevel=-45) == 1
+    assert level(vl=2, glevel=-25) == 2
+    assert level(vl=3, glevel=-15) == 3
+    assert level(gopen=False, vl=1) == 0
+    assert level(glevel=-90) == 0  # open gate alone does not mean speech
+    assert level(gate=False, gopen=None, ldb=-55) == 1
+    assert level(gate=False, gopen=None, ldb=-90) == 0
+    assert App._self_voice_level(SimpleNamespace(tx_enabled=False, mic={"vl": 3}, whisper_down=True)) == 0

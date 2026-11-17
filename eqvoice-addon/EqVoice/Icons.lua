@@ -48,7 +48,7 @@ OV.Icons = Icons
 
 Icons.ART    = "Interface\\AddOns\\EqVoice\\"
 Icons.SIZE   = 16
-Icons.PLATE_SIZE = 16          -- overhead icon size
+Icons.PLATE_SIZE = 32          -- overhead icon size
 Icons.PLATE_GAP  = 4           -- pixels between the icon and the top of the name: a fixed distance above it
 Icons.GAP    = 3               -- pixels between the end of a name and its icon
 Icons.EVERY  = 0.25            -- seconds between looks at the screen
@@ -97,17 +97,17 @@ function Icons.SelfState(now)
 	if m.micBad then return "e" end
 	local closed = m.mute or (m.mode == "ptt" and not m.tx)
 	local voice = m.voice
-	if m.wh and (voice > 0 or m.talk) then voice = 1 end
+	if (m.wh and (voice > 0 or m.talk)) or (voice == 0 and m.talk) then voice = 1 end
 	if m.deaf then                                                               -- deafened: with the microphone shut, both icons; open, the deaf one and the voice one
 		if closed then return "D" end
 		if voice >= 3 then return "r" end
-		if voice == 2 or (voice == 0 and m.talk) then return "q" end
+		if voice == 2 then return "q" end
 		if voice == 1 then return "n" end
 		return "p"
 	end
 	if closed then return "m" end
 	if voice >= 3 then return "l" end
-	if voice == 2 or (voice == 0 and m.talk) then return "s" end
+	if voice == 2 then return "s" end
 	if voice == 1 then return "w" end
 	return "o"
 end
