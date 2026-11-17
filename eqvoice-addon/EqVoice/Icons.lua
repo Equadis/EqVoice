@@ -405,7 +405,7 @@ local function overhead(now, on)
 		end
 	end
 	for name, row in pairs(Icons.overhead) do
-		if not live[name] then row.state, row.token = nil, nil; hideOverhead(row) end
+		if not live[name] then row.state, row.token = nil, nil; Icons.Set(row.icon, nil); hideOverhead(row) end
 	end
 	if not Icons.overheadDriver then
 		local driver = CreateFrame("Frame", "EqVoiceOverheadIcons", UIParent)
@@ -436,7 +436,7 @@ function Icons.SetEnabled(on)
 	Icons.Tick(OV.Now())
 end
 
--- The icons over players' heads, on or off (kept between sessions). Off also hands friendly nameplates back at once.
+-- The icons over players' heads, on or off (kept between sessions).
 function Icons.SetOverhead(on)
 	if on then OV.db.ui.overhead = nil else OV.db.ui.overhead = false end
 	Icons.lastRun = -100

@@ -7,6 +7,7 @@ local ART = "Interface\\AddOns\\EqVoice\\"
 
 local function login(opts)
 	opts = opts or {}
+	opts.units = opts.units or { alice = {name = "Alice", player = true}, bob = {name = "Bob", player = true}, cy = {name = "Cy", player = true}, di = {name = "Di", player = true} }
 	opts.fileApi = "WriteCustomFile"
 	opts.classic = true
 	return Stub.Login(opts)
@@ -479,47 +480,26 @@ do
 	-- plain device names
 	eq(P.DefaultName("AT2020USB+"), "System default (AT2020USB+)", "the system default shows what it is now"); eq(P.DefaultName(""), "System default", "and plain when it is not known")
 
-	-- overhead icons: above the nameplates the player has. No nameplate switch is touched and nothing on any plate is changed.
-	Stub.friendPlateCalls = 0                                                      -- (earlier in this section no plate was showing and the switch was used)
+	-- The native projection works whether the nameplate exists or not.
 	put(OV, 1, { peers = { "Alice 12.5 1 1 direct s 0" } })
-	local pa = Stub.AddPlate("Alice", "player")
-	local pn = Stub.AddPlate("Northshire Guard", "npc")
-	local pw = Stub.AddPlate("Boss", "enemy")
-	local touched = 0
-	for _, plate in ipairs({ pa, pn, pw }) do
-		for _, r in ipairs({ plate.nameText, plate.level, plate.bar, plate.border }) do
-			for _, fn in ipairs({ "SetFont", "SetFontObject", "SetTextColor", "SetText", "SetAlpha", "SetVertexColor", "Hide", "Show" }) do
-				r[fn] = function() touched = touched + 1 end
-			end
-		end
-		plate.EnableMouse = function() touched = touched + 1 end
-	end
-	Stub.Advance(1)
-	eq(I.error, nil, "the plates raised no error")
-	eq(Stub.friendPlateCalls, 0, "her plate is showing already: the friendly-nameplate switch is NOT touched (it may be a toggle: it hid the player's plates)")
-	eq(touched, 0, "and not a thing on any plate is changed")
-	check(I.plates[1].tile == nil, "the existing transparent icon is drawn without a background tile")
-	check(I.plates[1].icon ~= nil and I.plates[1].icon.state == "s", "the voice icon is over Alice's name (her plate is showing)")
-	eq(I.plates[1].icon.tex.pt[1], "BOTTOM", "above it"); eq(I.plates[1].icon.tex.pt[2], pa.nameText, "anchored to her name"); eq(I.plates[1].icon.tex.pt[5], I.PLATE_GAP, "a fixed distance above")
-	check(I.plates[1].host ~= nil and I.plates[1].host.parent == UIParent, "the icon is on a frame of its own under UIParent, not on the plate")
-	check(I.plates[1].host.shown, "shown while her plate shows")
-	pa.shown = false; Stub.Advance(0.25)
-	check(not I.plates[1].host.shown, "and gone the moment her plate is")
-	pa.shown = true; Stub.Advance(0.25)
-	check(I.plates[1].host.shown, "and back with it")
-	check(I.plates[2] == nil or I.plates[2].icon == nil or I.plates[2].icon.state == nil, "and none over the guard's")
-	check(I.plates[1].label == nil and I.plates[1].labelOn == nil, "EqVoice draws no name of its own on a plate")
-	I.SetOverhead(false); Stub.Advance(1)
-	eq(OV.db.ui.overhead, false, "the switch is kept"); eq(I.plates[1].icon.state, nil, "off: no icon over heads")
-	I.SetOverhead(true); Stub.Advance(1)
-	check(I.plates[1].icon.state == "s", "on again: the icon is back")
-	eq(touched, 0, "(and still nothing on any plate is changed)")
-	-- /eqvc plates off: the switch is left alone (icons only on the plates the player has)
-	OV.db.ui.setupDone = true                                                      -- (no first-time setup box in the way of the long wait below)
-	SlashCmdList["EQVOICEUI"]("plates off"); Stub.Advance(1)
-	eq(OV.db.ui.forcePlates, false, "/eqvc plates off is kept"); eq(Stub.friendPlates, false, "the friendly nameplates are put back")
-	SlashCmdList["EQVOICEUI"]("plates on")
-	eq(OV.db.ui.forcePlates, nil, "on again (the default)")
+	Stub.Advance(0.5)
+	local row = I.overhead.Alice
+	check(row and row.host.shown, "native name overhead icon works without any plate")
+	eq(row.icon.state, "s", "voice state preserved")
+	eq(row.host.pt[2], WorldFrame, "projected point is relative to the world")
+	eq(row.host.pt[4], 100, "native horizontal point")
+	eq(row.host.pt[5], 100 + I.PLATE_GAP, "native vertical point and gap")
+	local pa = Stub.AddPlate("Alice")
+	pa:Hide(); Stub.Advance(0.25)
+	check(row.host.shown, "hidden nameplate makes no difference")
+	Stub.units.alice.offscreen = true; Stub.Advance(0.25)
+	check(not row.host.shown, "offscreen unit hides")
+	Stub.units.alice.offscreen = false; Stub.Advance(0.25)
+	check(row.host.shown, "onscreen again")
+	I.SetOverhead(false); check(not row.host.shown, "overhead toggle hides icon")
+	I.SetOverhead(true); check(row.host.shown, "overhead toggle restores icon")
+	eq(Stub.friendPlateCalls, 0, "no friendly nameplate switch")
+	OV.db.ui.setupDone = true
 
 	-- the two deafens and the microphone test: what the buttons say
 	Stub.Click(EqVoiceIndicator, "LeftButton")
@@ -744,36 +724,18 @@ do
 	mine:SetText("Me")
 	Stub.Advance(0.5)
 	eq(I.surf[2].icon.state, "o", "your own name gets yours")
-	-- nameplates: found under WorldFrame by their border picture
+	-- Native projected icons are independent of unit-frame and nameplate text.
 	alive()
-	local pa = Stub.AddPlate("Alice")
-	local pw = Stub.AddPlate("Wolf")
-	Stub.Advance(0.5)
-	check(I.plates[1] ~= nil and I.plates[1].frame == pa, "the plates were found"); eq(table.getn(I.plates), 2, "both of them")
-	eq(I.plates[1].icon.state, "s", "Alice's plate has an icon"); eq(I.plates[1].icon.tex.pt[2], pa.nameText, "on the plate, anchored to the name"); eq(I.plates[1].icon.tex.pt[1], "BOTTOM", "its bottom edge ..."); eq(I.plates[1].icon.tex.pt[3], "TOP", "... on the top of the name: above it"); eq(I.plates[1].icon.tex.pt[4], 0, "centred over it")
-	eq(I.plates[1].icon.tex.w, 16, "and 16 pixels: the same size as the icons beside names on the unit frames")
-	eq(I.plates[2].icon, nil, "Wolf's plate has none (and none was even made)")
-	pa.shown = false
-	Stub.Advance(0.5)
-	eq(I.plates[1].icon.state, nil, "a plate that is not showing has no icon")
-	pa.shown = true
-	pa.nameText:SetText("Bob")
-	Stub.Advance(0.5)
-	eq(I.plates[1].icon.state, "d", "a plate the game reuses for someone else follows the new name")
-	local n = table.getn(I.plates)
-	alive()
-	eq(table.getn(I.plates), n, "plates are not added twice")
-	local later = Stub.AddPlate("Cy")
-	Stub.Advance(0.5)
-	eq(table.getn(I.plates), n + 1, "a plate that appears later is found"); eq(I.plates[n + 1].icon.state, "m", "and gets its icon")
-	-- switched off
-	alive()
+	check(I.overhead.Alice and I.overhead.Alice.host.shown, "Alice is visible")
+	eq(I.overhead.Alice.icon.state, "s", "Alice speaks")
+	eq(I.overhead.Bob.icon.state, "d", "Bob is deafened")
+	eq(I.overhead.Cy.icon.state, "m", "Cy is muted")
+	eq(I.overhead.Wolf, nil, "non-voice player gets no icon")
 	SlashCmdList["EQVOICEUI"]("icons off")
-	eq(I.surf[1].icon.tex.shown, false, "off: the target frame's icon is gone"); eq(I.plates[1].icon.tex.shown, false, "and the plates'")
+	check(not I.overhead.Alice.host.shown, "icons off hides overhead")
 	alive()
-	eq(I.plates[1].icon.tex.shown, false, "and they stay gone")
 	SlashCmdList["EQVOICEUI"]("icons on")
-	eq(I.plates[1].icon.state, "d", "on: back")
+	check(I.overhead.Alice.host.shown, "on restores overhead")
 	-- a surface that fails is switched off, and the rest keeps working
 	alive()
 	name.GetText = function() error("boom") end
@@ -781,8 +743,8 @@ do
 	check(I.error ~= nil and string.find(I.error, "boom", 1, true), "the failure was noted: " .. tostring(I.error))
 	eq(I.errors.units, 3, "three strikes and the unit frames are given up")
 	alive()
-	pa.nameText:SetText("Alice"); Stub.Advance(0.5)
-	eq(I.plates[1].icon.state, "s", "but the plates keep working")
+	Stub.Advance(0.5)
+	eq(I.overhead.Alice.icon.state, "s", "but the native overhead icons keep working")
 	check(OV.started and OV.Panel.error == nil, "and nothing else was disturbed")
 	local ctl = Stub.fs["eqvoice-ctl-Me.txt"] or ""
 	check(not string.find(ctl, " mode ") and not string.find(ctl, " mute ") and not string.find(ctl, " pmute ") and not string.find(ctl, " gate "), "(and no setting was changed by any of this: only the setup box keeping the microphone closed)")
@@ -849,33 +811,18 @@ do
 	eq(sp.icon.btn.pt[4], 2 * 6 + 3, "right at their end")
 	eq(sp.icon.btn.parent, textFrame, "on the frame that draws the name")
 
-	-- ECO's nameplates: the client's own name text is hidden, ECO draws another; the icon follows the one you can see
-	local pa = Stub.AddPlate("Wolf")                    -- the client's text says someone without EqVoice (it is hidden in the game)
-	local mine = pa:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
-	mine:SetText("Alice")
-	_G.EquadisClassicOverhaul.modules.nameplates.plates[pa] = { name = mine, overlay = pa }
+	-- ECO label changes must not redirect a projected icon to another unit.
+	local pa = Stub.AddPlate("Wolf")
+	local label = pa:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
+	label:SetText("Alice")
+	_G.EquadisClassicOverhaul.modules.nameplates.plates[pa] = { name = label, overlay = pa }
 	adv()
-	check(I.plates[1] ~= nil and I.plates[1].frame == pa, "the plate was found")
-	eq(I.plates[1].icon.state, "s", "the icon is for the name ECO draws (Alice), not the hidden one (Wolf)")
-	eq(I.plates[1].icon.tex.pt[2], mine, "beside ECO's text")
-	eq(I.plates[1].icon.btn, nil, "a nameplate's icon is only drawn on: a click there still targets the player")
-	mine:SetText("Bob"); adv()
-	eq(I.plates[1].icon.state, "o", "a plate ECO reuses for someone else follows ECO's text")
-	-- The visible name can have a different owner from the hidden native plate.
-	local nameOnly = CreateFrame("Frame", nil, UIParent)
-	local label = nameOnly:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
-	label:SetText("Bo")
-	pa.nameText:SetText("Bob")
-	_G.EquadisClassicOverhaul.modules.nameplates.plates[pa] = { name = label, overlay = nameOnly, original = { name = pa.nameText } }
-	pa:Hide(); adv()
-	eq(I.plates[1].icon.state, "o", "a live name anchor still works with the native plate hidden")
-	eq(I.plates[1].icon.tex.pt[2], label, "position follows the visible name while identity uses its full name")
-	check(I.plates[1].host.shown, "the transparent icon is visible")
-	nameOnly:Hide(); adv()
-	check(not I.plates[1].host.shown, "no stale icon when both anchors disappear")
-	pa.nameText:SetText("Wolf"); pa:Show()
-	_G.EquadisClassicOverhaul = nil; adv()
-	eq(I.plates[1].icon.state, nil, "without ECO the client's own text (Wolf, no EqVoice) is used again")
+	check(I.overhead.Alice.host.shown, "Alice projects regardless of ECO label")
+	label:SetText("Bob"); pa:Hide(); adv()
+	check(I.overhead.Alice.host.shown, "ECO changes cannot hide Alice")
+	eq(I.overhead.Alice.icon.state, "s", "identity remains the real unit")
+	_G.EquadisClassicOverhaul = nil
+
 end
 
 sec("voice ui: the microphone setup overlay")
@@ -1593,49 +1540,17 @@ do
 	_G.GetAddOnMetadata = nil
 end
 
-sec("voice ui: EqVoice never changes the nameplate range; one left widened by 0.6.5 or 0.6.6 is put back once")
+sec("voice ui: native projection never changes nameplate settings")
 do
 	local OV = login()
-	local I = OV.Icons
 	OV.db.ui.setupDone = true
 	Stub.cvars.NameplateRange = "41"
+	Stub.units.alice.screenX = 123
 	put(OV, 1, { peers = { "Alice 12.5 1 1 direct s 0" } })
 	Stub.Advance(1)
-	eq(Stub.cvars.NameplateRange, "41", "a voice player is near: the player's own nameplate range is left exactly as it is")
-	eq(OV.db.ui.plateRangeWas, nil, "and nothing is remembered about it")
-	I.SetOverhead(false); Stub.Advance(1); I.SetOverhead(true); Stub.Advance(1)
-	Stub.FireEvent("PLAYER_LOGOUT")
-	eq(Stub.cvars.NameplateRange, "41", "through off, on and logout")
-	-- an older version left it at 80 with the saved value: the next login puts it back, once
-	local OV2 = Stub.Login({ db = OV.db, fileApi = "WriteCustomFile", classic = true })
-	OV2.db.ui.setupDone = true
-	Stub.cvars.NameplateRange = "80"
-	OV2.db.ui.plateRangeWas = 30
-	Stub.Advance(1)
-	eq(Stub.cvars.NameplateRange, "30", "a range left at 80 by 0.6.5 or 0.6.6 is put back")
-	eq(OV2.db.ui.plateRangeWas, nil, "and the note is cleared")
-	Stub.cvars.NameplateRange = "80"
-	Stub.Advance(1)
-	eq(Stub.cvars.NameplateRange, "80", "a range the player later chose to set to 80 is theirs: not touched again")
-end
-
-
-sec("voice ui: no nameplate showing for a voice player: the player is told how to get one, once")
-do
-	local OV = login()
-	local I = OV.Icons
-	OV.db.ui.setupDone = true
-	put(OV, 1, { peers = { "Alice 12.5 1 1 direct s 0" } })
-	local said = 0
-	local realPrint = OV.Print
-	OV.Print = function(msg) if string.find(msg, "friendly nameplates you have", 1, true) then said = said + 1 end end
-	for i = 1, 9 do put(OV, 1 + i, { peers = { "Alice 12." .. i .. " 1 1 direct s 0" } }); Stub.Advance(3) end
-	eq(said, 1, "a voice player is near and no nameplate shows: EqVoice says how to get one, once")
-	local pa = Stub.AddPlate("Alice", "player")
-	Stub.Advance(1)
-	check(I.plates[1] and I.plates[1].icon and I.plates[1].icon.state ~= nil, "and when her plate shows the icon is there")
-	OV.Print = realPrint
-	check((Stub.friendPlateCalls or 0) >= 0, "")
+	check(OV.Icons.overhead.Alice.host.shown, "no plate required")
+	eq(Stub.friendPlateCalls, 0, "no forced plates")
+	eq(Stub.cvars.NameplateRange, "41", "unchanged nameplate range")
 end
 
 sec("voice ui: a click on the slider's bar sets the value even though the knob is not dragged")

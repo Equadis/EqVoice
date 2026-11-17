@@ -285,7 +285,14 @@ function Stub.Boot(opts)
 	end
 	-- What the ClassicAPI mod adds (docs: C_NamePlate, UnitDistanceSquared, UnitTokenFromName, UnitPosition)
 	_G.C_NamePlate, _G.UnitDistanceSquared, _G.UnitTokenFromName, _G.UnitPosition = nil, nil, nil, nil
+	_G.CLASSIC_API_VERSION, _G.EqVoice_GetOverheadPoint = nil, nil
 	if opts.classic then
+		_G.CLASSIC_API_VERSION = 12101
+		_G.EqVoice_GetOverheadPoint = function(u)
+			local item = Stub.units[u]
+			if item and item.offscreen ~= true then return item.screenX or 100, item.screenY or 100 end
+			return nil
+		end
 		_G.C_NamePlate = { GetNamePlateGUIDs = function()
 			if Stub.nameplateError then error(Stub.nameplateError) end
 			local t = {}
@@ -490,6 +497,10 @@ end
 -- Boot, log in and return the addon table.
 function Stub.Login(opts)
 	local OV = Stub.Boot(opts)
+	-- Legacy protocol and scan tests deliberately simulate clients without ClassicAPI.
+	-- They exercise isolated subsystems, not supported production startup. The
+	-- dedicated classicapi_extension_tests.lua uses Boot and the real gate.
+	if not (opts and opts.classic) then OV.DependencyReady = function() return true end end
 	Stub.FireEvent("VARIABLES_LOADED")
 	Stub.FireEvent("PLAYER_ENTERING_WORLD")
 	return OV

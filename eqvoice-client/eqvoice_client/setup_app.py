@@ -43,7 +43,7 @@ EXE_NAME = "EqVoice.exe"
 MANIFEST = "install.json"
 UNINSTALL_ROOT = r"Software\Microsoft\Windows\CurrentVersion\Uninstall"
 RUN_ROOT = r"Software\Microsoft\Windows\CurrentVersion\Run"
-MODS = ("nampower.dll", "ClassicAPI.dll")                  # without these the game gives EqVoice neither files nor name lookups
+MODS = ("nampower.dll", "ClassicAPI.dll", "EqVoice.dll")                  # without these the game gives EqVoice neither files nor name lookups
 
 
 class SetupError(Exception):
@@ -77,6 +77,8 @@ def missing_mods(wow: Path) -> List[str]:
         pass
     out = []
     for dll in MODS:
+        if dll == "ClassicAPI.dll" and (wow / "Mods" / dll).is_file() and not (wow / dll).is_file():
+            continue  # launcher-owned copy: do not assume its loading configuration
         if not (wow / dll).exists():
             out.append("%s (not in the game folder)" % dll)
         elif listed and dll.lower() not in listed:

@@ -327,6 +327,7 @@ def test_classicapi_install_requires_consent_and_preserves_other_mods(tmp_path, 
     bundle = tmp_path / "bundle"
     (bundle / "classicapi").mkdir(parents=True)
     (bundle / "classicapi" / "ClassicAPI.dll").write_bytes(b"test")
+    (bundle / "classicapi" / "EqVoice.dll").write_bytes(b"native")
     (wow / "dlls.txt").write_bytes(b"nampower.dll\r\n")
     monkeypatch.setattr(installer, "bundle_dir", lambda: bundle)
     monkeypatch.setattr(installer, "game_is_open", lambda _: False)
@@ -336,10 +337,15 @@ def test_classicapi_install_requires_consent_and_preserves_other_mods(tmp_path, 
     monkeypatch.setattr(installer, "ask_yes_no", lambda *_: True)
     assert installer.offer_classicapi(wow)
     assert (wow / "ClassicAPI.dll").read_bytes() == b"test"
-    assert (wow / "dlls.txt").read_bytes() == b"nampower.dll\r\nClassicAPI.dll\r\n"
+    assert (wow / "dlls.txt").read_bytes() == b"nampower.dll\r\nClassicAPI.dll\r\nEqVoice.dll\r\n"
+    assert (wow / "EqVoice.dll").read_bytes() == b"native"
     (wow / "ClassicAPI.dll").write_bytes(b"existing")
     assert not installer.offer_classicapi(wow)
     assert (wow / "ClassicAPI.dll").read_bytes() == b"existing"
+    (bundle / "classicapi" / "EqVoice.dll").write_bytes(b"updated")
+    assert installer.offer_classicapi(wow)
+    assert (wow / "ClassicAPI.dll").read_bytes() == b"existing"
+    assert (wow / "EqVoice.dll").read_bytes() == b"updated"
 
 
 def test_classicapi_install_never_changes_game_while_running(tmp_path, monkeypatch):
@@ -347,9 +353,27 @@ def test_classicapi_install_never_changes_game_while_running(tmp_path, monkeypat
     bundle = tmp_path / "bundle"
     (bundle / "classicapi").mkdir(parents=True)
     (bundle / "classicapi" / "ClassicAPI.dll").write_bytes(b"test")
+    (bundle / "classicapi" / "EqVoice.dll").write_bytes(b"native")
     monkeypatch.setattr(installer, "bundle_dir", lambda: bundle)
     monkeypatch.setattr(installer, "game_is_open", lambda _: True)
     monkeypatch.setattr(installer, "notice", lambda *_: None)
     monkeypatch.setattr(installer, "ask_yes_no", lambda *_: pytest.fail("must not offer while running"))
     assert not installer.offer_classicapi(wow)
     assert not (wow / "ClassicAPI.dll").exists()
+
+
+def test_native_extension_preserves_launcher_managed_classicapi(tmp_path, monkeypatch):
+    wow = make_game(tmp_path / "game")
+    (wow / "Mods").mkdir()
+    (wow / "Mods" / "ClassicAPI.dll").write_bytes(b"launcher-owned")
+    bundle = tmp_path / "bundle"
+    (bundle / "classicapi").mkdir(parents=True)
+    (bundle / "classicapi" / "ClassicAPI.dll").write_bytes(b"official")
+    (bundle / "classicapi" / "EqVoice.dll").write_bytes(b"native")
+    monkeypatch.setattr(installer, "bundle_dir", lambda: bundle)
+    monkeypatch.setattr(installer, "game_is_open", lambda _: False)
+    monkeypatch.setattr(installer, "ask_yes_no", lambda *_: True)
+    assert installer.offer_classicapi(wow)
+    assert not (wow / "ClassicAPI.dll").exists()
+    assert (wow / "Mods" / "ClassicAPI.dll").read_bytes() == b"launcher-owned"
+    assert (wow / "EqVoice.dll").read_bytes() == b"native"

@@ -23,7 +23,7 @@ def world(tmp_path):
     (wow / "WoW.exe").write_bytes(b"MZ")
     for dll in setup_app.MODS:
         (wow / dll).write_bytes(b"MZ")
-    (wow / "dlls.txt").write_text("nampower.dll\nClassicAPI.dll\n", encoding="utf-8")
+    (wow / "dlls.txt").write_text("nampower.dll\nClassicAPI.dll\nEqVoice.dll\n", encoding="utf-8")
     payload = tmp_path / "payload.exe"
     payload.write_bytes(Path(sys.executable).read_bytes() + b"build-one")        # a real program (Windows reads its icon for the shortcuts), with a tail that tells builds apart
     base = r"Software\EqVoiceSetupTest-" + uuid.uuid4().hex[:8]
