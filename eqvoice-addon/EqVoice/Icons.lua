@@ -48,7 +48,7 @@ OV.Icons = Icons
 
 Icons.ART    = "Interface\\AddOns\\EqVoice\\"
 Icons.SIZE   = 16
-Icons.PLATE_SIZE = 32          -- overhead icon size
+Icons.PLATE_SIZE = 24          -- overhead icon size
 Icons.PLATE_GAP  = 4           -- pixels between the icon and the top of the name: a fixed distance above it
 Icons.GAP    = 3               -- pixels between the end of a name and its icon
 Icons.EVERY  = 0.25            -- seconds between looks at the screen

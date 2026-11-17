@@ -486,7 +486,7 @@ do
 	local row = I.overhead.Alice
 	check(row and row.host.shown, "native name overhead icon works without any plate")
 	eq(row.icon.state, "s", "voice state preserved")
-	eq(row.icon.tex.w, 32, "only the overhead texture doubles to 32 pixels")
+	eq(row.icon.tex.w, 24, "overhead texture is 24 pixels; unit frames are unchanged")
 	eq(row.host.pt[2], WorldFrame, "projected point is relative to the world")
 	eq(row.host.pt[4], 100, "native horizontal point")
 	eq(row.host.pt[5], 100 + I.PLATE_GAP, "native vertical point and gap")
