@@ -36,12 +36,8 @@
 -- The icons on the unit frames are buttons: a click on another player's icon opens that player's settings (volume, mute, block); a click
 -- on your own opens the EqVoice panel. (Nameplates are only drawn on, so a click there still targets the player.)
 --
--- Over a player's head. The names the game floats over characters are drawn in the 3D world: no addon can draw on them or learn where
--- on the screen they are. The one thing that sits over a character's head and can be drawn on is a nameplate. So the icon goes above the
--- nameplate as an ANCHOR: it is never changed, hidden, restyled or replaced (not the font, the colour, the text, the art or the range; a test
--- fails if any code touches a plate), and nothing is added to it: the icon is on a frame of its own, 4 px above the live name anchor, using the transparent voice texture. The only thing EqVoice does about plates is the client's own friendly-nameplate switch (the Shift-V one): a voice player
--- has a plate to be anchored to only while friendly nameplates are on, so it is switched on while one is near and put back after; `/eqvc plates
--- off` stops that (then icons show only on plates the player already has, and the chat says so once).
+-- Overhead voice textures follow a native projected head-name point exposed by the ClassicAPI extension.
+-- No nameplate frame is enumerated, modified, enabled or required. Unit-frame icons remain unchanged.
 --
 -- Written for the 1.12 client like Panel.lua: Lua 5.0, nothing newer. Every drawing step is inside a pcall, and a surface that
 -- keeps failing is switched off for the session: an icon must never be able to stop the voice. /eqvc icons off removes them.
@@ -52,7 +48,7 @@ OV.Icons = Icons
 
 Icons.ART    = "Interface\\AddOns\\EqVoice\\"
 Icons.SIZE   = 16
-Icons.PLATE_SIZE = 16          -- over a nameplate: half the size it was (32); a glance is enough
+Icons.PLATE_SIZE = 16          -- overhead icon size
 Icons.PLATE_GAP  = 4           -- pixels between the icon and the top of the name: a fixed distance above it
 Icons.GAP    = 3               -- pixels between the end of a name and its icon
 Icons.EVERY  = 0.25            -- seconds between looks at the screen
@@ -81,23 +77,7 @@ Icons.LOOK = {
 Icons.UNIT_NAMES = { "TargetName", "PlayerName", "PartyMemberFrame1Name", "PartyMemberFrame2Name",
 	"PartyMemberFrame3Name", "PartyMemberFrame4Name" }
 Icons.ECO_PARTY = 4            -- ECO's party frames draw their own names: one more surface for each
-local PLATE_BORDER = "Interface\\Tooltips\\Nameplate-Border"
-
-Icons.RANGE   = 80             -- the nameplate range 0.6.5 and 0.6.6 set (and no longer do): a range left at this by them is put back once
-Icons.forced  = false          -- friendly nameplates are on because EqVoice switched them on (and only then are plates made quiet)
-Icons.assertAt = -100          -- when they were last switched on (it is repeated: another addon may switch them off)
-Icons.needUntil = -100         -- overhead icons are wanted until then (a voice player was near a moment ago)
-Icons.NEED_HOLD = 10           -- seconds the plates stay after the last voice player left (no flicker at the edge of range)
-Icons.REASSERT = 20
-Icons.FORCE_AFTER = 3          -- seconds of a voice player being near before the switch is considered
-Icons.FORCE_WITHIN = 25        -- yards: a voice player this close with no plate on screen means friendly plates are off
-Icons.nearSince = nil          -- since when a voice player has been near with no icon over any head (for the one-time hint)
-Icons.hinted  = false
-Icons.HINT_AFTER = 20          -- seconds
 Icons.surf    = {}             -- the unit-frame names: index -> { icon }
-Icons.plates  = {}             -- nameplates found so far: { frame, name (the client's own FontString), icon }
-Icons.known   = {}             -- WorldFrame children already looked at
-Icons.nKids   = nil
 Icons.lastRun = -100
 Icons.errors  = { units = 0, plates = 0 }
 Icons.error   = nil
@@ -391,7 +371,7 @@ local function updateOverhead()
 	end
 end
 
-local function plates(now, on)
+local function overhead(now, on)
 	local live = {}
 	if on and Icons.OverheadOn() and OV.Status.Alive(now) and WorldFrame then
 		for i = 1, OV.Status.npeers or 0 do
@@ -445,7 +425,7 @@ function Icons.Tick(now)
 		if not ok then fail("units", err) end
 	end
 	if Icons.errors.plates < Icons.MAXERR then
-		local ok, err = pcall(plates, now, on)
+		local ok, err = pcall(overhead, now, on)
 		if not ok then fail("plates", err) end
 	end
 end

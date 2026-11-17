@@ -2283,13 +2283,7 @@ function Panel.Slash(msg)
 		if w[2] == "on" or w[2] == "off" then Panel.SetOverhead(w[2] == "on"); OV.Print("icons over players' heads: " .. w[2])
 		else OV.Print("usage: /eqvc overhead on or off   (now " .. (Panel.OverheadOn() and "on" or "off") .. ")") end
 	elseif cmd == "plates" then
-		if w[2] == "on" or w[2] == "off" then
-			if w[2] == "off" then OV.db.ui.forcePlates = false else OV.db.ui.forcePlates = nil end        -- (nil: on, the default)
-			OV.Print("friendly nameplates switched on by EqVoice while a voice player is near (so a plate is there to hold the icon): " .. w[2])
-			if OV.Icons then OV.Icons.lastRun = -100 end
-		else
-			OV.Print("usage: /eqvc plates on or off   (now " .. (OV.db.ui.forcePlates == false and "off" or "on") .. "). On switches the client's friendly nameplates on while a voice player is near, so there is a plate to hold the icon; off puts icons only on the plates you already have.")
-		end
+		OV.Print("EqVoice no longer changes or requires nameplates. Use /eqvc overhead on or off.")
 	elseif cmd == "vol" or cmd == "volume" then
 		local v = tonumber(w[2] or "")
 		if v then
