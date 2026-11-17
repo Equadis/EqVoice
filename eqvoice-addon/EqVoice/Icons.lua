@@ -365,206 +365,72 @@ function Icons.OverheadOn()
 	return not (OV.db and OV.db.ui and OV.db.ui.overhead == false)
 end
 
--- A nameplate is a child of WorldFrame whose first region is the border picture and whose third is the name.
--- (The six regions, in order: border, glow, name, level, the skull that stands for a level, the raid mark. Its first child is the health bar.)
-local function rememberPlate(frame, name, regions)
-	if not frame or not name or not name.GetText then return end
-	if type(Icons.known[frame]) == "table" then return end
-	local p = { frame = frame, name = name, regions = regions }
-	Icons.known[frame] = p
-	Icons.plates[table.getn(Icons.plates) + 1] = p
+-- Native client projection: no plate enumeration, visibility checks or settings.
+Icons.overhead = {}
+local function hideOverhead(row)
+	if row.host then row.host:Hide() end
 end
 
-local function findPlates()
-	-- ECO may suppress the native border; use its name records directly as well.
-	local np = eco("nameplates")
-	if np and np.plates then
-		for frame, plate in pairs(np.plates) do
-			local name = plate.original and plate.original.name or plate.name
-			rememberPlate(frame, name)
-		end
-	end
-	if not (WorldFrame and WorldFrame.GetChildren) then return end
-	local n = nil
-	if WorldFrame.GetNumChildren then n = WorldFrame:GetNumChildren() end
-	if n ~= nil and n == Icons.nKids then return end            -- nothing new since last time
-	Icons.nKids = n
-	local kids = { WorldFrame:GetChildren() }
-	local i = 1
-	while kids[i] do
-		local f = kids[i]
-		if not Icons.known[f] then
-			Icons.known[f] = true
-			local ok, regions = pcall(function() return { f:GetRegions() } end)
-			if ok and regions[1] and regions[3] and regions[1].GetTexture and regions[3].GetText then
-				local okT, tex = pcall(regions[1].GetTexture, regions[1])
-				if okT and tex == PLATE_BORDER then
-					rememberPlate(f, regions[3], regions)
-				end
+local function updateOverhead()
+	for name, row in pairs(Icons.overhead) do
+		if row.state and Icons.Enabled() and Icons.OverheadOn() then
+			local ok, token = pcall(UnitTokenFromName, name, true)
+			local x, y = nil, nil
+			if ok and token and UnitName(token) == name and UnitIsPlayer(token) then
+				local good, a, b = pcall(EqVoice_GetOverheadPoint, token)
+				if good then x, y = a, b end
 			end
-		end
-		i = i + 1
+			if type(x) == "number" and type(y) == "number" and WorldFrame then
+				local scale = row.host:GetEffectiveScale() or 1
+				if scale <= 0 then scale = 1 end
+				row.host:ClearAllPoints()
+				row.host:SetPoint("BOTTOM", WorldFrame, "BOTTOMLEFT", x / scale, y / scale + Icons.PLATE_GAP)
+				row.host:Show()
+			else hideOverhead(row) end
+		else hideOverhead(row) end
 	end
-end
-
--- The nameplate range is the player's own setting (SuperWoW's NameplateRange, in SuperAPI's options, up to 80 yards) and EqVoice leaves it alone:
--- an icon is only drawn on a plate the client shows, so it is seen as far away as the player's own range lets plates be. (0.6.5 and 0.6.6 widened it
--- while a voice player was near and put it back; that is gone. If one of them left it widened, the saved value is put back here, once.)
-local function putBackOldRange()
-	local was = OV.db and OV.db.ui and OV.db.ui.plateRangeWas
-	if not was then return end
-	OV.db.ui.plateRangeWas = nil
-	if SetCVar and GetCVar then
-		local ok, v = pcall(GetCVar, "NameplateRange")
-		if ok and tonumber(v) == Icons.RANGE then pcall(SetCVar, "NameplateRange", was) end
-	end
-end
-
-local function release(now)
-	Icons.forced = false
-	if type(HideFriendNameplates) == "function" and not FRIENDNAMEPLATES_ON then HideFriendNameplates() end
-end
-
--- What the icon is measured from: the name the player SEES (the overhaul's when it draws this plate, else the client's). When neither is
--- drawn (a plate the overhaul hides) the client's name text is still where the name would be: the icon is above where the player stands.
-local function plateAnchor(p)
-	local np = eco("nameplates")
-	local plate = np and np.plates and np.plates[p.frame] or nil
-	if plate and plate.name and plate.name.GetText and showing(plate.name) then
-		local text = plate.name:GetText()
-		if text and text ~= "" then return plate.name end
-	end
-	-- A visually suppressed nameplate can still provide a live position. Never
-	-- use a recycled/hidden native frame whose world position is no longer known.
-	if visible(p.frame) and p.name then return p.name end
-	return nil
-end
-
--- Match the full native name, not ECO's possibly shortened display label.
-local function plateName(p)
-	local np = eco("nameplates")
-	local plate = np and np.plates and np.plates[p.frame] or nil
-	local full = plate and plate.original and plate.original.name or nil
-	local text = full and full.GetText and full:GetText() or nil
-	if text and text ~= "" then return text end
-	local fs = plateAnchor(p)
-	return fs and fs:GetText() or nil
-end
-
-local function voicePlateShowing(now)
-	for i = 1, table.getn(Icons.plates) do
-		local p = Icons.plates[i]
-		if plateAnchor(p) then
-			local name = plateName(p)
-			if name and name ~= OV.character and Icons.Resolve(name, now) ~= nil then return true end
-		end
-	end
-	return false
-end
-
--- How far the nearest voice player is, in yards (nil: not known).
-local function nearestVoice()
-	local S = OV.Status
-	local best = nil
-	for i = 1, (S.npeers or 0) do
-		local d = S.peers[i] and S.peers[i].dist
-		if d and (best == nil or d < best) then best = d end
-	end
-	return best
-end
-
--- The client's friendly-nameplate switch, used as little as possible. It may be a toggle rather than a "show" on this client (the player's
--- plates vanished when it was called while they were already on), and nothing says whether they are on, so: it is only used when a voice
--- player is CLOSE and no plate of any voice player is on screen (the plates are then off, or the player is out of sight), and then once for
--- the whole time voice players stay near; the player's own plates are never switched off by it.
-local function ensurePlates(now, on)
-	local alive = OV.Status.Alive(now)
-	if alive and (OV.Status.npeers or 0) > 0 then Icons.needUntil = now + Icons.NEED_HOLD end
-	local optIn = not (OV.db and OV.db.ui and OV.db.ui.forcePlates == false)             -- on unless the player said /eqvc plates off
-	local want = optIn and on and Icons.OverheadOn() and alive and now < Icons.needUntil
-	if not Icons.rangeChecked then Icons.rangeChecked = true; putBackOldRange() end
-	if FRIENDNAMEPLATES_ON then
-		Icons.forced = false
-		return
-	end
-	Icons.wantSince = want and (Icons.wantSince or now) or nil
-	if want then
-		if Icons.forced then return end                                                   -- once only (a second call could switch them off again)
-		if now - Icons.wantSince < Icons.FORCE_AFTER then return end                      -- a voice player has to have been near for a moment (plates take a moment to appear)
-		if type(ShowFriendNameplates) ~= "function" then return end
-		if voicePlateShowing(now) then return end                                         -- a plate is there already: nothing to switch on
-		local d = nearestVoice()
-		if d and d <= Icons.FORCE_WITHIN then
-			ShowFriendNameplates()
-			Icons.forced, Icons.assertAt = true, now
-		end
-	elseif Icons.forced then
-		release(now)
-	end
-end
-
--- Follow the live name anchor rather than the visibility of the plate's art.
-function Icons.ShowHost(p)
-	local fs = p.want and plateAnchor(p) or nil
-	local on = fs ~= nil and p.icon.who == plateName(p)
-	if on then Icons.PlaceAbove(p.icon, fs) end
-	if p.hostShown == on then return end
-	p.hostShown = on
-	if on then p.host:Show() else p.host:Hide() end
-end
-
-function Icons.BuildPlateDriver()
-	if Icons.plateDriver or not CreateFrame then return end
-	local f = CreateFrame("Frame", "EqVoicePlateIcons")
-	f:SetScript("OnUpdate", function()
-		for i = 1, table.getn(Icons.plates) do
-			local p = Icons.plates[i]
-			if p.host then Icons.ShowHost(p) end
-		end
-	end)
-	Icons.plateDriver = f
 end
 
 local function plates(now, on)
-	findPlates()
-	ensurePlates(now, on)
-	local show = on and Icons.OverheadOn()
-	local shown = 0
-	for i = 1, table.getn(Icons.plates) do
-		local p = Icons.plates[i]
-		local fs = plateAnchor(p)
-		local state = nil
-		local name = fs and plateName(p) or nil
-		if show and name then state = Icons.Resolve(name, now) end
-		if state and not p.icon then
-			-- the icon lives on a frame of its own under UIParent, never on the plate: the plate is only the anchor (a point to measure from) and is not
-			-- touched, and nothing the plate or another addon does to its own regions or alpha reaches the icon
-			p.host = CreateFrame("Frame", nil, UIParent)
-			p.host:SetWidth(1); p.host:SetHeight(1)
-			p.host:SetPoint("CENTER", UIParent, "CENTER", 0, 0)
-			if p.host.SetFrameStrata then p.host:SetFrameStrata("MEDIUM") end
-			p.icon = Icons.New(p.host, Icons.PLATE_SIZE)
-			Icons.BuildPlateDriver()
-		end
-		if p.icon then
-			Icons.Set(p.icon, state)
-			p.icon.who = state and name or nil
-			p.want = (state ~= nil)
-			if state then Icons.PlaceAbove(p.icon, fs); shown = shown + 1 end
-			Icons.ShowHost(p)
-		end
-	end
-	-- voice players are near but no nameplate of theirs is showing: say how to get one, once
-	local near = show and OV.Status.Alive(now) and (OV.Status.npeers or 0) > 0
-	if not near or shown > 0 then
-		Icons.nearSince = nil
-	elseif not Icons.hinted then
-		Icons.nearSince = Icons.nearSince or now
-		if now - Icons.nearSince >= Icons.HINT_AFTER then
-			Icons.hinted = true
-			OV.Print("Overhead icons sit above the friendly nameplates you have, and EqVoice does not change any nameplate or nameplate setting. None is showing for the voice players near you: turn friendly player nameplates on (Shift-V, or Show Friendly Players in the Equadis overhaul) to see the icons over their heads. /eqvc overhead off stops this message.")
+	local live = {}
+	if on and Icons.OverheadOn() and OV.Status.Alive(now) and WorldFrame then
+		for i = 1, OV.Status.npeers or 0 do
+			local peer = OV.Status.peers[i]
+			local name = peer and peer.name
+			local state = name and name ~= OV.character and Icons.Resolve(name, now) or nil
+			if state then
+				live[name] = true
+				local row = Icons.overhead[name]
+				if not row then
+					-- Reuse inactive hosts instead of allocating for every player ever seen.
+					for old, other in pairs(Icons.overhead) do
+						if not live[old] and not OV.Status.byName[string.lower(old)] then
+							row = other; Icons.overhead[old] = nil; break
+						end
+					end
+					if not row then
+						local host = CreateFrame("Frame", nil, WorldFrame)
+						host:SetWidth(1); host:SetHeight(1); host:Hide()
+						if host.SetFrameStrata then host:SetFrameStrata("MEDIUM") end
+						row = { host = host, icon = Icons.New(host, Icons.PLATE_SIZE) }
+					end
+					Icons.overhead[name] = row
+				end
+				row.state = state
+				Icons.Set(row.icon, state)
+				anchor(row.icon, "BOTTOM", row.host, "BOTTOM", row.icon.two and -((row.icon.size + 1) / 2) or 0, 0)
+			end
 		end
 	end
+	for name, row in pairs(Icons.overhead) do
+		if not live[name] then row.state = nil; hideOverhead(row) end
+	end
+	if not Icons.overheadDriver then
+		local driver = CreateFrame("Frame", "EqVoiceOverheadIcons", UIParent)
+		driver:SetScript("OnUpdate", function() pcall(updateOverhead) end)
+		Icons.overheadDriver = driver
+	end
+	updateOverhead()
 end
 
 -- Called from the addon's tick (every 0.25 s); looks at the screen every Icons.EVERY seconds.

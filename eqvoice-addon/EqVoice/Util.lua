@@ -7,7 +7,15 @@
 EqVoice = EqVoice or {}
 local OV = EqVoice
 
-OV.VERSION     = "0.2.0"
+OV.VERSION     = "0.7.4"
+OV.CLASSICAPI_MIN = 12101
+OV.CLASSICAPI_URL = "https://github.com/brues-code/ClassicAPI"
+function OV.DependencyReady()
+	return type(CLASSIC_API_VERSION) == "number" and CLASSIC_API_VERSION >= OV.CLASSICAPI_MIN and type(EqVoice_GetOverheadPoint) == "function" and type(UnitTokenFromName) == "function" and type(UnitDistanceSquared) == "function"
+end
+function OV.DependencyMessage()
+	return "ClassicAPI v1.21.1 or newer with the EqVoice overhead extension is required. Download it here: " .. OV.CLASSICAPI_URL .. " or install ClassicAPI from the Mods section in the launcher (the EqVoice extension is also required)."
+end
 OV.PROTO       = 1
 OV.PREFIX      = "OV1"          -- heartbeat traffic
 OV.DIAG_PREFIX = "OVD"          -- diagnostics traffic, never mixed with the above

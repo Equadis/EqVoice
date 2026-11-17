@@ -85,6 +85,12 @@ def build(out: Path, hub_url: str = "", join_code: str = "", name: str = "EqVoic
     if window_data:
         cmd += ["--add-data", "%s%seqvoice_client/ui" % (CLIENT / "eqvoice_client" / "ui", sep)]
     cmd += ["--add-data", "%s%saddon/EqVoice" % (ADDON, sep)]
+    extension = os.environ.get("EQVOICE_CLASSICAPI_DLL")
+    if extension:
+        extension_path = Path(extension).resolve()
+        if not extension_path.is_file() or extension_path.name.lower() != "classicapi.dll":
+            raise SystemExit("EQVOICE_CLASSICAPI_DLL must point to the built ClassicAPI.dll")
+        cmd += ["--add-data", "%s%sclassicapi" % (extension_path, sep)]
     for src, inside in extra_data:
         cmd += ["--add-data", "%s%s%s" % (src, sep, inside)]
     if hub_url:

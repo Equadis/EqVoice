@@ -274,6 +274,7 @@ end
 
 -- Queue a command for the app. `pkey`/`pvalue`: show that value in the panel until the app answers.
 function Panel.Command(cmd, arg, pkey, pvalue)
+	if not OV.DependencyReady() then OV.Print(OV.DependencyMessage()); return false end
 	local now = OV.Now()
 	if not OV.Status.Alive(now) then
 		OV.Print("The EqVoice app is not running, so that did nothing. Start EqVoice first.")
@@ -2050,7 +2051,48 @@ function Panel.Refresh()
 	end
 end
 
+-- Missing dependency: the only usable controls are the warning, link and close.
+function Panel.DependencyPanel()
+	local f = Panel.dependencyFrame
+	if f then if f:IsShown() then f:Hide() else f:Show() end; return end
+	f = CreateFrame("Frame", "EqVoiceDependencyPanel", UIParent)
+	f:SetWidth(460); f:SetHeight(200)
+	f:SetPoint("CENTER", UIParent, "CENTER", 0, 40)
+	f:SetFrameStrata("DIALOG"); f:EnableMouse(true)
+	paint(f, THEME.card, THEME.edge)
+	local title = newText(f, "GameFontNormalLarge", 20, -14, 420, 26)
+	title:SetText("EqVoice - unavailable"); title:SetTextColor(0.6, 0.6, 0.6)
+	local msg = newText(f, "GameFontNormal", 20, -48, 420, 66)
+	msg:SetText("ClassicAPI v1.21.1+ with the EqVoice extension is required. Download ClassicAPI here or install it from the Mods section in the launcher. Install the extension and restart WoW.")
+	msg:SetTextColor(0.7, 0.7, 0.7)
+	local url = CreateFrame("EditBox", "EqVoiceDependencyURL", f)
+	url:SetWidth(420); url:SetHeight(24); url:SetPoint("TOPLEFT", f, "TOPLEFT", 20, -119)
+	url:SetAutoFocus(false); url:SetFontObject(GameFontNormalSmall); url:SetText(OV.CLASSICAPI_URL)
+	url:SetScript("OnEditFocusGained", function() this:HighlightText() end)
+	url:SetScript("OnEscapePressed", function() this:ClearFocus() end)
+	newButton(f, nil, "Copy / select download link", 230, 20, -151, function()
+		if type(CopyToClipboard) == "function" then CopyToClipboard(OV.CLASSICAPI_URL)
+		else url:SetFocus(); url:HighlightText() end
+	end, 30)
+	newButton(f, nil, "Close", 100, 340, -151, function() f:Hide() end, 30)
+	Panel.dependencyFrame = f
+	f:Show()
+end
+
+function Panel.DependencyInit()
+	if Panel.dependencyIndicator then return end
+	local b = Panel.BuildIndicator()
+	if b then
+		b.glyph:SetVertexColor(0.45, 0.45, 0.45)
+		b:SetScript("OnClick", function() Panel.DependencyPanel() end)
+		Panel.Dock()
+		b:Show()
+		Panel.dependencyIndicator = b
+	end
+end
+
 function Panel.Toggle()
+	if not OV.DependencyReady() then Panel.DependencyPanel(); return end
 	local ok, err = pcall(Panel.Build)
 	if not ok or not Panel.frame then
 		fail(err or "no frame")
@@ -2185,6 +2227,7 @@ local function printMuted()
 end
 
 function Panel.Slash(msg)
+	if not OV.DependencyReady() then OV.Print(OV.DependencyMessage()); Panel.DependencyPanel(); return end
 	if not OV.started or not OV.db then
 		OV.Print("not ready yet (log in to the world first)")
 		return

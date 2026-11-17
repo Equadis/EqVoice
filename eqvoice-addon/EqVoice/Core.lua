@@ -95,6 +95,11 @@ end
 
 function OV.Start()
 	if OV.started then return end
+	if not OV.DependencyReady() then
+		if not OV.dependencyWarned then OV.Print(OV.DependencyMessage()); OV.dependencyWarned = true end
+		if OV.Panel.DependencyInit then OV.Panel.DependencyInit() end
+		return
+	end
 	math.randomseed(math.floor((time and time() or 0) + OV.Now() * 1000))
 	math.random(); math.random(); math.random()
 	OV.character = UnitName("player")
@@ -374,6 +379,7 @@ local function help()
 end
 
 function OV.Slash(msg)
+	if not OV.DependencyReady() then OV.Print(OV.DependencyMessage()); if OV.Panel.DependencyPanel then OV.Panel.DependencyPanel() end; return end
 	local now = OV.Now()
 	local rawWords = OV.split(msg or "", " ")      -- original case, for character names
 	msg = string.lower(msg or "")

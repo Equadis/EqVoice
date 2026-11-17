@@ -246,6 +246,57 @@ def find_wow_dir(saved: str = "", ask: Optional[Callable[[], Optional[Path]]] = 
 def classicapi_present(wow: Path) -> bool:
     return (Path(wow) / "ClassicAPI.dll").exists()
 
+def offer_classicapi(wow: Path) -> bool:
+    """Install the bundled extension only with consent, never replace a DLL.
+    ClassicAPI upstream loads from the game root via dlls.txt.
+    A launcher-managed copy is left alone.
+    """
+    import shutil
+    wow = Path(wow)
+    dll = wow / "ClassicAPI.dll"
+    if dll.exists() or (wow / "Mods" / "ClassicAPI.dll").exists():
+        return False
+    bundle = bundle_dir()
+    source = bundle / "classicapi" / "ClassicAPI.dll" if bundle else None
+    if source is None or not source.is_file():
+        return False
+    if game_is_open(wow):
+        notice("EqVoice", "Close WoW before installing ClassicAPI, then restart EqVoice.")
+        return False
+    if not ask_yes_no("EqVoice", "Install ClassicAPI v1.21.1 with the experimental EqVoice overhead extension?\\n\\n"
+                      "This adds ClassicAPI.dll to your game folder and dlls.txt.\\n"
+                      "Source: https://github.com/brues-code/ClassicAPI\\n\\n"
+                      "Restart WoW after installation."):
+        return False
+    path = wow / "dlls.txt"
+    try:
+        old = path.read_bytes() if path.exists() else b""
+        if not any(line.strip().lower() == b"classicapi.dll" for line in old.splitlines()):
+            updated = old + (b"\\r\\n" if old and not old.endswith((b"\\n", b"\\r")) else b"") + b"ClassicAPI.dll\\r\\n"
+        else:
+            updated = old
+        # Exclusive creation avoids replacing a launcher/user copy.
+        with dll.open("xb") as out:
+            try:
+                with source.open("rb") as src:
+                    shutil.copyfileobj(src, out)
+            except Exception:
+                dll.unlink(missing_ok=True)
+                raise
+        try:
+            if updated != old:
+                tmp = path.with_name("dlls.txt.eqvoice.tmp")
+                tmp.write_bytes(updated)
+                tmp.replace(path)
+        except OSError:
+            dll.unlink(missing_ok=True)
+            raise
+    except OSError as e:
+        notice("EqVoice", "ClassicAPI installation failed: %s" % e, "error")
+        return False
+    return True
+
+
 
 # ------------------------------------------------------------------------------------------- the addon
 

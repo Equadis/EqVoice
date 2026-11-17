@@ -145,6 +145,7 @@ def ensure_game(cfg: Config, admin_retry: bool = True) -> Optional[Path]:
     if on.still_off:
         installer.notice(TITLE, switched_off_text(on.still_off), "warn")
     from .setup_app import mods_text, missing_mods
+    installer.offer_classicapi(wow)
     missing = missing_mods(wow)
     if missing:
         installer.notice(TITLE, mods_text(wow, missing), "warn")

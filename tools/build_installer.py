@@ -40,6 +40,9 @@ def main() -> int:
         print("A public test build needs the voice server's address: --hub-url wss://.../ws (or --allow-no-hub to build one that cannot connect).")
         return 2
     version = build_exe.client_version()
+    if not build_exe.os.environ.get("EQVOICE_CLASSICAPI_DLL"):
+        print("Set EQVOICE_CLASSICAPI_DLL to the compiled EqVoice ClassicAPI extension before building this installer.")
+        return 2
     payload_dir = ROOT / "build" / "installer-payload"
     if payload_dir.exists():
         shutil.rmtree(payload_dir)

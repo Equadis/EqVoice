@@ -408,6 +408,8 @@ def run_setup(argv: Optional[list] = None) -> int:
     if wow is None:
         _say("EqVoice needs your game folder (the one with WoW.exe), so nothing was installed. Run setup again whenever you are ready.", "warn")
         return 1
+    if not _silent():
+        installer.offer_classicapi(wow)
     registry = not os.environ.get("EQVOICE_SETUP_NO_REGISTRY")
     reg_base = os.environ.get("EQVOICE_SETUP_REGBASE")                               # tests: a scratch key instead of the real ones
     try:
