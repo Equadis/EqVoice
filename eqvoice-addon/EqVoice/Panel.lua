@@ -441,7 +441,8 @@ function Panel.IsPlayerMuted(name, now)
 	local key = string.lower(name)
 	local v = pending("pm:" .. key, now)
 	if v ~= nil then return v end
-	return OV.Status.muted[key] and true or false
+	local row = OV.Status.byName[key]
+	return (OV.Status.muted[key] or (row and row.muted)) and true or false
 end
 
 function Panel.TogglePlayerMute(name)
@@ -1508,7 +1509,8 @@ function Panel.IsPlayerBlocked(name, now)
 	local key = string.lower(name)
 	local v = pending("pb:" .. key, now)
 	if v ~= nil then return v end
-	return OV.Status.blocked[key] and true or false
+	local row = OV.Status.byName[key]
+	return (OV.Status.blocked[key] or (row and row.blocked)) and true or false
 end
 
 function Panel.OpenPlayer(name)

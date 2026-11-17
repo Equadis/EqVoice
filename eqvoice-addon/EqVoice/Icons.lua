@@ -8,10 +8,11 @@
 --   l  yelling               the same two bubbles, in RED: a raised voice (it carries further)
 --   m  muted                 a microphone with a slash. Also push to talk while the key is not held: the microphone is closed
 --                            either way, and from outside it looks the same   VoiceMuted.tga
---   b  muted by you          the same, a little dimmer: you put them on your blocklist
+--   b  muted by you          red microphone with a slash
+--   B  blocked by you        red prohibition sign
 --   d  deafened              headphones with a slash (deafened also means muted)   VoiceDeafened.tga
 --   D  deafened and muted    both icons, side by side;  p n q r: deafened with the microphone open: the deaf icon and the idle, quiet, speaking or yelling icon
---   (muted and deafened are drawn red)
+--   (local mute and deafening are red; a self-muted microphone is white)
 --   i  has EqVoice           the plain speaker, dimmed: they are known to have it, but nothing more is known (not connected to them yet,
 --                            or their app is not running)
 --
@@ -59,11 +60,12 @@ Icons.LOOK = {
 	w = { file = "VoiceOpen.tga",     word = "speaking quietly" },                                         -- one bubble: a quiet voice carries less far
 	s = { file = "VoiceSpeaking.tga", word = "speaking" },                                                 -- two bubbles: an ordinary voice
 	l = { file = "VoiceSpeaking.tga", word = "yelling", tint = Icons.RED },                                -- two bubbles, red: a raised voice carries further
-	m = { file = "VoiceMuted.tga",    word = "muted", tint = Icons.RED },
-	b = { file = "VoiceMuted.tga",    word = "muted by you", dim = 0.7, tint = Icons.RED },
+	m = { file = "VoiceMuted.tga",    word = "self-muted" },
+	b = { file = "VoiceMuted.tga",    word = "muted by you", tint = Icons.RED },
+	B = { file = "VoiceBlocked.tga",  word = "blocked by you" },
 	d = { file = "VoiceDeafened.tga", word = "deafened", tint = Icons.RED },
 	-- two icons side by side: deafened and muted (D), or deafened with the microphone open: the deaf icon and the voice icon (quiet p, speaking q, loud r)
-	D = { file = "VoiceDeafened.tga", word = "deafened and muted", tint = Icons.RED, also = "VoiceMuted.tga", alsoTint = Icons.RED },
+	D = { file = "VoiceDeafened.tga", word = "deafened and muted", tint = Icons.RED, also = "VoiceMuted.tga" },
 	p = { file = "VoiceDeafened.tga", word = "deafened, microphone open", tint = Icons.RED, also = "VoiceKnown.tga" },
 	n = { file = "VoiceDeafened.tga", word = "deafened, speaking quietly", tint = Icons.RED, also = "VoiceOpen.tga" },
 	q = { file = "VoiceDeafened.tga", word = "deafened, speaking", tint = Icons.RED, also = "VoiceSpeaking.tga" },
@@ -116,7 +118,8 @@ end
 function Icons.Resolve(name, now)
 	if type(name) ~= "string" or name == "" then return nil end
 	if name == OV.character then return Icons.SelfState(now) end
-	if OV.Panel and OV.Panel.IsPlayerMuted and OV.Panel.IsPlayerMuted(name, now) then return "b" end       -- whatever they are doing, you are not hearing it
+	if OV.Panel and OV.Panel.IsPlayerBlocked and OV.Panel.IsPlayerBlocked(name, now) then return "B" end
+	if OV.Panel and OV.Panel.IsPlayerMuted and OV.Panel.IsPlayerMuted(name, now) then return "b" end
 	local S = OV.Status
 	local key = string.lower(name)
 	local alive = S.Alive(now)

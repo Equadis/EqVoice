@@ -997,7 +997,9 @@ const VOICE_ICONS = {
   s: { file: 'voice-speaking.png', word: 'speaking' },                              // two bubbles: an ordinary voice
   l: { file: 'voice-speaking.png', word: 'speaking loudly', red: true },            // two bubbles, red: a raised voice (it carries further)
   o: { file: 'voice-known.png', word: 'using EqVoice, not talking' },       // vol_low
-  m: { file: 'voice-muted.png', word: 'muted (or push to talk and the key is not held)' },
+  m: { file: 'voice-muted.png', word: 'self-muted (or push to talk and the key is not held)' },
+  b: { file: 'voice-muted.png', word: 'muted by you', red: true },
+  B: { file: 'voice-blocked.png', word: 'blocked by you' },
   d: { file: 'voice-deafened.png', word: 'deafened' },
   '-': { file: 'voice-known.png', word: 'has EqVoice', dim: 0.45 },
 };
@@ -1121,11 +1123,12 @@ function render() {
     let nm = c[0].querySelector('.pname');
     if (!nm) { nm = document.createElement('span'); nm.className = 'pname'; c[0].appendChild(nm); }
     text(nm, p.name || '?');
-    if (c[0].dataset.vst !== (p.vstate || '-')) {                  // the icon is drawn again only when what it shows changes
-      c[0].dataset.vst = p.vstate || '-';
+    const iconState = p.blocked_by_me ? 'B' : p.muted_by_me ? 'b' : (p.vstate || '-');
+    if (c[0].dataset.vst !== iconState) {                  // the icon is drawn again only when what it shows changes
+      c[0].dataset.vst = iconState;
       Array.from(c[0].querySelectorAll('.vico')).forEach((n) => n.remove());
     }
-    if (!c[0].querySelector('.vico')) c[0].appendChild(voiceIcon(p.vstate || '-'));          // after the name
+    if (!c[0].querySelector('.vico')) c[0].appendChild(voiceIcon(iconState));          // after the name
     text(c[1], p.dist == null ? '-' : p.dist.toFixed(1) + ' yd');
     c[2].innerHTML = '';
     const chip = document.createElement('span');

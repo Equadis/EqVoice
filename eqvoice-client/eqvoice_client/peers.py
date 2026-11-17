@@ -968,7 +968,7 @@ class PeerManager:
                 "linked": p.sid in self.linked, "link_dist": p.link_dist, "gain": round(p.gain, 2),
                 "initiator": p.initiator, "ice": p.ice, "conn": p.conn, "level": round(p.level, 3),
                 "attempts": p.attempts, "err": p.err, "capped": p.capped, "stats": p.stats, "path": p.path,
-                "vstate": self.voice_state(p), "vlevel": p.vlevel, "muted_by_me": self.is_muted(p.name),
+                "vstate": self.voice_state(p), "vlevel": p.vlevel, "muted_by_me": self.is_muted(p.name), "blocked_by_me": self.is_blocked(p.name),
                 "candidates": {"local": dict(p.cands_local), "remote": dict(p.cands_remote)},
                 "retry_in": round(max(0.0, p.cooldown_until - now), 1) if p.state == PS.DISCONNECTED else 0,
             })

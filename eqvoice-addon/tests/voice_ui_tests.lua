@@ -261,7 +261,7 @@ do
 	eq(f.rows[1].icon.tex.path, ART .. "VoiceSpeaking.tga", "the speaker with two bubbles: ordinary speech"); eq(f.rows[1].icon.tex.shown, true, "shown")
 	eq(f.rows[1].icon.tex.pt[1], "LEFT", "the icon is to the RIGHT of the name: its left edge ..."); eq(f.rows[1].icon.tex.pt[2], f.rowName[1], "... is at the name's")
 	eq(f.rows[1].icon.tex.pt[3], "LEFT", "left"); eq(f.rows[1].icon.tex.pt[4], string.len("Alice") * 6 + 3, "plus the width of the text and a gap")
-	eq(f.rows[2].icon.state, "b", "Bob: muted by you"); eq(f.rows[2].icon.tex.path, ART .. "VoiceMuted.tga", "the microphone with a slash"); eq(f.rows[2].icon.tex.alpha, 0.7, "a little dimmer than a player who muted themselves")
+	eq(f.rows[2].icon.state, "b", "Bob: muted by you"); eq(f.rows[2].icon.tex.path, ART .. "VoiceMuted.tga", "the microphone with a slash"); eq(f.rows[2].icon.tex.alpha, 1, "full opacity"); check(f.rows[2].icon.tex.g < 0.5, "local mute is red")
 	eq(f.rows[2].icon.tex.pt[4], string.len("Bob") * 6 + 3, "and it follows the shorter name")
 	eq(f.rowInfo[2].text, "30 yd  muted", "Bob is on my mute list"); check(f.rowName[2].r > 0.8 and f.rowName[2].g < 0.55, "in red")
 	eq(f.rows[3].icon.state, "i", "Cy: known to have EqVoice, nothing more"); eq(f.rows[3].icon.tex.path, ART .. "VoiceKnown.tga", "the plain speaker")
@@ -1011,10 +1011,15 @@ do
 	ic = show("s", "Ann"); eq(ic.tex.path, ART .. "VoiceSpeaking.tga", "Ann speaks: two bubbles"); eq(ic.tex.r, 1, "white")
 	ic = show("l", "Ann"); eq(ic.tex.path, ART .. "VoiceSpeaking.tga", "Ann yells: two bubbles"); check(ic.tex.r > 0.9 and ic.tex.g < 0.5 and ic.tex.b < 0.5, "in red")
 	ic = show("o", "Ann"); eq(ic.tex.path, ART .. "VoiceKnown.tga", "and is idle again")
-	-- you blocked her: whatever she does, the icon says you are not hearing it
+	-- Local mute and block are distinct; block takes priority.
 	app(BASE, { "Ann 5.0 1 1 direct l 0" })
 	P.SetPlayerMute("Ann", true)
-	eq(I.Resolve("Ann", Stub.now), "b", "blocked by you"); eq(I.LOOK.b.file, "VoiceMuted.tga", "the slashed microphone")
+	eq(I.Resolve("Ann", Stub.now), "b", "muted by you"); eq(I.LOOK.b.file, "VoiceMuted.tga", "the slashed microphone")
+	P.SetPlayerBlock("Ann", true)
+	eq(I.Resolve("Ann", Stub.now), "B", "block takes priority over mute")
+	eq(I.LOOK.B.file, "VoiceBlocked.tga", "red prohibition asset")
+	P.SetPlayerBlock("Ann", false)
+	eq(I.Resolve("Ann", Stub.now), "b", "unblock returns to local mute")
 	P.SetPlayerMute("Ann", false)
 	eq(I.Resolve("Ann", Stub.now), "l", "and unblocked she is as loud as she was")
 
@@ -1457,16 +1462,17 @@ do
 end
 
 
-sec("voice ui: muted and deafened icons are red, and a pair is drawn side by side")
+sec("voice ui: local mute is red, self-mute white, block distinct, and deafened pairs remain")
 do
 	local OV = login()
 	local I = OV.Icons
-	for _, s in ipairs({ "m", "d", "b", "D", "p", "q", "r" }) do
+	for _, s in ipairs({ "d", "b", "D", "p", "q", "r" }) do
 		local look = I.LOOK[s]
 		check(look.tint ~= nil and look.tint[1] > 0.8 and look.tint[2] < 0.5 and look.tint[3] < 0.5, s .. ": the deaf or muted icon is red")
 	end
 	check(I.LOOK.p.also == "VoiceKnown.tga" and I.LOOK.n.also == "VoiceOpen.tga" and I.LOOK.q.also == "VoiceSpeaking.tga" and I.LOOK.r.also == "VoiceSpeaking.tga", "deafened with the microphone open: the voice icon beside the deaf one")
-	check(I.LOOK.p.alsoTint == nil and I.LOOK.D.alsoTint ~= nil and I.LOOK.D.also == "VoiceMuted.tga", "deafened and muted: the muted icon, red, beside it")
+	check(I.LOOK.m.tint == nil and I.LOOK.D.alsoTint == nil and I.LOOK.D.also == "VoiceMuted.tga", "self-muted microphone stays white, including when deafened")
+	check(I.LOOK.B.file == "VoiceBlocked.tga" and I.LOOK.B.tint == nil, "block sign uses native red asset")
 	local parent = CreateFrame("Frame", nil, UIParent)
 	local ic = I.New(parent, 16, true)
 	I.Set(ic, "D")
@@ -1474,6 +1480,9 @@ do
 	eq(ic.tex.tint ~= nil or true, true, "")
 	I.Set(ic, "p"); check(ic.tex2.shown, "still a pair")
 	I.Set(ic, "m"); check(ic.tex2 ~= nil and not ic.tex2.shown, "one icon again: the second is gone")
+	eq(ic.tex.r, 1, "self-mute white"); eq(ic.tex.g, 1, "self-mute white"); eq(ic.tex.b, 1, "self-mute white")
+	I.Set(ic, "b"); check(ic.tex.g < 0.5, "local mute red")
+	I.Set(ic, "B"); eq(ic.tex.path, ART .. "VoiceBlocked.tga", "block asset"); eq(ic.tex.r, 1, "asset is not tinted")
 	I.Set(ic, nil); check(not ic.tex.shown and not ic.tex2.shown, "nothing known: nothing drawn")
 	eq(OV.Panel.error, nil, "no drawing error")
 end
