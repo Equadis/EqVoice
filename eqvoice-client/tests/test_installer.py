@@ -320,3 +320,36 @@ def test_the_report_carries_what_the_game_and_the_app_last_said_and_stays_small(
         big = z.read("logs/console.txt")
         assert len(big) < installer.REPORT_FILE_CAP + 200 and big.startswith(b"[... the start of this file is left out"), "a long log goes in as its newest part"
     assert out.stat().st_size < 1_000_000, "small enough to drag into a chat"
+
+
+def test_classicapi_install_requires_consent_and_preserves_other_mods(tmp_path, monkeypatch):
+    wow = make_game(tmp_path / "game")
+    bundle = tmp_path / "bundle"
+    (bundle / "classicapi").mkdir(parents=True)
+    (bundle / "classicapi" / "ClassicAPI.dll").write_bytes(b"test")
+    (wow / "dlls.txt").write_bytes(b"nampower.dll\r\n")
+    monkeypatch.setattr(installer, "bundle_dir", lambda: bundle)
+    monkeypatch.setattr(installer, "game_is_open", lambda _: False)
+    monkeypatch.setattr(installer, "ask_yes_no", lambda *_: False)
+    assert not installer.offer_classicapi(wow)
+    assert not (wow / "ClassicAPI.dll").exists()
+    monkeypatch.setattr(installer, "ask_yes_no", lambda *_: True)
+    assert installer.offer_classicapi(wow)
+    assert (wow / "ClassicAPI.dll").read_bytes() == b"test"
+    assert (wow / "dlls.txt").read_bytes() == b"nampower.dll\r\nClassicAPI.dll\r\n"
+    (wow / "ClassicAPI.dll").write_bytes(b"existing")
+    assert not installer.offer_classicapi(wow)
+    assert (wow / "ClassicAPI.dll").read_bytes() == b"existing"
+
+
+def test_classicapi_install_never_changes_game_while_running(tmp_path, monkeypatch):
+    wow = make_game(tmp_path / "game")
+    bundle = tmp_path / "bundle"
+    (bundle / "classicapi").mkdir(parents=True)
+    (bundle / "classicapi" / "ClassicAPI.dll").write_bytes(b"test")
+    monkeypatch.setattr(installer, "bundle_dir", lambda: bundle)
+    monkeypatch.setattr(installer, "game_is_open", lambda _: True)
+    monkeypatch.setattr(installer, "notice", lambda *_: None)
+    monkeypatch.setattr(installer, "ask_yes_no", lambda *_: pytest.fail("must not offer while running"))
+    assert not installer.offer_classicapi(wow)
+    assert not (wow / "ClassicAPI.dll").exists()

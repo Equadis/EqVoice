@@ -374,9 +374,9 @@ end
 local function updateOverhead()
 	for name, row in pairs(Icons.overhead) do
 		if row.state and Icons.Enabled() and Icons.OverheadOn() then
-			local ok, token = pcall(UnitTokenFromName, name, true)
+			local token = row.token
 			local x, y = nil, nil
-			if ok and token and UnitName(token) == name and UnitIsPlayer(token) then
+			if token and UnitName(token) == name and UnitIsPlayer(token) then
 				local good, a, b = pcall(EqVoice_GetOverheadPoint, token)
 				if good then x, y = a, b end
 			end
@@ -417,13 +417,15 @@ local function plates(now, on)
 					Icons.overhead[name] = row
 				end
 				row.state = state
+				local ok, token = pcall(UnitTokenFromName, name, true)
+				row.token = ok and token or nil
 				Icons.Set(row.icon, state)
 				anchor(row.icon, "BOTTOM", row.host, "BOTTOM", row.icon.two and -((row.icon.size + 1) / 2) or 0, 0)
 			end
 		end
 	end
 	for name, row in pairs(Icons.overhead) do
-		if not live[name] then row.state = nil; hideOverhead(row) end
+		if not live[name] then row.state, row.token = nil, nil; hideOverhead(row) end
 	end
 	if not Icons.overheadDriver then
 		local driver = CreateFrame("Frame", "EqVoiceOverheadIcons", UIParent)

@@ -276,20 +276,18 @@ def offer_classicapi(wow: Path) -> bool:
         else:
             updated = old
         # Exclusive creation avoids replacing a launcher/user copy.
-        with dll.open("xb") as out:
-            try:
-                with source.open("rb") as src:
-                    shutil.copyfileobj(src, out)
-            except Exception:
-                dll.unlink(missing_ok=True)
-                raise
+        created = False
         try:
+            with source.open("rb") as src, dll.open("xb") as out:
+                created = True
+                shutil.copyfileobj(src, out)
             if updated != old:
                 tmp = path.with_name("dlls.txt.eqvoice.tmp")
                 tmp.write_bytes(updated)
                 tmp.replace(path)
         except OSError:
-            dll.unlink(missing_ok=True)
+            if created:
+                dll.unlink(missing_ok=True)
             raise
     except OSError as e:
         notice("EqVoice", "ClassicAPI installation failed: %s" % e, "error")
