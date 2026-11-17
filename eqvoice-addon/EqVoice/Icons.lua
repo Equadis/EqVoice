@@ -444,7 +444,7 @@ end
 local function plateName(p)
 	local np = eco("nameplates")
 	local plate = np and np.plates and np.plates[p.frame] or nil
-	local full = plate and plate.original and plate.original.name or p.name
+	local full = plate and plate.original and plate.original.name or nil
 	local text = full and full.GetText and full:GetText() or nil
 	if text and text ~= "" then return text end
 	local fs = plateAnchor(p)

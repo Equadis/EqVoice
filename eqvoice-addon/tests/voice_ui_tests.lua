@@ -861,6 +861,19 @@ do
 	eq(I.plates[1].icon.btn, nil, "a nameplate's icon is only drawn on: a click there still targets the player")
 	mine:SetText("Bob"); adv()
 	eq(I.plates[1].icon.state, "o", "a plate ECO reuses for someone else follows ECO's text")
+	-- The visible name can have a different owner from the hidden native plate.
+	local nameOnly = CreateFrame("Frame", nil, UIParent)
+	local label = nameOnly:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
+	label:SetText("Bo")
+	pa.nameText:SetText("Bob")
+	_G.EquadisClassicOverhaul.modules.nameplates.plates[pa] = { name = label, overlay = nameOnly, original = { name = pa.nameText } }
+	pa:Hide(); adv()
+	eq(I.plates[1].icon.state, "o", "a live name anchor still works with the native plate hidden")
+	eq(I.plates[1].icon.tex.pt[2], label, "position follows the visible name while identity uses its full name")
+	check(I.plates[1].host.shown, "the transparent icon is visible")
+	nameOnly:Hide(); adv()
+	check(not I.plates[1].host.shown, "no stale icon when both anchors disappear")
+	pa.nameText:SetText("Wolf"); pa:Show()
 	_G.EquadisClassicOverhaul = nil; adv()
 	eq(I.plates[1].icon.state, nil, "without ECO the client's own text (Wolf, no EqVoice) is used again")
 end
