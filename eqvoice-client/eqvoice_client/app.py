@@ -684,7 +684,8 @@ class App:
         if not self.tx_enabled:
             return 0
         try:
-            return max(0, min(3, int(self.mic.get("vl") or 0)))
+            level = max(0, min(3, int(self.mic.get("vl") or 0)))
+            return 1 if self.whisper_down and level > 0 else level
         except (TypeError, ValueError):
             return 0
 

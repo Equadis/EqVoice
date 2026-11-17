@@ -39,8 +39,7 @@
 -- Over a player's head. The names the game floats over characters are drawn in the 3D world: no addon can draw on them or learn where
 -- on the screen they are. The one thing that sits over a character's head and can be drawn on is a nameplate. So the icon goes above the
 -- nameplate as an ANCHOR: it is never changed, hidden, restyled or replaced (not the font, the colour, the text, the art or the range; a test
--- fails if any code touches a plate), and nothing is added to it: the icon is on a frame of its own, 4 px above the plate's name, on a small
--- steel-blue tile. The only thing EqVoice does about plates is the client's own friendly-nameplate switch (the Shift-V one): a voice player
+-- fails if any code touches a plate), and nothing is added to it: the icon is on a frame of its own, 4 px above the live name anchor, using the transparent voice texture. The only thing EqVoice does about plates is the client's own friendly-nameplate switch (the Shift-V one): a voice player
 -- has a plate to be anchored to only while friendly nameplates are on, so it is switched on while one is near and put back after; `/eqvc plates
 -- off` stops that (then icons show only on plates the player already has, and the chat says so once).
 --
@@ -54,8 +53,6 @@ OV.Icons = Icons
 Icons.ART    = "Interface\\AddOns\\EqVoice\\"
 Icons.SIZE   = 16
 Icons.PLATE_SIZE = 16          -- over a nameplate: half the size it was (32); a glance is enough
-Icons.TILE      = { 0.20, 0.43, 0.58, 1 }      -- the steel-blue tile behind the overhead icon
-Icons.TILE_PAD  = 3            -- pixels of tile round the picture
 Icons.PLATE_GAP  = 4           -- pixels between the icon and the top of the name: a fixed distance above it
 Icons.GAP    = 3               -- pixels between the end of a name and its icon
 Icons.EVERY  = 0.25            -- seconds between looks at the screen
@@ -119,17 +116,19 @@ function Icons.SelfState(now)
 	if not m.alive or m.disconnected then return "x" end
 	if m.micBad then return "e" end
 	local closed = m.mute or (m.mode == "ptt" and not m.tx)
+	local voice = m.voice
+	if m.wh and (voice > 0 or m.talk) then voice = 1 end
 	if m.deaf then                                                               -- deafened: with the microphone shut, both icons; open, the deaf one and the voice one
 		if closed then return "D" end
-		if m.voice >= 3 then return "r" end
-		if m.voice == 2 or (m.voice == 0 and m.talk) then return "q" end
-		if m.voice == 1 then return "n" end
+		if voice >= 3 then return "r" end
+		if voice == 2 or (voice == 0 and m.talk) then return "q" end
+		if voice == 1 then return "n" end
 		return "p"
 	end
 	if closed then return "m" end
-	if m.voice >= 3 then return "l" end
-	if m.voice == 2 or (m.voice == 0 and m.talk) then return "s" end
-	if m.voice == 1 then return "w" end
+	if voice >= 3 then return "l" end
+	if voice == 2 or (voice == 0 and m.talk) then return "s" end
+	if voice == 1 then return "w" end
 	return "o"
 end
 
@@ -368,7 +367,23 @@ end
 
 -- A nameplate is a child of WorldFrame whose first region is the border picture and whose third is the name.
 -- (The six regions, in order: border, glow, name, level, the skull that stands for a level, the raid mark. Its first child is the health bar.)
+local function rememberPlate(frame, name, regions)
+	if not frame or not name or not name.GetText then return end
+	if type(Icons.known[frame]) == "table" then return end
+	local p = { frame = frame, name = name, regions = regions }
+	Icons.known[frame] = p
+	Icons.plates[table.getn(Icons.plates) + 1] = p
+end
+
 local function findPlates()
+	-- ECO may suppress the native border; use its name records directly as well.
+	local np = eco("nameplates")
+	if np and np.plates then
+		for frame, plate in pairs(np.plates) do
+			local name = plate.original and plate.original.name or plate.name
+			rememberPlate(frame, name)
+		end
+	end
 	if not (WorldFrame and WorldFrame.GetChildren) then return end
 	local n = nil
 	if WorldFrame.GetNumChildren then n = WorldFrame:GetNumChildren() end
@@ -384,7 +399,7 @@ local function findPlates()
 			if ok and regions[1] and regions[3] and regions[1].GetTexture and regions[3].GetText then
 				local okT, tex = pcall(regions[1].GetTexture, regions[1])
 				if okT and tex == PLATE_BORDER then
-					Icons.plates[table.getn(Icons.plates) + 1] = { frame = f, name = regions[3], regions = regions }
+					rememberPlate(f, regions[3], regions)
 				end
 			end
 		end
@@ -415,29 +430,31 @@ end
 local function plateAnchor(p)
 	local np = eco("nameplates")
 	local plate = np and np.plates and np.plates[p.frame] or nil
-	if plate and plate.name and plate.overlay and visible(plate.overlay) and plate.name.GetText then
+	if plate and plate.name and plate.name.GetText and showing(plate.name) then
 		local text = plate.name:GetText()
 		if text and text ~= "" then return plate.name end
 	end
-	return p.name
-end
-
--- The name a plate belongs to: the one the player sees; otherwise the client's own name text (it holds the unit's name even when the Equadis
--- overhaul hides the plate and draws nothing: reading the overhaul's text first missed every plate it chose not to draw, an empty text, so no icon).
-local function plateName(p)
-	local text = plateAnchor(p):GetText()
-	if text and text ~= "" then return text end
-	local np = eco("nameplates")
-	local plate = np and np.plates and np.plates[p.frame] or nil
-	if plate and plate.name and plate.name.GetText then return plate.name:GetText() end
+	-- A visually suppressed nameplate can still provide a live position. Never
+	-- use a recycled/hidden native frame whose world position is no longer known.
+	if visible(p.frame) and p.name then return p.name end
 	return nil
 end
 
--- Is the plate of some voice player on screen?
+-- Match the full native name, not ECO's possibly shortened display label.
+local function plateName(p)
+	local np = eco("nameplates")
+	local plate = np and np.plates and np.plates[p.frame] or nil
+	local full = plate and plate.original and plate.original.name or p.name
+	local text = full and full.GetText and full:GetText() or nil
+	if text and text ~= "" then return text end
+	local fs = plateAnchor(p)
+	return fs and fs:GetText() or nil
+end
+
 local function voicePlateShowing(now)
 	for i = 1, table.getn(Icons.plates) do
 		local p = Icons.plates[i]
-		if visible(p.frame) then
+		if plateAnchor(p) then
 			local name = plateName(p)
 			if name and name ~= OV.character and Icons.Resolve(name, now) ~= nil then return true end
 		end
@@ -486,21 +503,11 @@ local function ensurePlates(now, on)
 	end
 end
 
--- The tile behind an icon (or a pair of icons): a few pixels bigger than the pictures all round.
-function Icons.FitTile(p, on)
-	local tile, ic = p.tile, p.icon
-	if not tile or not ic then return end
-	if not on then tile:Hide(); return end
-	local last = (ic.two and ic.tex2) or ic.tex
-	tile:ClearAllPoints()
-	tile:SetPoint("TOPLEFT", ic.tex, "TOPLEFT", -Icons.TILE_PAD, Icons.TILE_PAD)
-	tile:SetPoint("BOTTOMRIGHT", last, "BOTTOMRIGHT", Icons.TILE_PAD, -Icons.TILE_PAD)
-	tile:Show()
-end
-
--- The icon's frame is shown while its plate is showing and an icon is wanted (looked at every frame, so the icon goes with the plate at once).
+-- Follow the live name anchor rather than the visibility of the plate's art.
 function Icons.ShowHost(p)
-	local on = p.want and visible(p.frame)
+	local fs = p.want and plateAnchor(p) or nil
+	local on = fs ~= nil and p.icon.who == plateName(p)
+	if on then Icons.PlaceAbove(p.icon, fs) end
 	if p.hostShown == on then return end
 	p.hostShown = on
 	if on then p.host:Show() else p.host:Hide() end
@@ -527,7 +534,8 @@ local function plates(now, on)
 		local p = Icons.plates[i]
 		local fs = plateAnchor(p)
 		local state = nil
-		if show and visible(p.frame) then state = Icons.Resolve(plateName(p), now) end
+		local name = fs and plateName(p) or nil
+		if show and name then state = Icons.Resolve(name, now) end
 		if state and not p.icon then
 			-- the icon lives on a frame of its own under UIParent, never on the plate: the plate is only the anchor (a point to measure from) and is not
 			-- touched, and nothing the plate or another addon does to its own regions or alpha reaches the icon
@@ -535,17 +543,14 @@ local function plates(now, on)
 			p.host:SetWidth(1); p.host:SetHeight(1)
 			p.host:SetPoint("CENTER", UIParent, "CENTER", 0, 0)
 			if p.host.SetFrameStrata then p.host:SetFrameStrata("MEDIUM") end
-			p.tile = p.host:CreateTexture(nil, "BACKGROUND")                      -- the steel-blue tile behind the icon
-			p.tile:SetTexture("Interface\\Buttons\\WHITE8X8")
-			p.tile:SetVertexColor(Icons.TILE[1], Icons.TILE[2], Icons.TILE[3], Icons.TILE[4])
 			p.icon = Icons.New(p.host, Icons.PLATE_SIZE)
 			Icons.BuildPlateDriver()
 		end
 		if p.icon then
 			Icons.Set(p.icon, state)
+			p.icon.who = state and name or nil
 			p.want = (state ~= nil)
 			if state then Icons.PlaceAbove(p.icon, fs); shown = shown + 1 end
-			Icons.FitTile(p, state ~= nil)
 			Icons.ShowHost(p)
 		end
 	end
