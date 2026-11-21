@@ -277,7 +277,7 @@ do
 	check(ind ~= nil, "the indicator exists after login")
 	eq(ind.badgeText, "NO APP", "and says the app is missing")
 	check(ind.glyph.r > 0.6 and ind.glyph.r < 0.7 and ind.glyph.g == ind.glyph.r, "with a grey microphone")
-	eq(ind.slash.shown, false, "and no slash")
+	check(ind.slash == nil, "there is no separate slash picture any more")
 	eq(ind.kind, "Button", "it is a button"); eq(ind.mouse, true, "that takes the mouse"); eq(ind.movable, true, "can be moved")
 	Stub.fs["eqvoice-st-Me.txt"] = status(OV, 1)
 	Stub.Advance(1)
@@ -292,7 +292,7 @@ do
 	eq(parseControl(OV, Stub.fs["eqvoice-ctl-Me.txt"]).cmds[1].cmd, "mute", "right-click sends mute")
 	Stub.Advance(0.25)
 	eq(ind.badgeText, "MUTED", "and the indicator shows it before the app answers")
-	eq(ind.slash.shown, true, "with a red slash over the microphone"); check(ind.glyph.r > 0.9 and ind.glyph.g < 0.4, "which is red")
+	check(string.find(ind.glyph.path, "VoiceMuted.tga", 1, true), "the muted picture (the one beside names)"); check(ind.glyph.r > 0.9 and ind.glyph.g < 0.4, "in red")
 	-- left click opens the panel
 	check(EqVoicePanel == nil, "the panel is built on first use")
 	Stub.Click(ind, "LeftButton")
@@ -347,7 +347,7 @@ do
 	-- the app stops: the panel says so and its buttons are off
 	Stub.Advance(8)
 	check(string.find(f.status.text, "not running", 1, true), "app gone: " .. f.status.text)
-	eq(f.bOpen.enabled, false, "buttons are disabled"); eq(ind.badgeText, "NO APP", "indicator"); eq(ind.slash.shown, false, "no slash without the app")
+	eq(f.bOpen.enabled, false, "buttons are disabled"); eq(ind.badgeText, "NO APP", "indicator"); check(string.find(ind.glyph.path, "VoiceKnown.tga", 1, true), "the plain speaker without the app")
 	eq(Stub.tip.shown, false, "the indicator has no tooltip")
 	-- dragging remembers the place; /eqvc reset forgets it
 	_G.this = ind
@@ -398,7 +398,7 @@ do
 	eq(ind.w, 26, "26 pixels wide (wider than the 14 it was)"); eq(ind.h, 30, "and 30 tall")
 	check(ind.rbox ~= nil and ind.bgc ~= nil, "drawn in the panel's own rounded theme")
 	check(ind.normalTex == nil, "not the client's micro button art any more")
-	eq(ind.glyph.path, ART .. "MicGlyph.tga", "the microphone"); eq(ind.slash.path, ART .. "MicSlash.tga", "and the slash")
+	eq(ind.glyph.path, ART .. "VoiceKnown.tga", "the plain speaker picture, recoloured by state")
 	eq(OV.Panel.error, nil, "no drawing error")
 	-- pressing it moves the microphone a pixel
 	_G.this = ind

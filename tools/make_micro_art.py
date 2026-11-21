@@ -1,6 +1,6 @@
 """Draw the art for the EqVoice micro-bar button and write it into the addon folder as 32-bit TGA files.
 
-    python tools/make_micro_art.py            writes eqvoice-addon/EqVoice/Micro{Up,Down}.tga, MicGlyph.tga, MicSlash.tga and Voice{Speaking,Open,Known,Muted,Deafened}.tga
+    python tools/make_micro_art.py            writes eqvoice-addon/EqVoice/Micro{Up,Down}.tga and Voice{Speaking,Open,Known,Muted,Deafened}.tga (and the other pictures the panel draws)
     python tools/make_micro_art.py --preview  also writes a PNG of them on a dark background (D:\\Octowow\\.eco-work\\tmp\\micro-preview.png)
 
 The 1.12 client wants uncompressed TGA with power-of-two sides. The frame is 32x64 like the client's own micro-button art: the
@@ -27,7 +27,7 @@ SS = 8                                                   # supersampling: drawn 
 ICONS = ROOT / "tools" / "art" / "voice-icons"
 VOICE = {"VoiceSpeaking.tga": "speaking", "VoiceOpen.tga": "open", "VoiceKnown.tga": "known", "VoiceMuted.tga": "muted", "VoiceDeafened.tga": "deafened"}
 # vol_high = speaking.png, vol_mid = open.png, vol_low = known.png (see addon Icons.lua)
-NAMES = ("MicroUp.tga", "MicroDown.tga", "MicGlyph.tga", "MicSlash.tga", "Logo.tga", "RoundFill.tga", "Knob.tga", "VoiceX.tga", "IconClose.tga", "IconDown.tga", "IconLeft.tga", "IconRight.tga") + tuple(sorted(VOICE))
+NAMES = ("MicroUp.tga", "MicroDown.tga", "Logo.tga", "RoundFill.tga", "Knob.tga", "VoiceX.tga", "IconClose.tga", "IconDown.tga", "IconLeft.tga", "IconRight.tga") + tuple(sorted(VOICE))
 
 
 def write_tga(img: Image.Image, path: Path) -> None:
@@ -104,25 +104,6 @@ def frame(down: bool) -> Image.Image:
     return im.resize((W, H), Image.LANCZOS)
 
 
-def glyph() -> Image.Image:
-    """A microphone, white on clear, 32x32."""
-    S = 32
-    im = Image.new("RGBA", (S * SS, S * SS), (0, 0, 0, 0))
-    d = ImageDraw.Draw(im)
-    white = (255, 255, 255, 255)
-    # head: a capsule
-    d.rounded_rectangle((11 * SS, 3 * SS, 21 * SS, 18 * SS), radius=5 * SS, fill=white)
-    # grille lines cut into the head
-    for y in (7, 10, 13):
-        d.line((12 * SS, y * SS, 20 * SS, y * SS), fill=(0, 0, 0, 0), width=SS // 2)
-    # the cradle: a U under the head
-    d.arc((7 * SS, 8 * SS, 25 * SS, 24 * SS), start=0, end=180, fill=white, width=int(1.8 * SS))
-    # stem and foot
-    d.rectangle((15 * SS, 23 * SS, 17 * SS - 1, 27 * SS), fill=white)
-    d.rounded_rectangle((10 * SS, 27 * SS, 22 * SS - 1, 29 * SS), radius=SS, fill=white)
-    return im.resize((S, S), Image.LANCZOS)
-
-
 def voice_icon(name: str) -> Image.Image:
     """One of the five pictures, 24 x 24 grey on clear, as a 32 x 32 texture (big over a nameplate, scaled down by the client in the small places).
     Only the alpha is resized, so the grey stays one clean colour
@@ -148,16 +129,6 @@ def voice_x() -> Image.Image:
     img = Image.new("RGBA", (32, 32), (227, 227, 227, 0))
     img.putalpha(big.resize((32, 32), Image.LANCZOS))
     return img
-
-
-def slash() -> Image.Image:
-    """A diagonal bar with a dark edge: white core (tinted by the addon), black outline (stays black)."""
-    S = 32
-    im = Image.new("RGBA", (S * SS, S * SS), (0, 0, 0, 0))
-    d = ImageDraw.Draw(im)
-    d.line((4 * SS, 4 * SS, 28 * SS, 28 * SS), fill=(0, 0, 0, 255), width=int(5.5 * SS))
-    d.line((4 * SS, 4 * SS, 28 * SS, 28 * SS), fill=(255, 255, 255, 255), width=int(3 * SS))
-    return im.resize((S, S), Image.LANCZOS)
 
 
 def icon_close() -> Image.Image:
@@ -215,7 +186,7 @@ def knob() -> Image.Image:
 
 def make(out: Path = OUT) -> list:
     out.mkdir(parents=True, exist_ok=True)
-    arts = {"MicroUp.tga": frame(False), "MicroDown.tga": frame(True), "MicGlyph.tga": glyph(), "MicSlash.tga": slash()}
+    arts = {"MicroUp.tga": frame(False), "MicroDown.tga": frame(True)}
     arts.update({tga: voice_icon(png) for tga, png in VOICE.items()})
     arts["RoundFill.tga"] = round_fill()
     arts["Knob.tga"] = knob()
@@ -228,43 +199,10 @@ def make(out: Path = OUT) -> list:
     return [out / n for n in NAMES]
 
 
-def preview(path: Path, out: Path = OUT) -> None:
-    """The four files read back from disk, on the dark colour of the action bar, at 6x, with the glyph tinted each way."""
-    up, down = read_tga(out / "MicroUp.tga"), read_tga(out / "MicroDown.tga")
-    g, s = read_tga(out / "MicGlyph.tga"), read_tga(out / "MicSlash.tga")
-
-    def tint(img, rgb):
-        px = img.copy()
-        p = px.load()
-        for y in range(px.size[1]):
-            for x in range(px.size[0]):
-                r, gg, b, a = p[x, y]
-                p[x, y] = (r * rgb[0] // 255, gg * rgb[1] // 255, b * rgb[2] // 255, a)
-        return px
-
-    states = [("ok", (80, 255, 80), False, False), ("talk", (128, 255, 255), False, False), ("warn", (255, 210, 0), False, False),
-              ("muted", (255, 80, 80), True, False), ("noapp", (166, 166, 166), False, False), ("pressed", (80, 255, 80), False, True)]
-    W = 40 * len(states) + 8
-    sheet = Image.new("RGBA", (W, 76), (14, 14, 18, 255))
-    for i, (_, rgb, slashed, pressed) in enumerate(states):
-        ox = 4 + i * 40
-        sheet.alpha_composite(down if pressed else up, (ox + 2, 6))
-        off = 1 if pressed else 0
-        sheet.alpha_composite(tint(g, rgb).resize((22, 22), Image.LANCZOS), (ox + 2 + 5, 6 + 33 + off))
-        if slashed:
-            sheet.alpha_composite(tint(s, (255, 70, 70)).resize((22, 22), Image.LANCZOS), (ox + 2 + 5, 6 + 33))
-    sheet.resize((sheet.size[0] * 5, sheet.size[1] * 5), Image.NEAREST).save(path)
-
-
 def main(argv: list) -> int:
     files = make()
     for f in files:
         print("wrote", f, f.stat().st_size, "bytes")
-    if "--preview" in argv:
-        dest = Path(r"D:\Octowow\.eco-work\tmp\micro-preview.png")
-        dest.parent.mkdir(parents=True, exist_ok=True)
-        preview(dest)
-        print("preview", dest)
     return 0
 
 

@@ -47,7 +47,7 @@ Panel.REPLAY_ORDER = { "micdev", "spkdev", "mode", "volume", "input", "spatial",
 Panel.SPATIAL_LABEL = { mono = "Mono", speakers = "Speakers", headphones = "Headphones" }
 Panel.SPATIAL_ORDER = { "headphones", "speakers", "mono" }
 Panel.CAPTURE_S = 10         -- seconds "press a key" waits
-Panel.ART       = "Interface\\AddOns\\EqVoice\\"     -- MicGlyph, MicSlash, Knob ... (.tga), drawn by tools/make_micro_art.py
+Panel.ART       = "Interface\\AddOns\\EqVoice\\"     -- Knob, Voice*, Icon* ... (.tga), drawn by tools/make_micro_art.py
 Panel.IND_W     = 26                                   -- the indicator: a rounded button in the panel's own theme (14 x 28 was too slim: about 26 x 30 now)
 Panel.IND_H     = 30
 Panel.IND_TOP   = 0.15                                 -- where it starts: in the middle of the screen, this far down (a fraction of the height: the top quarter)
@@ -1224,15 +1224,7 @@ function Panel.Build()
 	f.dot:SetPoint("TOPLEFT", f, "TOPLEFT", 24, -45)
 	f.status = newText(f, "GameFontHighlightSmall", 38, -42, 232, 40)
 	f.bMute = newButton(f, "EqVoicePanelMute", "Mute", 88, 276, -36, function() Panel.ToggleMute() end, 30)
-	buttonIcon(f.bMute, "MicGlyph.tga")
-	do                                                                       -- the slash over the microphone: a second picture of the same size
-		local sl = f.bMute:CreateTexture(nil, "OVERLAY")
-		sl:SetTexture(Panel.ART .. "MicSlash.tga")
-		sl:SetWidth(14)
-		sl:SetHeight(14)
-		sl:SetPoint("LEFT", f.bMute, "LEFT", 9, 0)
-		f.bMute.slash = sl
-	end
+	buttonIcon(f.bMute, "VoiceMuted.tga")                                       -- the same muted picture as beside names
 	f.bDeaf = newButton(f, "EqVoicePanelDeafen", "Deafen", 100, 368, -36, function()
 		local m = Panel.Model(OV.Now())
 		Panel.SetDeaf(not m.deaf)
@@ -1247,7 +1239,6 @@ function Panel.Build()
 	f.sIn, f.inText = sliderRow(f, "Input", "Boost", -152, 0, 200, 1, 56,
 		function(v) return string.format("%d%%", v) end, function(v) Panel.SetInput(v) end, { 24, 100, 128, 258, 394 })
 	f.bOpen = newButton(f, "EqVoicePanelOpenMic", "Open mic", 108, 24, -182, function() Panel.SetMode("open") end, 28)
-	buttonIcon(f.bOpen, "MicGlyph.tga")
 	f.bPtt = newButton(f, "EqVoicePanelPtt", "Push to talk", 118, 132, -182, function() Panel.SetMode("ptt") end, 28)
 	f.bKey = newButton(f, "EqVoicePanelKey", "Keybind: F9", 108, 258, -182, function()
 		if Panel.capturing then Panel.StopCapture("key not changed") else Panel.CaptureKey() end
@@ -1953,17 +1944,11 @@ function Panel.BuildIndicator()
 	b:RegisterForClicks("LeftButtonUp", "RightButtonUp")
 	b:RegisterForDrag("LeftButton")
 	paint(b, THEME.card, THEME.edge, 8)
-	b.glyph = b:CreateTexture(nil, "OVERLAY")
-	b.glyph:SetTexture(Panel.ART .. "MicGlyph.tga")
+	b.glyph = b:CreateTexture(nil, "OVERLAY")                                   -- the voice picture for the state (applyIndicator picks the file)
+	b.glyph:SetTexture(Panel.ART .. "VoiceKnown.tga")
 	b.glyph:SetWidth(18)
 	b.glyph:SetHeight(18)
 	b.glyph:SetPoint("CENTER", b, "CENTER", 0, 0)
-	b.slash = b:CreateTexture(nil, "OVERLAY")
-	b.slash:SetTexture(Panel.ART .. "MicSlash.tga")
-	b.slash:SetWidth(18)
-	b.slash:SetHeight(18)
-	b.slash:SetPoint("CENTER", b, "CENTER", 0, 0)
-	b.slash:Hide()
 	b.badgeText = ""
 	local s = OV.db and OV.db.ui and OV.db.ui.indicatorPos
 	if s and s.point then restorePos(b, "indicatorPos", "TOP", 0, -64) end        -- otherwise Panel.Dock places it
@@ -1972,8 +1957,8 @@ function Panel.BuildIndicator()
 	end))
 	b:SetScript("OnEnter", function() hover(this, true) end)
 	b:SetScript("OnLeave", function() hover(this, false) end)
-	b:SetScript("OnMouseDown", safe(function() this.glyph:SetPoint("CENTER", this, "CENTER", 1, -1); this.slash:SetPoint("CENTER", this, "CENTER", 1, -1) end))
-	b:SetScript("OnMouseUp", safe(function() this.glyph:SetPoint("CENTER", this, "CENTER", 0, 0); this.slash:SetPoint("CENTER", this, "CENTER", 0, 0) end))
+	b:SetScript("OnMouseDown", safe(function() this.glyph:SetPoint("CENTER", this, "CENTER", 1, -1) end))
+	b:SetScript("OnMouseUp", safe(function() this.glyph:SetPoint("CENTER", this, "CENTER", 0, 0) end))
 	b:SetScript("OnDragStart", function() Panel.dragging = true; this:StartMoving() end)
 	b:SetScript("OnDragStop", safe(function()
 		if not Panel.dragging then return end
@@ -2002,11 +1987,10 @@ local function applyIndicator(b, m)
 	b.badgeText = m.badge
 	paint(b, THEME.card, { m.color[1] * 0.8, m.color[2] * 0.8, m.color[3] * 0.8 }, 8)       -- the ring is the colour of the state
 	b.glyph:SetVertexColor(m.color[1], m.color[2], m.color[3])
-	if m.alive and (m.mute or m.deaf) then
-		b.slash:SetVertexColor(COLORS.bad[1], COLORS.bad[2], COLORS.bad[3])
-		b.slash:Show()
-	else
-		b.slash:Hide()
+	local file = (m.alive and m.deaf) and "VoiceDeafened.tga" or (m.alive and m.mute) and "VoiceMuted.tga" or "VoiceKnown.tga"
+	if b.glyphFile ~= file then
+		b.glyphFile = file
+		b.glyph:SetTexture(Panel.ART .. file)
 	end
 end
 

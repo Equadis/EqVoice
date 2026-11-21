@@ -11,7 +11,7 @@ ROOT = Path(__file__).resolve().parents[2]
 ADDON = ROOT / "eqvoice-addon" / "EqVoice"
 sys.path.insert(0, str(ROOT / "tools"))
 
-SIZES = {"MicroUp.tga": (32, 64), "MicroDown.tga": (32, 64), "MicGlyph.tga": (32, 32), "MicSlash.tga": (32, 32), "Logo.tga": (64, 64), "RoundFill.tga": (16, 16), "Knob.tga": (16, 16), "VoiceX.tga": (32, 32), "IconClose.tga": (16, 16), "IconDown.tga": (16, 16), "IconLeft.tga": (16, 16), "IconRight.tga": (16, 16),
+SIZES = {"MicroUp.tga": (32, 64), "MicroDown.tga": (32, 64), "Logo.tga": (64, 64), "RoundFill.tga": (16, 16), "Knob.tga": (16, 16), "VoiceX.tga": (32, 32), "IconClose.tga": (16, 16), "IconDown.tga": (16, 16), "IconLeft.tga": (16, 16), "IconRight.tga": (16, 16),
          "VoiceSpeaking.tga": (32, 32), "VoiceOpen.tga": (32, 32), "VoiceKnown.tga": (32, 32), "VoiceMuted.tga": (32, 32), "VoiceDeafened.tga": (32, 32)}
 
 
@@ -48,7 +48,7 @@ def test_the_frames_leave_the_top_of_the_picture_empty_like_the_real_micro_butto
     assert max(max(r) for r in rows[24:]) == 255 and rows[40][16] == 255, "the body is solid in the lower part"
 
 
-def test_the_glyph_and_slash_have_something_drawn_and_something_clear():
+def test_every_picture_has_something_drawn_and_something_clear():
     for name in sorted(SIZES):
         if name.startswith("Micro"):
             continue

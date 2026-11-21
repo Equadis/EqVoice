@@ -1648,4 +1648,15 @@ do
 	eq(OV.Panel.error, nil, "no drawing error")
 end
 
+sec("voice ui: the Mute button uses the muted picture and the removed microphone pictures are not used anywhere")
+do
+	local OV = login()
+	put(OV, 1)
+	Stub.Click(EqVoiceIndicator, "LeftButton")
+	local f = EqVoicePanel
+	check(f.bMute.icon ~= nil and string.find(f.bMute.icon.path, "VoiceMuted.tga", 1, true), "Mute carries the muted picture")
+	check(f.bMute.slash == nil, "with no second slash picture over it")
+	check(f.bOpen.icon == nil, "Open mic has no microphone picture")
+	eq(OV.Panel.error, nil, "no drawing error")
+end
 end

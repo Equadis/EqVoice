@@ -83,6 +83,10 @@ Opaque charcoal window, flat compact controls, one purple accent, four groups: a
 
 Not seen in the real game yet: the layout was checked in the test stub (no control overlaps or leaves the window), not on screen.
 
+## 1.0.1 (2026-11)
+
+The Mute button uses `VoiceMuted.tga`, the same picture as beside names, and `MicGlyph.tga` and `MicSlash.tga` are gone (Open mic has no picture; the standalone indicator, hidden by default, draws the voice pictures by state).
+
 ## 1.0.0 (2026-11): the official release
 
 **Block is a mute and a deafen towards that player.** Blocking someone now stops their voice playing for you (the page is told at once, and the call opens muted from the first moment on later sessions) as well as stopping your voice
