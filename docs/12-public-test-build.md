@@ -83,6 +83,12 @@ Opaque charcoal window, flat compact controls, one purple accent, four groups: a
 
 Not seen in the real game yet: the layout was checked in the test stub (no control overlaps or leaves the window), not on screen.
 
+## 0.7.7 (2026-11, pre-release)
+
+**No small grey text.** Removed: the line under the sensitivity bar (all but a warning such as "Voice heard. Hold F9 to talk."), the "Tip: press Calibrate" line, "click a name" and the scroll count beside Nearby, the note under the
+player window's Mute and Block buttons, and the notes on the setup's speakers and push-to-talk pages. The setup's Calibrate text is now "Stay silent, talk, then shout. About 17 seconds." Block is a darker red; it stays bright while
+the player is blocked.
+
 ## 0.7.6 (2026-11, pre-release)
 
 **Overhead icon 50% bigger (24 px).** **The standalone microphone button is no longer shown by default**: the icon beside your own name on the unit frame is the one (click it to open the panel, as `/eqvc` does); `/eqvc show` brings the button

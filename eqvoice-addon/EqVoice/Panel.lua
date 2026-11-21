@@ -97,7 +97,7 @@ local THEME = {                                              -- EqUpdater's look
 	accent = { 0.788, 0.604, 0.239 }, goldLt = { 0.894, 0.741, 0.404 },
 	text = { 0.933, 0.914, 0.863 }, muted = { 0.569, 0.639, 0.741 }, dark = { 0.020, 0.055, 0.130 }, track = { 0.016, 0.063, 0.153 },
 	amber = { 0.89, 0.62, 0.18 }, amberDim = { 0.30, 0.22, 0.09 }, green = { 0.475, 0.749, 0.451 }, greenDim = { 0.07, 0.22, 0.12 },
-	danger = { 0.55, 0.22, 0.22 }, dangerEdge = { 0.72, 0.38, 0.38 }, blockBtn = { 0.42, 0.10, 0.10 }, blockLit = { 0.66, 0.17, 0.17 },
+	danger = { 0.55, 0.22, 0.22 }, dangerEdge = { 0.72, 0.38, 0.38 }, blockBtn = { 0.33, 0.08, 0.08 }, blockLit = { 0.66, 0.17, 0.17 },
 }
 Panel.THEME = THEME
 
@@ -1300,7 +1300,7 @@ function Panel.Build()
 	-- Nearby players, the overhead icons and the blocklist
 	heading(f, "Nearby", -502)
 	f.nearHint = newText(f, "GameFontDisableSmall", 104, -505, 124, 12)
-	f.nearHint:SetText("click a name")
+	f.nearHint:SetText("")                                                         -- (kept, empty: no small grey text beside the heading)
 	f.bOverhead = newButton(f, "EqVoicePanelOverhead", "Overhead icons: On", 132, 228, -500, function() Panel.SetOverhead(not Panel.OverheadOn()) end, 24)
 	f.bBlock = newButton(f, "EqVoicePanelBlock", "Blocklist", 88, 368, -500, function() Panel.ToggleBlocklist() end, 24)
 	f.rows, f.rowName, f.rowInfo = {}, {}, {}
@@ -1524,8 +1524,6 @@ function Panel.BuildPlayer()
 	local cross = buttonIcon(f.bBlock, "IconClose.tga", 11)                      -- a red cross on a red button
 	cross:SetVertexColor(1.0, 0.42, 0.42, 1)
 	paint(f.bBlock, THEME.blockBtn)
-	f.note = newText(f, "GameFontDisableSmall", 22, -168, 256, 12)
-	f.note:SetText("Mute: you stop hearing them. Block: they stop hearing you.")
 	if UISpecialFrames then table.insert(UISpecialFrames, "EqVoicePlayer") end
 	f:SetScript("OnShow", function() Panel.dirty = true end)
 	Panel.player = f
@@ -1837,6 +1835,7 @@ local function applyMeter(f, m)
 	if not live and m.lvl > 0 then live = Panel.DB_MIN + m.lvl / 100 * (Panel.DB_MAX - Panel.DB_MIN) end
 	f.sGate.Set(m.alive and live or nil, OV.clamp(thr, Panel.GATE_MIN, Panel.GATE_MAX), m.gate, m.alive and m.ghas and m.gopen, m.loud)
 	local note, noteColor = Panel.GateNote(m)
+	if noteColor ~= PC.warn then note = "" end                                       -- only a warning is worth a line: the rest was small grey text
 	f.gateNote:SetText(note)
 	setColor(f.gateNote, noteColor)
 end
@@ -1925,10 +1924,8 @@ local function applyModel(f, m)
 		f.nearThumb:ClearAllPoints()
 		f.nearThumb:SetPoint("TOPLEFT", f, "TOPLEFT", 462, -532 - math.floor((Panel.ROWS * 16 - 2 - th) * Panel.nearOffset / most))
 		f.nearThumb:Show()
-		f.nearHint:SetText(string.format("%d-%d of %d: scroll", Panel.nearOffset + 1, math.min(m.nrows, Panel.nearOffset + Panel.ROWS), m.nrows))
 	else
 		f.nearTrack:Hide(); f.nearThumb:Hide()
-		f.nearHint:SetText("click a name")
 	end
 	buttonText(f.bBlock, m.nmuted > 0 and string.format("Blocklist (%d)", m.nmuted) or "Blocklist")
 	f.muteNote:SetText("")
@@ -1936,12 +1933,7 @@ local function applyModel(f, m)
 		f.hint:SetText("Saved " .. m.rpt .. ". Drag it into your chat.")
 		setColor(f.hint, PC.ok)
 	else
-		setColor(f.hint, THEME.muted)
-		if m.alive and not m.cald then
-			f.hint:SetText("Tip: press Calibrate once, so the sensitivity fits your voice.")
-		else
-			f.hint:SetText("Noise suppression and echo cancellation are always on.")
-		end
+		f.hint:SetText("")                                                         -- no tips or notes: only the "log saved" message uses this line
 	end
 end
 

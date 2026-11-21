@@ -116,8 +116,6 @@ function Wizard.Build()
 	p3[1] = newText(f, "GameFontHighlightSmall", 24, -66, 392, 12)
 	p3[1]:SetText("Select output device")
 	p3.list = OV.Panel.NewDeviceList(f, "out", 24, -86, 392, function(kind, label, index) OV.Panel.SetDevice(kind, label, index) end)
-	p3[2] = newText(f, "GameFontDisableSmall", 24, -280, 392, 26)
-	p3[2]:SetText("Anything the game plays comes out of the same place. To hear yourself, use Test Microphone in the settings.")
 	f.pages[3] = p3
 
 	-- page 4: how you hear: mono, speakers or headphones
@@ -141,7 +139,6 @@ function Wizard.Build()
 	p4.key = newButton(f, "EqVoiceWizardKey", "Change hotkey binding", 180, 24, -196, function()
 		if OV.Panel.capturing then OV.Panel.StopCapture("key not changed") else OV.Panel.CaptureKey() end
 	end)
-	p4[2] = newText(f, "GameFontDisableSmall", 24, -232, 392, 40)
 	f.pages[5] = p4
 
 	-- page 6: calibrate (and the two volumes)
@@ -152,7 +149,7 @@ function Wizard.Build()
 		function(v) return string.format("%d%%", v) end, function(v) OV.Panel.SetVolume(v) end)
 	p5.setup = newButton(f, "EqVoiceWizardMicSetup", "Calibrate", 392, 24, -150, function() OV.Panel.StartSetup() end, 30)
 	p5[1] = newText(f, "GameFontDisableSmall", 24, -192, 392, 60)
-	p5[1]:SetText("Calibrate asks you to stay silent, talk and then shout (about 17 seconds) and sets the sensitivity so that keyboard clicks and room noise stay off the line. You can do it again later from the settings.")
+	p5[1]:SetText("Stay silent, talk, then shout. About 17 seconds.")
 	f.pages[6] = p5
 
 	-- page 7: the check
@@ -288,7 +285,6 @@ function Wizard.Refresh(m)
 			p.keytext:SetText((m.mode == "ptt" and "Push-to-talk key: " or "Toggle mute key: ") .. m.key)
 			p.key:SetText("Change hotkey binding")
 		end
-		p[2]:SetText(m.mode == "ptt" and "Hold this key to talk." or "With an open microphone this key mutes and unmutes you.")
 	elseif n == 6 then
 		if not p.sIn.Busy() then p.sIn.Set(m.input); p.inText:SetText(string.format("%d%%", m.input)) end
 		if not p.sOut.Busy() then p.sOut.Set(m.vol); p.outText:SetText(string.format("%d%%", m.vol)) end

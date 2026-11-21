@@ -365,22 +365,22 @@ do
 	check(width(bar.amber) > 0 and width(bar.green) > 0, "a signal above the bar fills both: the amber part (blocked) and the green part (passing)")
 	eq(width(bar.amber), width(bar.amberDim), "all the amber is lit, because the signal is past it")
 	check(width(bar.green) > 0 and width(bar.green) < width(bar.greenDim), "and only part of the green")
-	eq(f.gateNote.text, "Gate open: your voice is being sent.", "the line under it says the gate is open and you are sending")
+	eq(f.gateNote.text, "", "no small grey text under the bar when all is well")
 	eq(bar.frame.rbox.edge.color[2] > 0.7, true, "and the bar edge turns green")
 	-- below the bar: the signal is still drawn (to compare room noise with speech), amber only, and the gate is shut
 	status(2, "open", 1, "auto", -70, -52, 0)
 	eq(bar.level, -70, "the live signal is drawn even though the gate blocks it")
 	check(width(bar.amber) > 0 and width(bar.amber) < width(bar.amberDim) and width(bar.green) == 0, "only the amber part is lit: below the bar")
-	eq(f.gateNote.text, "Below the bar: nothing is sent.", "and the line says so")
+	eq(f.gateNote.text, "", "nor when the voice is below the bar")
 	eq(bar.frame.rbox.edge.color[2] < 0.5, true, "the edge is the plain one")
 	-- push to talk is still respected: the gate opens on the voice, but nothing is sent until the key is held
 	status(3, "ptt", 0, "auto", -30, -52, 1)
 	eq(f.gateNote.text, "Voice heard. Hold F9 to talk.", "gate open, key up: the player is told to hold the key")
 	status(4, "ptt", 1, "auto", -30, -52, 1)
-	eq(f.gateNote.text, "Gate open: your voice is being sent.", "key held: sending")
+	eq(f.gateNote.text, "", "key held: sending, and nothing to say")
 	-- muted: nothing is sent whatever the gate does
 	put(OV, 5, { fields = "level=ok mode=open mute=1 deaf=0 tx=0 talk=0 vol=100 near=0 conn=0 key=F9 mic=ok boost=normal gate=auto gdb=-48 gl=-30 gt=-52 go=1" })
-	eq(f.gateNote.text, "Muted: nothing is sent.", "muted says muted")
+	eq(f.gateNote.text, "", "muted: the Mute button already says it")
 	-- manual: the handle is the player's setting, not the app's running bar
 	status(6, "open", 1, "manual", -30, -51, 1)
 	eq(bar.thr, -48, "in manual mode the handle stands at the setting (gdb), not at the gate's own -3 dB hysteresis bar")
@@ -388,7 +388,7 @@ do
 	-- gate off: the live level is still drawn, no handle, no bar
 	put(OV, 7, { fields = "level=ok mode=open mute=0 deaf=0 tx=1 talk=0 vol=100 near=0 conn=0 key=F9 mic=ok boost=normal gate=off gdb=-48 gl=-35" })
 	eq(bar.mode, "off", "gate off"); eq(bar.handle.shown, false, "no handle"); check(width(bar.green) > 0, "the live level is still drawn")
-	eq(f.gateNote.text, "Sensitivity off: all sound is sent.", "and the line says everything goes out")
+	eq(f.gateNote.text, "", "sensitivity off: no note")
 	-- an app that does not send gl (an older one): the old level still moves the bar
 	put(OV, 8, { fields = "level=ok mode=open mute=0 deaf=0 tx=1 talk=0 vol=100 near=0 conn=0 key=F9 mic=ok boost=normal gate=auto gdb=-48 lvl=50" })
 	eq(math.floor(f.meter.pct + 0.5), 50, "without gl the plain level (lvl) is what the meter shows")
@@ -834,7 +834,8 @@ do
 	Stub.Click(EqVoiceIndicator, "LeftButton")
 	local f = EqVoicePanel
 	check(EqVoiceSetup == nil, "no overlay until the setup runs")
-	check(string.find(f.hint.text, "Calibrate once", 1, true), "a player who has never done it is nudged: " .. f.hint.text)
+	eq(f.hint.text, "", "no tip line: no small grey text on the main page")
+	eq(f.nearHint.text, "", "and no \"click a name\"")
 	-- the button starts it, and the first step is on screen at once (before the app has answered)
 	Stub.Click(f.bSetup)
 	eq(lastSent(OV), "calibrate 1", "the button asks the app to start")
@@ -1616,6 +1617,34 @@ do
 	OV2.Panel.dialog:Hide(); OV2.db.ui.noAppWarn = true
 	Stub.Advance(1)
 	eq(OV2.db.ui.noAppWarn, nil, "a choice saved by 0.7.3 is cleared")
+	eq(OV.Panel.error, nil, "no drawing error")
+end
+
+sec("voice ui: no small grey notes: the player window, the main page and the setup pages")
+do
+	local OV = login()
+	OV.db.ui.setupDone = true
+	local P = OV.Panel
+	put(OV, 1, { peers = { "Alice 12.5 1 0 direct s 0" } })
+	P.OpenPlayer("Alice"); Stub.Advance(0.5)
+	local f = EqVoicePlayer
+	eq(f.note, nil, "the player window has no line of small grey text under the buttons")
+	local c = f.bBlock.bgc
+	check(c[1] <= 0.36 and c[2] < 0.12, "Block is a darker red while nobody is blocked")
+	local dark = c[1]
+	Stub.Click(f.bBlock); put(OV, 2, { peers = { "Alice 12.5 1 0 direct s 0" }, muted = { "alice" } })
+	check(f.bBlock.bgc[1] > dark + 0.15, "and brighter while they are blocked")
+	-- the main page: nothing small and grey (the one line left is a warning, and the saved-log message)
+	Stub.Click(EqVoiceIndicator, "LeftButton")
+	local m = EqVoicePanel
+	Stub.Advance(1)
+	eq(m.hint.text, "", "no tip"); eq(m.nearHint.text, "", "no \"click a name\""); eq(m.gateNote.text, "", "no note under the sensitivity bar")
+	-- the setup pages
+	local W = OV.Wizard
+	W.Show(1)
+	local wz = EqVoiceWizard
+	check(wz.pages[3][2] == nil, "the speakers page has no note"); check(wz.pages[5][2] == nil, "the push-to-talk page has no note under the key")
+	eq(wz.pages[6][1].text, "Stay silent, talk, then shout. About 17 seconds.", "the calibrate line is short")
 	eq(OV.Panel.error, nil, "no drawing error")
 end
 
