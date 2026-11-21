@@ -73,7 +73,8 @@ Panel.lastRefresh = -100
 Panel.lastDock    = -100
 Panel.dockedTo    = nil      -- the screen height the indicator's default place was worked out for
 Panel.dragging    = false
-Panel.APP_WAIT_S  = 20       -- seconds without the EqVoice program before the game says so
+Panel.APP_WAIT_S  = 5        -- seconds without the EqVoice program before the game says so
+Panel.appMuted    = false    -- "Don't show again" was ticked: for this game session only (a new login, or /reload, starts afresh: it is never saved)
 Panel.appDownSince = nil
 Panel.appWarned   = false    -- the reminder was shown for this stretch without the program
 Panel.error       = nil
@@ -1450,10 +1451,11 @@ function Panel.ScrollNearby(delta)
 end
 
 -- The EqVoice program is not running (it does not start with Windows unless the player chose that): say so in the middle of the screen, once for
--- each time it is missing, and take the window away by itself when the program appears. "Don't show again" is kept.
+-- each time it is missing, and take the window away by itself when the program appears. "Don't show again" lasts for this game session only.
 function Panel.CheckAppMissing(now)
 	if not (OV.db and OV.db.ui) or not OV.started then return end
-	if OV.db.ui.noAppWarn then return end
+	if OV.db.ui.noAppWarn ~= nil then OV.db.ui.noAppWarn = nil end                   -- (0.7.3 saved it for good: no longer)
+	if Panel.appMuted then return end
 	if OV.Status.Alive(now) then
 		Panel.appDownSince, Panel.appWarned = nil, false
 		if Panel.appDialogUp then
@@ -1468,8 +1470,8 @@ function Panel.CheckAppMissing(now)
 	Panel.appWarned, Panel.appDialogUp = true, true
 	Panel.Dialog({ text = "EqVoice is not running, so voice chat will not work yet.\n\nStart EqVoice from your Start menu (or desktop). The game connects to it by itself, and this window goes away.",
 		width = 400, height = 200,
-		buttons = { { "Okay", function(noMore) Panel.appDialogUp = false; if noMore then OV.db.ui.noAppWarn = true end end } },
-		check = { "Don't show again" } })
+		buttons = { { "Okay", function(noMore) Panel.appDialogUp = false; if noMore then Panel.appMuted = true end end } },
+		check = { "Don't show again this session" } })
 end
 
 function Panel.OverheadOn()
