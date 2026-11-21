@@ -377,3 +377,70 @@ def test_native_extension_preserves_launcher_managed_classicapi(tmp_path, monkey
     assert not (wow / "ClassicAPI.dll").exists()
     assert (wow / "Mods" / "ClassicAPI.dll").read_bytes() == b"launcher-owned"
     assert (wow / "EqVoice.dll").read_bytes() == b"native"
+
+
+def _native_bundle(tmp_path, wow, monkeypatch, said):
+    bundle = tmp_path / "bundle"
+    (bundle / "classicapi").mkdir(parents=True)
+    (bundle / "classicapi" / "ClassicAPI.dll").write_bytes(b"test")
+    (bundle / "classicapi" / "EqVoice.dll").write_bytes(b"native-new")
+    monkeypatch.setattr(installer, "bundle_dir", lambda: bundle)
+    monkeypatch.setattr(installer, "game_is_open", lambda _: False)
+    monkeypatch.setattr(installer, "ask_yes_no", lambda *_: True)
+    monkeypatch.setattr(installer, "notice", lambda title, text, kind="info": said.append((kind, text)))
+    return bundle
+
+
+def test_dlls_txt_gets_real_line_breaks_and_keeps_a_byte_order_mark_out_of_the_way(tmp_path, monkeypatch):
+    wow = make_game(tmp_path / "game")
+    _native_bundle(tmp_path, wow, monkeypatch, [])
+    (wow / "dlls.txt").write_bytes(b"\xef\xbb\xbfnampower.dll\r\nclassicapi.dll")                   # a byte-order mark, and no line break at the end
+    assert installer.offer_classicapi(wow)
+    data = (wow / "dlls.txt").read_bytes()
+    assert b"\\r" not in data and b"\\n" not in data, "no backslash-r or backslash-n written as text: %r" % data
+    assert data.splitlines() == [b"\xef\xbb\xbfnampower.dll", b"classicapi.dll", b"EqVoice.dll"], data
+    assert installer.offer_classicapi(wow) is False, "run again: EqVoice.dll is listed already, nothing is added twice"
+    assert (wow / "dlls.txt").read_bytes() == data
+
+
+def test_a_game_whose_folder_cannot_be_read_still_counts_as_running(monkeypatch, tmp_path):
+    monkeypatch.setattr(installer, "running_wow_processes", lambda: [None])
+    assert installer.game_is_open(tmp_path), "a WoW.exe Windows will not name a folder for (started as administrator) is taken to be this game"
+    monkeypatch.setattr(installer, "running_wow_processes", lambda: [Path(r"C:\elsewhere")])
+    assert not installer.game_is_open(tmp_path), "a game in another folder is not this one"
+    monkeypatch.setattr(installer, "running_wow_processes", lambda: [tmp_path])
+    assert installer.game_is_open(tmp_path)
+    monkeypatch.setattr(installer, "running_wow_processes", lambda: [])
+    assert not installer.game_is_open(tmp_path)
+
+
+def test_a_locked_eqvoice_dll_is_said_in_words_and_nothing_is_changed(tmp_path, monkeypatch):
+    wow = make_game(tmp_path / "game")
+    said = []
+    _native_bundle(tmp_path, wow, monkeypatch, said)
+    (wow / "dlls.txt").write_bytes(b"nampower.dll\r\n")
+    (wow / "EqVoice.dll").write_bytes(b"native-old")
+    monkeypatch.setattr(installer, "file_in_use", lambda p: p.name == "EqVoice.dll")
+    assert installer.offer_classicapi(wow) is False
+    assert said and "in use" in said[0][1] and "Close WoW" in said[0][1] and "Access" not in said[0][1], said
+    assert (wow / "EqVoice.dll").read_bytes() == b"native-old" and (wow / "dlls.txt").read_bytes() == b"nampower.dll\r\n", "nothing was changed"
+    assert not (wow / "ClassicAPI.dll").exists()
+
+
+def test_a_replace_that_is_refused_rolls_back_and_says_what_to_do(tmp_path, monkeypatch):
+    wow = make_game(tmp_path / "game")
+    said = []
+    _native_bundle(tmp_path, wow, monkeypatch, said)
+    (wow / "EqVoice.dll").write_bytes(b"native-old")
+    (wow / "dlls.txt").write_bytes(b"nampower.dll\r\n")
+    real = Path.replace
+
+    def refuse(self, target):
+        if Path(target).name == "EqVoice.dll":
+            raise PermissionError(5, "Access is denied", str(target))
+        return real(self, target)
+    monkeypatch.setattr(Path, "replace", refuse)
+    assert installer.offer_classicapi(wow) is False
+    assert said and said[0][0] == "warning" and "Close WoW completely" in said[0][1] and "Nothing was changed" in said[0][1], said
+    assert (wow / "EqVoice.dll").read_bytes() == b"native-old", "the old DLL is still there"
+    assert not list(wow.glob("tmp*")), "and no temporary file was left in the game folder"

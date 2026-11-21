@@ -123,6 +123,11 @@ if IS_WINDOWS:
 
 def running_wow_dirs() -> list:
     """Folders of every running WoW.exe (the surest answer: the game is right there)."""
+    return [d for d in running_wow_processes() if d is not None]
+
+
+def running_wow_processes() -> list:
+    """One entry per running WoW.exe: its folder, or None when Windows will not say (a game started as administrator, or by a launcher with more rights)."""
     out: list = []
     if not IS_WINDOWS:
         return out
@@ -135,6 +140,7 @@ def running_wow_dirs() -> list:
         ok = _k32.Process32FirstW(snap, ctypes.byref(e))
         while ok:
             if e.szExeFile.lower() == GAME_EXE.lower():
+                d = None
                 h = _k32.OpenProcess(_res.PROCESS_QUERY_LIMITED_INFORMATION, False, e.th32ProcessID)
                 if h:
                     try:
@@ -142,10 +148,10 @@ def running_wow_dirs() -> list:
                         size = wintypes.DWORD(1024)
                         if _k32.QueryFullProcessImageNameW(h, 0, buf, ctypes.byref(size)):
                             d = Path(buf.value).parent
-                            if d not in out:
-                                out.append(d)
                     finally:
                         _k32.CloseHandle(h)
+                if d is None or d not in out:
+                    out.append(d)
             ok = _k32.Process32NextW(snap, ctypes.byref(e))
     finally:
         _k32.CloseHandle(snap)
@@ -266,7 +272,7 @@ def offer_classicapi(wow: Path) -> bool:
     path = wow / "dlls.txt"
     try:
         old = path.read_bytes() if path.exists() else b""
-        lines = {line.strip().lower() for line in old.removeprefix(b"\\xef\\xbb\\xbf").splitlines()}
+        lines = {line.strip().lower() for line in old.removeprefix(b"\xef\xbb\xbf").splitlines()}
         need_classic = not classicapi_present(wow)
         # Never overwrite an existing ClassicAPI.dll, even if its version is old.
         write_eq = not eq.is_file() or eq.read_bytes() != native.read_bytes()
@@ -279,11 +285,15 @@ def offer_classicapi(wow: Path) -> bool:
         if not need_classic and not write_eq and not add:
             return False
         if game_is_open(wow):
-            notice("EqVoice", "Close WoW before installing or updating the EqVoice native extension; then restart EqVoice.")
+            notice("EqVoice", "Close WoW before installing or updating the EqVoice native extension; then run setup again.")
+            return False
+        if write_eq and file_in_use(eq):
+            notice("EqVoice", "EqVoice.dll in your game folder is in use, so it cannot be updated now. Close WoW completely (check the Task Manager for WoW.exe "
+                              "and any launcher that keeps it open), then run EqVoice setup again.", "warning")
             return False
         description = ("Install official ClassicAPI v1.21.1 and the EqVoice.dll extension?" if need_classic
                        else "Install or update the independent EqVoice.dll extension? Your existing ClassicAPI.dll will not be replaced.")
-        if not ask_yes_no("EqVoice", description + "\\n\\nThis also enables the required DLLs in dlls.txt. Restart WoW afterwards."):
+        if not ask_yes_no("EqVoice", description + "\n\nThis also enables the required DLLs in dlls.txt. Restart WoW afterwards."):
             return False
         # Prepare every payload first. Exclusive creation protects a concurrently installed ClassicAPI.
         previous_eq = eq.read_bytes() if eq.is_file() else None
@@ -306,8 +316,8 @@ def offer_classicapi(wow: Path) -> bool:
                 atomic_write(eq, native.read_bytes())
                 changed_eq = True
             if add:
-                updated = old + (b"\\r\\n" if old and not old.endswith((b"\\n", b"\\r")) else b"")
-                updated += b"\\r\\n".join(add) + b"\\r\\n"
+                updated = old + (b"\r\n" if old and not old.endswith((b"\n", b"\r")) else b"")
+                updated += b"\r\n".join(add) + b"\r\n"
                 atomic_write(path, updated)
         except OSError:
             if created_classic:
@@ -318,6 +328,10 @@ def offer_classicapi(wow: Path) -> bool:
                 else:
                     atomic_write(eq, previous_eq)
             raise
+    except PermissionError as e:
+        notice("EqVoice", "The EqVoice native extension could not be installed: a file in the game folder is in use or protected (%s). Close WoW completely and "
+                          "run EqVoice setup again. Nothing was changed." % (getattr(e, "filename", None) or e), "warning")
+        return False
     except OSError as e:
         notice("EqVoice", "Native extension installation failed: %s" % e, "error")
         return False
@@ -438,10 +452,27 @@ def addon_off_for(wow: Path) -> list:
 
 
 def game_is_open(wow: Path) -> bool:
+    """Is the game running from this folder? A WoW.exe whose folder Windows will not tell us (started with more rights than we have) counts as
+    running here: better a reminder to close the game than a half-installed update on a file it holds."""
     try:
         here = os.path.normcase(os.path.abspath(str(wow)))
-        return any(os.path.normcase(os.path.abspath(str(d))) == here for d in running_wow_dirs())
+        if any(os.path.normcase(os.path.abspath(str(d))) == here for d in running_wow_dirs()):
+            return True
+        return any(d is None for d in running_wow_processes())
     except Exception:                                                                               # noqa: BLE001
+        return False
+
+
+def file_in_use(path: Path) -> bool:
+    """Is this existing file held open by a program (a DLL the game has loaded cannot be replaced)? Looked at by trying to open it for writing."""
+    try:
+        if not Path(path).is_file():
+            return False
+        with open(path, "r+b"):
+            return False
+    except PermissionError:
+        return True
+    except OSError:
         return False
 
 

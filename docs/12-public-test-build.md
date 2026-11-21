@@ -83,6 +83,18 @@ Opaque charcoal window, flat compact controls, one purple accent, four groups: a
 
 Not seen in the real game yet: the layout was checked in the test stub (no control overlaps or leaves the window), not on screen.
 
+## 0.7.6 (2026-11, pre-release)
+
+**Installer fixes for the native extension (EqVoice.dll / ClassicAPI).** (1) A screenshot of "Access is denied: ...tmp... -> D:\Octowow\EqVoice.dll": the DLL was held open by a running game that setup did not
+recognise (a WoW.exe started with more rights than setup has, or by a launcher, cannot be asked for its folder). Now a WoW.exe whose folder cannot be read counts as the game, a DLL that is locked is tested for before anything
+is asked (`file_in_use`), and a refused replace is said in words ("Close WoW completely ... run setup again. Nothing was changed.") with the old DLL put back. (2) A bug in 0.7.4 and 0.7.5: the line breaks and byte-order mark in the
+code that edits `dlls.txt` were written as the characters backslash-r backslash-n, so a game folder that needed an entry added got the text `ClassicAPI.dll
+EqVoice.dll
+` on one line instead of two lines, and the confirmation
+dialog showed `
+
+` as text. Both fixed and tested (the previously failing installer test now passes).
+
 ## 0.7.5 (2026-11, pre-release)
 
 **Start with Windows is a question, not a default.** Setup asks "Start EqVoice when Windows starts?" (No: open it from the Start menu before playing). A build that set it without asking is asked "Keep that?" on upgrade;
