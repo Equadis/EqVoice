@@ -36,8 +36,8 @@ from . import __version__, browser, installer
 
 log = logging.getLogger("eqvoice.setup")
 
-TITLE = "EqVoice Test Build"
-BUILD_LABEL = "EqVoice Test Build %s" % __version__
+TITLE = "EqVoice"
+BUILD_LABEL = "EqVoice %s" % __version__
 APP_KEY = "EqVoice"
 EXE_NAME = "EqVoice.exe"
 MANIFEST = "install.json"
@@ -139,7 +139,7 @@ def write_registration(manifest: Manifest, uninstall_root: str = UNINSTALL_ROOT,
     w = _winreg()
     exe = str(Path(manifest.install_dir) / EXE_NAME)
     with w.CreateKeyEx(w.HKEY_CURRENT_USER, uninstall_root + "\\" + APP_KEY, 0, w.KEY_WRITE) as k:
-        for name, value in (("DisplayName", "EqVoice (Test Build)"), ("DisplayVersion", manifest.version), ("Publisher", "EqVoice"),
+        for name, value in (("DisplayName", "EqVoice"), ("DisplayVersion", manifest.version), ("Publisher", "EqVoice"),
                             ("InstallLocation", manifest.install_dir), ("DisplayIcon", exe),
                             ("UninstallString", '"%s" --uninstall' % exe), ("QuietUninstallString", '"%s" --uninstall --quiet' % exe)):
             w.SetValueEx(k, name, 0, w.REG_SZ, value)
@@ -316,7 +316,7 @@ def install(payload: Path, install_dir: Path, wow: Path, *, addon_src: Optional[
 
 
 def final_text(rep: InstallReport) -> str:
-    head = "EqVoice Test Build %s is %s." % (rep.manifest.version, "updated" if rep.upgraded else "installed")
+    head = "EqVoice %s is %s." % (rep.manifest.version, "updated" if rep.upgraded else "installed")
     how = ("and starts with Windows. There is nothing to open." if rep.autostart else
            "It does not start with Windows: open EqVoice from the Start menu before you play (the game reminds you if it is not running).")
     body = ("\n\nIt runs in the system tray (the little icons by the clock; Windows may keep a new one under the ^ arrow: drag it out to keep it in view) "

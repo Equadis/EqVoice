@@ -132,7 +132,7 @@ def smoke_double_click(exe: Path, timeout: float = 90.0) -> list:
         missing = [f.name for f in src.iterdir() if not (addon / f.name).exists()]
         if missing:
             problems.append("the addon was not fully installed into the game folder: missing %s" % missing)
-        elif any((addon / f.name).read_bytes() != f.read_bytes() for f in src.iterdir()):
+        elif any((addon / f.relative_to(src)).read_bytes() != f.read_bytes() for f in src.rglob("*") if f.is_file()):
             problems.append("the installed addon differs from the one in the repository (the exe carries a stale copy: rebuild it)")
         if nue.read_bytes() != b"BigWigs: enabled\r\nEqVoice: enabled\r\n":
             problems.append("the addon was not switched on for the existing character (AddOns.txt is %r)" % nue.read_bytes())

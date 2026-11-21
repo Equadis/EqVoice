@@ -60,6 +60,7 @@ def setup_env(tmp_path, monkeypatch):
     """A fake PC: a game folder, an addon to copy, a hub.txt, and no real dialogs."""
     wow = make_game(tmp_path / "Game")
     (wow / "ClassicAPI.dll").write_bytes(b"MZ")
+    (wow / "EqVoice.dll").write_bytes(b"MZ")                      # (the native extension: a game folder that has all the mods is "ready")
     (wow / "nampower.dll").write_bytes(b"MZ")
     src = make_addon(tmp_path / "src")
     monkeypatch.setenv("EQVOICE_ADDON_SRC", str(src))

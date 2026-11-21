@@ -55,7 +55,7 @@ def test_a_fresh_install_puts_everything_where_it_belongs(world):
     rep = do_install(w)
     assert not rep.upgraded
     assert (w["install"] / "EqVoice.exe").read_bytes() == w["payload"].read_bytes(), "the program"
-    assert "Test Build" in (w["install"] / "VERSION").read_text(), "which build this is, on disk"
+    assert "EqVoice " in (w["install"] / "VERSION").read_text() and "Test Build" not in (w["install"] / "VERSION").read_text(), "which build this is, on disk"
     addon = w["wow"] / "Interface" / "AddOns" / "EqVoice"
     assert (addon / "EqVoice.toc").exists() and (addon / "Wizard.lua").exists(), "the addon, all of it"
     m = setup_app.Manifest.load(w["install"] / setup_app.MANIFEST)
@@ -70,7 +70,7 @@ def test_a_fresh_install_puts_everything_where_it_belongs(world):
     assert rep.shortcuts and (w["menu"] / "EqVoice.lnk").exists() and (w["menu"] / "Uninstall EqVoice.lnk").exists(), "the Start menu"
     assert rep.warnings == [], "a good game folder: nothing to warn about"
     text = setup_app.final_text(rep)
-    assert "Test Build" in text and "system tray" in text and "does not start with Windows" in text and "Start menu" in text and "Settings > Apps" in text and "/eqvoice" in text
+    assert "EqVoice " in text and "Test Build" not in text and "system tray" in text and "does not start with Windows" in text and "Start menu" in text and "Settings > Apps" in text and "/eqvoice" in text
 
 
 def test_start_with_windows_is_the_players_choice_and_an_upgrade_keeps_it(world):

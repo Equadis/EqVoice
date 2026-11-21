@@ -59,7 +59,7 @@ def test_a_new_call_starts_at_the_players_saved_volume_and_a_muted_player_is_not
     run(go(), 120)
 
 
-def test_block_stops_your_microphone_going_to_that_player_and_unblock_gives_it_back(tmp_path):
+def test_block_is_a_mute_and_a_deafen_towards_that_player_both_ways_and_unblock_gives_both_back(tmp_path):
     async def go():
         async with Scene(tmp_path) as sc:
             a, pa, game = await near_pair(sc)
@@ -68,12 +68,27 @@ def test_block_stops_your_microphone_going_to_that_player_and_unblock_gives_it_b
             await until(lambda: a.peers.is_blocked("Bobby"), 5, "blocked")
             await until(lambda: pa.named("gain") and pa.named("gain")[-1].get("send") is False, 5, "the page is told to send him nothing")
             assert a.cfg.audio.block_list == ["bobby"]
-            assert not a.peers.is_muted("Bobby"), "you still hear him: block is about what he hears"
+            sid = a.peers.peers["bobby"].sid
+            await until(lambda: any(m.get("sid") == sid and m.get("value") is True for m in pa.named("peer_mute")), 5, "and you stop hearing him: the page is told to mute his voice")
+            assert a.peers.is_muted("Bobby") and "bobby" not in a.peers.muted, "a block is a mute without being on the mute list"
             await until(lambda: read_status(game).blocked == ["bobby"] and read_status(game).peers[0]["blocked"] is True, 5, "the game is told")
             await asyncio.sleep(1.0)
             assert pa.named("gain")[-1].get("send") is False, "it stays blocked while the distance updates keep coming"
             send(game, ("pblock", "bobby 0"))
             await until(lambda: pa.named("gain")[-1].get("send") is True, 5, "unblocked: sent again")
+            await until(lambda: pa.named("peer_mute")[-1].get("value") is False, 5, "and heard again")
+            assert not a.peers.is_muted("Bobby")
+            # muted AND blocked: unblocking gives back what he hears of you, but he stays muted for you (he is on your mute list)
+            send(game, ("pmute", "bobby 1"))
+            await until(lambda: a.peers.is_muted("Bobby") and "bobby" in a.peers.muted, 5, "muted")
+            send(game, ("pblock", "bobby 1"))
+            await until(lambda: a.peers.is_blocked("Bobby"), 5, "and blocked")
+            await until(lambda: pa.named("gain")[-1].get("send") is False, 5, "(the page has the block)")
+            send(game, ("pblock", "bobby 0"))
+            await until(lambda: not a.peers.is_blocked("Bobby") and pa.named("gain")[-1].get("send") is True, 5, "unblocked: he hears you again")
+            assert pa.named("peer_mute")[-1].get("value") is True and a.peers.is_muted("Bobby"), "but he is still muted for you"
+            send(game, ("pmute", "bobby 0"))
+            await until(lambda: pa.named("peer_mute")[-1].get("value") is False, 5, "unmuted: everything is back")
             send(game, ("pblock", "bobby 1"))
             await until(lambda: a.cfg.audio.block_list == ["bobby"], 5, "blocked again")
         again = Config.load(tmp_path / "Alice")
@@ -285,3 +300,18 @@ def test_a_whispering_voice_is_heard_as_if_twice_as_far_away_in_the_page_and_in_
     assert voice_gain(10, c, 0.0, whisper=True) == voice_gain(20, c, 0.0), "10 yd whispering sounds like 20 yd talking"
     assert voice_gain(5, c, 0.0, whisper=True) < 1 and voice_gain(2.5, c, 0.0, whisper=True) == 1.0, "up close (inside 2.5 yd) it is still full"
     assert voice_gain(45, c, 0.0, whisper=True) == 0.0, "and it is over at half the range"
+
+
+def test_a_blocked_player_is_muted_from_the_first_moment_of_a_new_call(tmp_path):
+    """A block kept from an earlier session: when the call opens the page is told to play nothing from him, and sends nothing to him."""
+    async def go():
+        async with Scene(tmp_path) as sc:
+            a = await sc.add("Alice", at=(0, 0), cfg={"audio": {"block_list": ["bobby"]}})
+            await sc.add("Bobby", at=(1000, 0))
+            pa, game = sc.pages["Alice"], sc.games["Alice"]
+            await until(lambda: a.ui_control is not None, 10, "panel files")
+            sc.walk_to("Alice", "Bobby", 20)
+            await until(lambda: pstate(a, "Bobby") == "CONNECTED", 20, "connected")
+            assert pa.named("open") and pa.named("open")[-1].get("mute") is True, "the call opens with his voice muted"
+            await until(lambda: pa.named("gain") and pa.named("gain")[-1].get("send") is False, 10, "and nothing sent to him")
+    run(go(), 120)

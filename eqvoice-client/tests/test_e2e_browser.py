@@ -626,3 +626,27 @@ def test_noise_suppression_loads_in_the_real_engine_can_be_switched_off_and_on_a
             await until(lambda: a.mic.get("state") == "ok" and a.mic.get("dn") is True, 30, "and on again (%r)" % a.mic)
             assert a.denoise_error == "" and a.gate_error == "", (a.denoise_error, a.gate_error)
     run(go(), 200)
+
+
+def test_a_blocked_player_is_not_played_and_receives_nothing_and_both_come_back_when_unblocked(tmp_path):
+    """Block is a mute and a deafen towards that player, in two real engines: Bobby blocks Alice, so Bobby plays nothing from her and sends her nothing."""
+    async def go():
+        async with Scene(tmp_path, ice_servers=[]) as sc:
+            a, b = await _two_real(sc)
+            sc.walk_to("Alice", "Bobby", 8)
+            await until(lambda: (peer(a, "Bobby") or {}).get("state") == "CONNECTED" and (peer(b, "Alice") or {}).get("state") == "CONNECTED", 40, "connected")
+            await until(lambda: stat(b, "Alice", "rx") > 4000 and stat(b, "Alice", "vol") > 0.9, 20, "Alice is heard (vol %r)" % stat(b, "Alice", "vol"))
+            await until(lambda: stat(a, "Bobby", "rx") > 4000, 20, "and Bobby is heard by Alice")
+            assert stat(b, "Alice", "sending") is True, "Bobby sends Alice his voice"
+            rx_a = stat(a, "Bobby", "rx")
+            b._on_ui({"cmd": "block_player", "name": "Alice", "value": True})
+            await until(lambda: stat(b, "Alice", "vol") == 0 and stat(b, "Alice", "boost") <= 1.0, 10, "blocked: nothing from Alice is played for Bobby (vol %r)" % stat(b, "Alice", "vol"))
+            await until(lambda: stat(b, "Alice", "sending") is False, 10, "and Bobby's voice is no longer sent to her")
+            await asyncio.sleep(2.0)
+            e1 = stat(a, "Bobby", "rx")
+            await asyncio.sleep(2.0)
+            assert stat(a, "Bobby", "rx") - e1 < 1200, "Alice receives (almost) nothing from Bobby while he has her blocked: %r bytes in 2 s" % (stat(a, "Bobby", "rx") - e1)
+            b._on_ui({"cmd": "block_player", "name": "Alice", "value": False})
+            await until(lambda: stat(b, "Alice", "vol") > 0.9, 10, "unblocked: Alice is heard again")
+            await until(lambda: stat(b, "Alice", "sending") is True, 10, "and Bobby's voice goes to her again")
+    run(go(), 240)

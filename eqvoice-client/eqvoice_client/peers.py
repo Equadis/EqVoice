@@ -254,23 +254,26 @@ class PeerManager:
         self.log_ips = False                   # put real addresses in the candidate lines (default: only their kind)
         self.setup_ms: list = []               # how long each successful connection took to set up (last 50)
         self.muted: set = set()                # name.lower() of the players whose voice you do not want to hear (the mute list)
-        self.blocked: set = set()              # name.lower() of the players who must not hear you: your microphone is never sent to them
+        self.blocked: set = set()              # name.lower() of the players you blocked: you do not hear them AND they do not hear you (muted and deafened towards them)
         self.volumes: dict = {}                # name.lower() -> 0.0 .. 2.0: how loud that one player is for you
 
     # ------------------------------------------------------------ the mute list
 
     def is_muted(self, name: str) -> bool:
-        return str(name).lower() in self.muted
+        """Is this player's voice kept from playing here? On the mute list, or blocked (a block is a mute and a deafen towards them)."""
+        key = str(name).lower()
+        return key in self.muted or key in self.blocked
 
     def set_muted(self, name: str, on: bool) -> None:
-        """Add or take someone off the mute list. Their connection stays up (they can still hear you); only their voice stops playing here."""
+        """Add or take someone off the mute list. Their connection stays up (they can still hear you); only their voice stops playing here.
+        A blocked player stays unheard whatever the mute list says."""
         key = str(name).strip().lower()
         if not key:
             return
         (self.muted.add if on else self.muted.discard)(key)
         p = self.peers.get(key)
         if p is not None and p.ep:
-            self.host.media({"cmd": "peer_mute", "sid": p.sid, "ep": p.ep, "value": bool(on)})
+            self.host.media({"cmd": "peer_mute", "sid": p.sid, "ep": p.ep, "value": self.is_muted(key)})
 
     # ------------------------------------------------------------ block, and one player's volume
 
@@ -278,15 +281,18 @@ class PeerManager:
         return str(name).lower() in self.blocked
 
     def set_blocked(self, name: str, on: bool) -> None:
-        """Block: that player stops receiving your voice (the page is told to send them nothing, at once). You still hear them unless you
-        also mute them; the connection stays up, so taking the block off needs no new call."""
+        """Block: a mute and a deafen towards that player. Their voice stops playing here (the page is told at once) and your voice stops going to
+        them (the page is told to send them nothing, at once). The connection stays up, so taking the block off needs no new call; it gives back
+        your hearing of them unless they are on the mute list too."""
         key = str(name).strip().lower()
         if not key:
             return
         (self.blocked.add if on else self.blocked.discard)(key)
         p = self.peers.get(key)
-        if p is not None and p.ep and p.state in (PS.CONNECTED, PS.OUT_OF_RANGE_GRACE):
-            self._send_gain(p, p.gain, int(1000 / self.cfg.gain_hz) + 50, gate=p.sent_gate)
+        if p is not None and p.ep:
+            self.host.media({"cmd": "peer_mute", "sid": p.sid, "ep": p.ep, "value": self.is_muted(key)})
+            if p.state in (PS.CONNECTED, PS.OUT_OF_RANGE_GRACE):
+                self._send_gain(p, p.gain, int(1000 / self.cfg.gain_hz) + 50, gate=p.sent_gate)
 
     def volume_of(self, name: str) -> float:
         return float(self.volumes.get(str(name).lower(), 1.0))

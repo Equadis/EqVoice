@@ -116,7 +116,7 @@ end
 function Icons.Resolve(name, now)
 	if type(name) ~= "string" or name == "" then return nil end
 	if name == OV.character then return Icons.SelfState(now) end
-	if OV.Panel and OV.Panel.IsPlayerMuted and OV.Panel.IsPlayerMuted(name, now) then return "b" end       -- whatever they are doing, you are not hearing it
+	if OV.Panel and ((OV.Panel.IsPlayerMuted and OV.Panel.IsPlayerMuted(name, now)) or (OV.Panel.IsPlayerBlocked and OV.Panel.IsPlayerBlocked(name, now))) then return "b" end       -- muted or blocked: whatever they are doing, you are not hearing it
 	local S = OV.Status
 	local key = string.lower(name)
 	local alive = S.Alive(now)

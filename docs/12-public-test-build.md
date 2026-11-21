@@ -83,6 +83,12 @@ Opaque charcoal window, flat compact controls, one purple accent, four groups: a
 
 Not seen in the real game yet: the layout was checked in the test stub (no control overlaps or leaves the window), not on screen.
 
+## 1.0.0 (2026-11): the official release
+
+**Block is a mute and a deafen towards that player.** Blocking someone now stops their voice playing for you (the page is told at once, and the call opens muted from the first moment on later sessions) as well as stopping your voice
+going to them. It stays up as a connection, so unblocking needs no new call; unblocking gives back both, except that a player who is also on your mute list stays muted. The block icon (muted by you) shows for blocked players. Covered by
+unit tests and by a real-engine test with two browsers. README rewritten (download, what it is, easy install, clean interface, consent), setup and the tray no longer say "Test Build".
+
 ## 0.7.7 (2026-11, pre-release)
 
 **No small grey text.** Removed: the line under the sensitivity bar (all but a warning such as "Voice heard. Hold F9 to talk."), the "Tip: press Calibrate" line, "click a name" and the scroll count beside Nearby, the note under the

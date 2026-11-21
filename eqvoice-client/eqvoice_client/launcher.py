@@ -30,7 +30,7 @@ from .logbuf import setup_logging
 
 log = logging.getLogger("eqvoice.launcher")
 TITLE = "EqVoice"
-BUILD_LABEL = "EqVoice Test Build %s" % __version__          # what the logs, the tray menu and the installer call this build
+BUILD_LABEL = "EqVoice %s" % __version__          # what the logs, the tray menu and the installer call this build
 
 WELCOME = ("EqVoice is set up.\n\n"
            "In the game:\n"
