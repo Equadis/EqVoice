@@ -28,6 +28,7 @@ I.Tick(Stub.now)
 local o = I.overhead.Alice
 check(o and o.host.shown, "icon is visible without creating a nameplate")
 check(o.icon.state == "w", "quiet icon")
+check(o.icon.tex.w == 24 and o.icon.tex.h == 24, "the overhead icon is 24 pixels (50% bigger than the 16 it was)")
 check(o.host.pt[2] == WorldFrame, "uses screen projection origin")
 EqVoice_GetOverheadPoint = function() return nil end
 I.lastRun = -100

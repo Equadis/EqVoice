@@ -363,20 +363,24 @@ do
 	SlashCmdList["EQVOICEUI"]("reset")
 	eq(OV.db.ui.indicatorPos, nil, "/eqvc reset forgets both"); eq(ind.pt[1], "TOP", "the indicator is back at the top")
 	-- hide and show the indicator
-	SlashCmdList["EQVOICEUI"]("hide")
-	eq(ind.shown, false, "/eqvc hide"); eq(OV.db.ui.hideIndicator, true, "remembered")
+	eq(ind.shown, false, "the standalone microphone button is not shown by default: the icon beside your own name is the one")
 	SlashCmdList["EQVOICEUI"]("show")
-	eq(ind.shown, true, "/eqvc show"); eq(OV.db.ui.hideIndicator, nil, "remembered")
+	eq(ind.shown, true, "/eqvc show brings it back"); eq(OV.db.ui.showIndicator, true, "remembered")
+	SlashCmdList["EQVOICEUI"]("hide")
+	eq(ind.shown, false, "/eqvc hide"); eq(OV.db.ui.showIndicator, nil, "remembered")
+	SlashCmdList["EQVOICEUI"]("show")
 	eq(OV.Panel.error, nil, "and still no drawing error")
 	-- a saved position is used on the next login
 	local db = OV.db
 	db.ui.indicatorPos = { point = "TOPLEFT", rel = "TOPLEFT", x = 33, y = -44 }
 	local OV3 = Stub.Login({ db = db, fileApi = "WriteCustomFile", classic = true })
 	eq(EqVoiceIndicator.pt[4], 33, "the saved indicator position is restored at login")
-	-- hidden at login when the player turned it off
+	eq(EqVoiceIndicator.shown, true, "shown at login when the player asked for it")
+	-- hidden at login when they did not (and an old "hide" switch changes nothing)
+	db.ui.showIndicator = nil
 	db.ui.hideIndicator = true
 	local OV4 = Stub.Login({ db = db, fileApi = "WriteCustomFile", classic = true })
-	check(EqVoiceIndicator == nil, "no indicator when it was turned off")
+	check(EqVoiceIndicator ~= nil and EqVoiceIndicator.shown == false, "hidden at login unless asked for")
 end
 
 -- ===================================================================== the indicator

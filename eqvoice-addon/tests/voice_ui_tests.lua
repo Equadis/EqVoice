@@ -710,7 +710,7 @@ do
 	check(ic.btn ~= nil, "on a unit frame the icon is a button")
 	eq(ic.btn.pt[1], "LEFT", "its left edge ..."); eq(ic.btn.pt[2], name, "... is at the name's"); eq(ic.btn.pt[3], "CENTER", "centre")
 	eq(ic.btn.pt[4], (5 * 6 / 2) + 3, "plus half the text's width and a gap: just RIGHT of the name")
-	eq(ic.btn.parent, tf, "it lives on the name's own frame"); eq(ic.btn.w, 16, "16 pixels")
+	eq(ic.btn.parent, tf, "it lives on the name's own frame"); eq(ic.btn.w, 16, "16 pixels (beside a name on the unit frames: unchanged)")
 	name:SetText("Bob"); Stub.Advance(0.5)
 	eq(ic.tex.path, ART .. "VoiceDeafened.tga", "Bob is deafened: headphones with a slash")
 	eq(ic.btn.pt[4], (3 * 6 / 2) + 3, "and the icon follows the shorter name")

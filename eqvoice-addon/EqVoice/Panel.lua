@@ -2135,13 +2135,16 @@ function Panel.Init()
 	if not (OV.db and OV.db.ui) then return end
 	local okLive, errLive = pcall(Panel.BuildLive)
 	if not okLive then fail(errLive) end
-	if OV.db.ui.hideIndicator then return end
+	-- The standalone microphone button is not shown any more: the icon beside your own name on the unit frame is the one (a click on it opens the
+	-- panel, as /eqvc does). `/eqvc show` brings the button back for anyone who wants it (kept as `ui.showIndicator`); it is built either way so
+	-- the dependency notice can use it, and so that nothing that clicks it breaks.
 	local ok, err = pcall(Panel.BuildIndicator)
 	if not ok then fail(err) end
 	ok, err = pcall(Panel.Dock)
 	if not ok then fail(err) end
-	ok, err = pcall(Panel.Refresh)          -- never show a bare button while waiting for the first tick
+	ok, err = pcall(Panel.Refresh)
 	if not ok then fail(err) end
+	if Panel.indicator and not OV.db.ui.showIndicator then Panel.indicator:Hide() end
 	Panel.dirty = true
 end
 
@@ -2189,7 +2192,8 @@ function Panel.Tick(now)
 end
 
 function Panel.SetIndicator(on)
-	OV.db.ui.hideIndicator = (not on) or nil
+	OV.db.ui.hideIndicator = nil                                          -- (the old switch: no longer used)
+	OV.db.ui.showIndicator = on or nil
 	if on then
 		pcall(Panel.BuildIndicator)
 		pcall(Panel.Dock)

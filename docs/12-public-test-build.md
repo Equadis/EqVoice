@@ -85,6 +85,9 @@ Not seen in the real game yet: the layout was checked in the test stub (no contr
 
 ## 0.7.6 (2026-11, pre-release)
 
+**Overhead icon 50% bigger (24 px).** **The standalone microphone button is no longer shown by default**: the icon beside your own name on the unit frame is the one (click it to open the panel, as `/eqvc` does); `/eqvc show` brings the button
+back (kept as `ui.showIndicator`; the old hide switch is ignored). It is still built (hidden) so the missing-dependency notice can use it.
+
 **Installer fixes for the native extension (EqVoice.dll / ClassicAPI).** (1) A screenshot of "Access is denied: ...tmp... -> D:\Octowow\EqVoice.dll": the DLL was held open by a running game that setup did not
 recognise (a WoW.exe started with more rights than setup has, or by a launcher, cannot be asked for its folder). Now a WoW.exe whose folder cannot be read counts as the game, a DLL that is locked is tested for before anything
 is asked (`file_in_use`), and a refused replace is said in words ("Close WoW completely ... run setup again. Nothing was changed.") with the old DLL put back. (2) A bug in 0.7.4 and 0.7.5: the line breaks and byte-order mark in the
