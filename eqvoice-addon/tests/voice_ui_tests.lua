@@ -1575,4 +1575,39 @@ do
 	eq(P.error, nil, "no drawing error")
 end
 
+sec("voice ui: a reminder when the EqVoice program is not running")
+do
+	local OV = login()
+	OV.db.ui.setupDone = true
+	-- no status file at all: the program is not running
+	Stub.Advance(10)
+	check(not (OV.Panel.dialog and OV.Panel.dialog.shown), "not at once: the program may be about to start")
+	Stub.Advance(12)
+	local dlg = OV.Panel.dialog
+	check(dlg ~= nil and dlg.shown, "after about 20 seconds the game says so")
+	check(string.find(dlg.text.text, "EqVoice is not running", 1, true) and string.find(dlg.text.text, "Start menu", 1, true), "and says what to do")
+	eq(dlg.btn[1].text, "Okay", "with an Okay button"); eq(dlg.cbText.text, "Don't show again", "and a box")
+	Stub.Click(dlg.btn[1]); eq(dlg.shown, false, "Okay closes it")
+	Stub.Advance(30)
+	check(not dlg.shown, "and it does not nag: once for this stretch without the program")
+	-- the program starts: its status appears; the next time it goes missing the reminder comes again
+	put(OV, 1, { fields = "level=ok mode=open mute=0 deaf=0 tx=1 talk=0 vol=100 near=0 conn=0 key=F9 mic=ok" })
+	Stub.Advance(1)
+	Stub.Advance(30)                                                             -- the status goes stale: the program stopped
+	Stub.Advance(22)
+	check(dlg.shown, "the program stopped: the reminder returns")
+	-- it appears while the window is up: the window goes by itself
+	put(OV, 2, { fields = "level=ok mode=open mute=0 deaf=0 tx=1 talk=0 vol=100 near=0 conn=0 key=F9 mic=ok" })
+	Stub.Advance(1)
+	check(not dlg.shown, "the program is running: the window is taken away")
+	-- "Don't show again" is kept
+	Stub.Advance(40); Stub.Advance(22)
+	check(dlg.shown, "(it was missing again)")
+	Stub.Click(dlg.cb); Stub.Click(dlg.btn[1])
+	eq(OV.db.ui.noAppWarn, true, "Don't show again is kept")
+	Stub.Advance(60)
+	check(not dlg.shown, "and the reminder stays away")
+	eq(OV.Panel.error, nil, "no drawing error")
+end
+
 end

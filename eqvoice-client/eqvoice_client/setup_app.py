@@ -7,7 +7,7 @@
      with the two mods EqVoice cannot work without (nampower.dll and ClassicAPI.dll)
   3. stops a running EqVoice (an upgrade), copies the program into %LOCALAPPDATA%\\Programs\\EqVoice, the addon into the game, and switches the
      addon on for every character
-  4. registers it: Settings > Apps (so it can be uninstalled), a Start menu folder, and start with Windows (so that "start WoW" is all anyone does)
+  4. registers it: Settings > Apps (so it can be uninstalled), a Start menu folder, and, only if the player says yes in the one question setup asks, start with Windows
   5. starts it, and says in one message where it lives (the system tray) and what to expect in the game
 
 Nothing is asked about paths or settings. Settings live in the game. An upgrade over an earlier test build keeps the player's settings and logs.
@@ -123,8 +123,19 @@ def _winreg():
     return winreg
 
 
-def write_registration(manifest: Manifest, uninstall_root: str = UNINSTALL_ROOT, run_root: str = RUN_ROOT, autostart: bool = True) -> None:
-    """Settings > Apps entry, and start with Windows (both current user: no administrator needed)."""
+def autostart_enabled(run_root: str = RUN_ROOT) -> bool:
+    """Is EqVoice already set to start with Windows (an upgrade keeps what the player chose)?"""
+    try:
+        w = _winreg()
+        with w.OpenKey(w.HKEY_CURRENT_USER, run_root, 0, w.KEY_READ) as k:
+            w.QueryValueEx(k, APP_KEY)
+        return True
+    except OSError:
+        return False
+
+
+def write_registration(manifest: Manifest, uninstall_root: str = UNINSTALL_ROOT, run_root: str = RUN_ROOT, autostart: bool = False) -> None:
+    """Settings > Apps entry (current user: no administrator needed), and start with Windows only when ``autostart`` (the run entry matches the choice)."""
     w = _winreg()
     exe = str(Path(manifest.install_dir) / EXE_NAME)
     with w.CreateKeyEx(w.HKEY_CURRENT_USER, uninstall_root + "\\" + APP_KEY, 0, w.KEY_WRITE) as k:
@@ -142,6 +153,12 @@ def write_registration(manifest: Manifest, uninstall_root: str = UNINSTALL_ROOT,
     if autostart:
         with w.CreateKeyEx(w.HKEY_CURRENT_USER, run_root, 0, w.KEY_WRITE) as k:
             w.SetValueEx(k, APP_KEY, 0, w.REG_SZ, '"%s"' % exe)
+    else:
+        try:
+            with w.OpenKey(w.HKEY_CURRENT_USER, run_root, 0, w.KEY_SET_VALUE) as k:
+                w.DeleteValue(k, APP_KEY)
+        except OSError:
+            pass
 
 
 def remove_registration(uninstall_root: str = UNINSTALL_ROOT, run_root: str = RUN_ROOT) -> None:
@@ -241,11 +258,12 @@ class InstallReport:
     enabled: str = ""
     warnings: List[str] = field(default_factory=list)
     shortcuts: bool = False
+    autostart: bool = False
 
 
 def install(payload: Path, install_dir: Path, wow: Path, *, addon_src: Optional[Path] = None, hub_txt: Optional[Path] = None,
             uninstall_root: str = UNINSTALL_ROOT, run_root: str = RUN_ROOT, menu_dir: Optional[Path] = None, data_dir: Optional[Path] = None,
-            autostart: bool = True, registry: bool = True, stop: Callable[[Path], int] = lambda d: stop_running(d)) -> InstallReport:
+            autostart: bool = False, registry: bool = True, stop: Callable[[Path], int] = lambda d: stop_running(d)) -> InstallReport:
     """Put EqVoice in place. ``payload`` is the EqVoice.exe to install. Raises SetupError (with words a player can read) if it cannot."""
     install_dir, wow = Path(install_dir), Path(wow)
     if not Path(payload).exists():
@@ -286,6 +304,7 @@ def install(payload: Path, install_dir: Path, wow: Path, *, addon_src: Optional[
     except (OSError, ValueError, TypeError) as e:
         log.warning("could not save the game folder in the settings: %s", e)
     rep.manifest.save(install_dir / MANIFEST)
+    rep.autostart = bool(autostart)
     if registry:
         write_registration(rep.manifest, uninstall_root, run_root, autostart)
     if menu_dir is not None:
@@ -298,8 +317,10 @@ def install(payload: Path, install_dir: Path, wow: Path, *, addon_src: Optional[
 
 def final_text(rep: InstallReport) -> str:
     head = "EqVoice Test Build %s is %s." % (rep.manifest.version, "updated" if rep.upgraded else "installed")
+    how = ("and starts with Windows. There is nothing to open." if rep.autostart else
+           "It does not start with Windows: open EqVoice from the Start menu before you play (the game reminds you if it is not running).")
     body = ("\n\nIt runs in the system tray (the little icons by the clock; Windows may keep a new one under the ^ arrow: drag it out to keep it in view) "
-            "and starts with Windows. There is nothing to open.\n\nNow start WoW. A short setup appears in the game the first time: your microphone, "
+            + how + "\n\nNow start WoW. A short setup appears in the game the first time: your microphone, "
             "your speakers and the key you press to talk. Afterwards, click the microphone beside your name, or type /eqvoice, to change anything.")
     warn = "".join("\n\n" + w for w in rep.warnings)
     tail = "\n\nTo remove it: Settings > Apps > EqVoice."
@@ -414,9 +435,22 @@ def run_setup(argv: Optional[list] = None) -> int:
         installer.offer_classicapi(wow)
     registry = not os.environ.get("EQVOICE_SETUP_NO_REGISTRY")
     reg_base = os.environ.get("EQVOICE_SETUP_REGBASE")                               # tests: a scratch key instead of the real ones
+    run_root = (reg_base + r"\Run") if reg_base else RUN_ROOT
+    # start with Windows: the player's choice. An upgrade keeps what is already set; a fresh install asks (silent setups: EQVOICE_SETUP_AUTOSTART=1, else off)
+    if autostart_enabled(run_root):                                                  # an earlier build set it without asking: ask now
+        autostart = True if _silent() else installer.ask_yes_no(TITLE, "EqVoice currently starts when Windows starts.\n\nKeep that?\n\n"
+                                                                "No: you open EqVoice from the Start menu before you play, and the game reminds you if it is not running.")
+    elif os.environ.get("EQVOICE_SETUP_AUTOSTART"):
+        autostart = os.environ["EQVOICE_SETUP_AUTOSTART"] == "1"
+    elif _silent():
+        autostart = False
+    else:
+        autostart = installer.ask_yes_no(TITLE, "Start EqVoice when Windows starts?\n\nYes: it is always ready when you play.\n"
+                                                "No: you open EqVoice from the Start menu before you play, and the game reminds you if it is not running. "
+                                                "(You can change this later in Settings > Apps > Startup.)")
     try:
-        rep = install(payload, root, wow, hub_txt=hub, addon_src=bundled("addon/EqVoice"), registry=registry,
-                      uninstall_root=(reg_base + r"\Uninstall") if reg_base else UNINSTALL_ROOT, run_root=(reg_base + r"\Run") if reg_base else RUN_ROOT,
+        rep = install(payload, root, wow, hub_txt=hub, addon_src=bundled("addon/EqVoice"), registry=registry, autostart=autostart,
+                      uninstall_root=(reg_base + r"\Uninstall") if reg_base else UNINSTALL_ROOT, run_root=run_root,
                       menu_dir=None if os.environ.get("EQVOICE_SETUP_NO_SHORTCUTS") else start_menu_dir(),
                       data_dir=Path(os.environ["EQVOICE_SETUP_DATA"]) if os.environ.get("EQVOICE_SETUP_DATA") else None)
     except installer.InstallError as e:

@@ -73,6 +73,9 @@ Panel.lastRefresh = -100
 Panel.lastDock    = -100
 Panel.dockedTo    = nil      -- the screen height the indicator's default place was worked out for
 Panel.dragging    = false
+Panel.APP_WAIT_S  = 20       -- seconds without the EqVoice program before the game says so
+Panel.appDownSince = nil
+Panel.appWarned   = false    -- the reminder was shown for this stretch without the program
 Panel.error       = nil
 Panel.sliders     = {}       -- every slider made, so that the tick can send the ones that have come to rest
 Panel.setupActive = false    -- the setup was seen running
@@ -1446,6 +1449,29 @@ function Panel.ScrollNearby(delta)
 	end
 end
 
+-- The EqVoice program is not running (it does not start with Windows unless the player chose that): say so in the middle of the screen, once for
+-- each time it is missing, and take the window away by itself when the program appears. "Don't show again" is kept.
+function Panel.CheckAppMissing(now)
+	if not (OV.db and OV.db.ui) or not OV.started then return end
+	if OV.db.ui.noAppWarn then return end
+	if OV.Status.Alive(now) then
+		Panel.appDownSince, Panel.appWarned = nil, false
+		if Panel.appDialogUp then
+			Panel.appDialogUp = false
+			if Panel.dialog and Panel.dialog:IsShown() then Panel.dialog:Hide() end
+		end
+		return
+	end
+	Panel.appDownSince = Panel.appDownSince or now
+	if Panel.appWarned or now - Panel.appDownSince < Panel.APP_WAIT_S then return end
+	if Panel.dialog and Panel.dialog:IsShown() then return end                       -- another window is up: ask again next time round
+	Panel.appWarned, Panel.appDialogUp = true, true
+	Panel.Dialog({ text = "EqVoice is not running, so voice chat will not work yet.\n\nStart EqVoice from your Start menu (or desktop). The game connects to it by itself, and this window goes away.",
+		width = 400, height = 200,
+		buttons = { { "Okay", function(noMore) Panel.appDialogUp = false; if noMore then OV.db.ui.noAppWarn = true end end } },
+		check = { "Don't show again" } })
+end
+
 function Panel.OverheadOn()
 	return not (OV.db and OV.db.ui and OV.db.ui.overhead == false)
 end
@@ -2124,6 +2150,8 @@ function Panel.Tick(now)
 		local ok, err = pcall(Panel.Dock)       -- the micro bar can be moved or hidden at any time
 		if not ok then fail(err) end
 	end
+	local okApp, errApp = pcall(Panel.CheckAppMissing, now)
+	if not okApp then fail(errApp) end
 	if Panel.capturing and now >= Panel.captureEnds then Panel.StopCapture("key not changed (no key was pressed)") end
 	for i = 1, table.getn(Panel.sliders) do                       -- a slider that has come to rest sends its value
 		local ok, err = pcall(Panel.sliders[i].Flush, now)

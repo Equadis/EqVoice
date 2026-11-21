@@ -83,6 +83,15 @@ Opaque charcoal window, flat compact controls, one purple accent, four groups: a
 
 Not seen in the real game yet: the layout was checked in the test stub (no control overlaps or leaves the window), not on screen.
 
+## 0.7.5 (2026-11, pre-release)
+
+**Start with Windows is a question, not a default.** Setup asks "Start EqVoice when Windows starts?" (No: open it from the Start menu before playing). A build that set it without asking is asked "Keep that?" on upgrade;
+silent setups use `EQVOICE_SETUP_AUTOSTART=1` or leave it off.
+
+**The game reminds the player when the program is not running:** after 5 s without it, a window in the middle of the screen says to start EqVoice from the Start menu; it closes by itself when the program appears and comes back
+once each time it goes missing. "Don't show again this session" lasts until the game is closed (or /reload) and is never saved, so the next time the game starts with the program not running it says so again. The program still stays
+in the tray until Exit (it does not quit when WoW closes; the voice engine stops after 45 s).
+
 ## 0.7.1 (2026-11, pre-release)
 
 **Overhead icons On hid the ally's nameplate** (a screenshot pair: the plate was there with the icons Off and gone with them On, and there was no icon either). The suspect is the client's friendly-nameplate switch, which EqVoice

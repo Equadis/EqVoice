@@ -64,11 +64,26 @@ def test_a_fresh_install_puts_everything_where_it_belongs(world):
     assert cfg["bridge"]["wow_dir"] == str(w["wow"]), "the game folder is saved: the program never has to ask for it"
     assert reg_value(w["uninst"], "DisplayName", "EqVoice").startswith("EqVoice"), "Settings > Apps lists it"
     assert reg_value(w["uninst"], "UninstallString", "EqVoice") == '"%s" --uninstall' % (w["install"] / "EqVoice.exe")
-    assert reg_value(w["run"], "EqVoice") == '"%s"' % (w["install"] / "EqVoice.exe"), "and it starts with Windows"
+    import winreg
+    with pytest.raises(OSError):
+        reg_value(w["run"], "EqVoice")                                                       # it does NOT start with Windows unless the player said so
     assert rep.shortcuts and (w["menu"] / "EqVoice.lnk").exists() and (w["menu"] / "Uninstall EqVoice.lnk").exists(), "the Start menu"
     assert rep.warnings == [], "a good game folder: nothing to warn about"
     text = setup_app.final_text(rep)
-    assert "Test Build" in text and "system tray" in text and "starts with Windows" in text and "Settings > Apps" in text and "/eqvoice" in text
+    assert "Test Build" in text and "system tray" in text and "does not start with Windows" in text and "Start menu" in text and "Settings > Apps" in text and "/eqvoice" in text
+
+
+def test_start_with_windows_is_the_players_choice_and_an_upgrade_keeps_it(world):
+    w = world
+    rep = do_install(w, autostart=True)
+    assert rep.autostart and reg_value(w["run"], "EqVoice") == '"%s"' % (w["install"] / "EqVoice.exe"), "yes: it starts with Windows"
+    assert setup_app.autostart_enabled(w["run"]) and "starts with Windows" in setup_app.final_text(rep) and "does not start" not in setup_app.final_text(rep)
+    rep = do_install(w, autostart=False)
+    assert not setup_app.autostart_enabled(w["run"]) and not rep.autostart, "no: the entry is taken away again"
+    assert "does not start with Windows" in setup_app.final_text(rep)
+    do_install(w, autostart=True)
+    do_install(w, autostart=setup_app.autostart_enabled(w["run"]))
+    assert setup_app.autostart_enabled(w["run"]), "an upgrade that keeps what is already set keeps it"
 
 
 def test_an_upgrade_keeps_the_settings_stops_the_old_program_and_replaces_it(world):
